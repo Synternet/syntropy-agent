@@ -13,3 +13,8 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Personalised vscode configs and scripts
+.vscode/*
+# Executable binary
+sag
