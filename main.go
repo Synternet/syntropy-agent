@@ -16,7 +16,7 @@ func main() {
 
 	agent, err := agent.NewAgent()
 	if err != nil {
-		log.Fatalf("Could not create Syntropy Stack agent", err)
+		log.Fatal("Could not create Syntropy Stack agent: ", err)
 	}
 
 	agent.Run()

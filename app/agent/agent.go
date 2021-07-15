@@ -1,18 +1,23 @@
 package agent
 
-type Agent struc {
+import (
+	"fmt"
+	"os"
+)
+
+type Agent struct {
 	url string
 	token string
 }
 
 func NewAgent() (*Agent, error) {
-	agent Agent {
+	agent := Agent {
 		url: os.Getenv("SYNTROPY_CONTROLLER_URL"),
-		token: os.Getenv("SYNTROPY_AGENT_TOKEN")
+		token: os.Getenv("SYNTROPY_AGENT_TOKEN"),
 	}
 
 	if agent.token == "" {
-		return nil, "SYNTROPY_AGENT_TOKEN is not set"
+		return nil, fmt.Errorf("SYNTROPY_AGENT_TOKEN is not set")
 	}
 
 	if agent.url == "" {
