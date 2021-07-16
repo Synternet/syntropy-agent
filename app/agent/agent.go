@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
 
 type Agent struct {
 	url     string
 	token   string
 	version string
+
+	quit chan int
 
 	ws *websocket.Conn
 }
@@ -37,6 +39,8 @@ func NewAgent(version string) (*Agent, error) {
 		return nil, err
 	}
 
+	agent.quit = make(chan int)
+
 	return &agent, nil
 }
 
@@ -47,5 +51,6 @@ func (agent *Agent) Run() {
 
 // Close closes websocket connection
 func (agent *Agent) Close() {
+	close(agent.quit)
 	agent.ws.Close()
 }

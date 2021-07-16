@@ -4,36 +4,50 @@ import (
 	"bufio"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 )
 
-func (agent *Agent) CreateWebsocketConnection() error {
-	url := url.URL{Scheme: "wss", Host: agent.url}
-	wsConfig, err := websocket.NewConfig(url.String(), "http://localhost")
-	if err != nil {
-		return err
-	}
+func (agent *Agent) CreateWebsocketConnection() (err error) {
+	url := url.URL{Scheme: "wss", Host: agent.url, Path: "/"}
+	headers := http.Header(make(map[string][]string))
 
 	// Without these headers connection will be ignored silently
-	wsConfig.Header.Set("authorization", agent.token)
-	wsConfig.Header.Set("x-deviceid", generateDeviceId())
-	wsConfig.Header.Set("x-deviceip", getPublicIp())
-	wsConfig.Header.Set("x-devicename", getAgentName())
-	wsConfig.Header.Set("x-devicestatus", "OK")
-	wsConfig.Header.Set("x-agenttype", "Linux")
-	wsConfig.Header.Set("x-agentversion", agent.version)
+	headers.Set("authorization", agent.token)
+	headers.Set("x-deviceid", generateDeviceId())
+	headers.Set("x-deviceip", getPublicIp())
+	headers.Set("x-devicename", getAgentName())
+	headers.Set("x-devicestatus", "OK")
+	headers.Set("x-agenttype", "Linux")
+	headers.Set("x-agentversion", agent.version)
 
-	agent.ws, err = websocket.DialConfig(wsConfig)
+	agent.ws, _, err = websocket.DefaultDialer.Dial(url.String(), headers)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (agent *Agent) Listen() error {
+	for {
+		select {
+		case <-agent.quit:
+			return nil
+		default:
+			mtype, message, err := agent.ws.ReadMessage()
+			if err != nil {
+				log.Println("read error:", err)
+				return err
+			}
+			log.Printf("recv: [%d] %s", mtype, message)
+		}
+	}
 }
 
 func generateDeviceId() string {

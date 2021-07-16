@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
 
 	"github.com/SyntropyNet/syntropy-agent-go/app/agent"
 )
@@ -20,8 +22,12 @@ func main() {
 	}
 
 	log.Println("Connected")
-	defer agent.Close()
 
-	agent.Run()
+	go agent.Listen()
 
+	terminate := make(chan os.Signal, 1)
+	signal.Notify(terminate, os.Interrupt)
+	<-terminate
+	log.Println("SyntropyAgent terminating")
+	agent.Close()
 }
