@@ -1,54 +1,15 @@
-package agent
+package saas
 
 import (
 	"bufio"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
-
-	"github.com/gorilla/websocket"
 )
 
-func (agent *Agent) CreateWebsocketConnection() (err error) {
-	url := url.URL{Scheme: "wss", Host: agent.url, Path: "/"}
-	headers := http.Header(make(map[string][]string))
-
-	// Without these headers connection will be ignored silently
-	headers.Set("authorization", agent.token)
-	headers.Set("x-deviceid", generateDeviceId())
-	headers.Set("x-deviceip", getPublicIp())
-	headers.Set("x-devicename", getAgentName())
-	headers.Set("x-devicestatus", "OK")
-	headers.Set("x-agenttype", "Linux")
-	headers.Set("x-agentversion", agent.version)
-
-	agent.ws, _, err = websocket.DefaultDialer.Dial(url.String(), headers)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (agent *Agent) Listen() error {
-	for {
-		select {
-		case <-agent.quit:
-			return nil
-		default:
-			mtype, message, err := agent.ws.ReadMessage()
-			if err != nil {
-				log.Println("read error:", err)
-				return err
-			}
-			log.Printf("recv: [%d] %s", mtype, message)
-		}
-	}
-}
+// TODO: in future move these helper functions to separate package
 
 func generateDeviceId() string {
 	productUUID := func() (string, error) {

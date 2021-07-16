@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/SyntropyNet/syntropy-agent-go/app/agent"
+	"github.com/SyntropyNet/syntropy-agent-go/agent"
 )
 
 const appName = "sag"
@@ -23,11 +23,11 @@ func main() {
 
 	log.Println("Connected")
 
-	go agent.Listen()
+	go agent.Loop()
 
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, os.Interrupt)
 	<-terminate
 	log.Println("SyntropyAgent terminating")
-	agent.Close()
+	agent.Stop()
 }

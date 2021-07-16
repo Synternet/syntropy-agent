@@ -1,8 +1,8 @@
 # SyntropyAgent-GO build script
 
-all: agent
+all: agent-go
 
-agent:
+agent-go:
 	go build -o sag -ldflags="-s -w" main.go
 
 clean:
