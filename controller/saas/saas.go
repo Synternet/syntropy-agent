@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/gorilla/websocket"
@@ -70,25 +71,33 @@ func (cc *CloudController) createWebsocketConnection() (err error) {
 }
 
 // Start is main loop of SyntropyStack agent
-func (cc *CloudController) Start() error {
-	for {
-		select {
-		case <-cc.quit:
-			return nil
-		default:
-			mtype, message, err := cc.ws.ReadMessage()
-			if err != nil {
-				log.Println("read error:", err)
-				return err
-			}
-			log.Printf("recv: [%d] %s", mtype, message)
-		}
-	}
+func (cc *CloudController) Start() {
+	defer close(cc.quit)
 
+	for {
+		mtype, message, err := cc.ws.ReadMessage()
+		if err != nil {
+			log.Println("read error:", err)
+			return
+		}
+		log.Printf("recv: [%d] %s", mtype, message)
+	}
 }
 
 // Stop closes websocket connection
 func (cc *CloudController) Stop() {
-	close(cc.quit)
+	// Cleanly close the connection by sending a close message and then
+	// waiting (with timeout) for the server to close the connection.
+	err := cc.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	if err != nil {
+		log.Println("write close:", err)
+		return
+	}
+
+	select {
+	case <-cc.quit:
+	case <-time.After(time.Second):
+	}
+
 	cc.ws.Close()
 }

@@ -16,18 +16,20 @@ func main() {
 
 	// TODO: init Wireguard (see pyroyte2.Wireguard())
 
-	agent, err := agent.NewAgent(version)
+	syntropyNetAgent, err := agent.NewAgent(version)
 	if err != nil {
 		log.Fatal("Could not create Syntropy Stack agent: ", err)
 	}
 
-	log.Println("Connected")
+	//Start main agent loop (forks to goroutines internally)
+	syntropyNetAgent.Loop()
 
-	go agent.Loop()
-
+	// Wait for SIGINT or SIGKILL to terminate app
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, os.Interrupt)
 	<-terminate
 	log.Println("SyntropyAgent terminating")
-	agent.Stop()
+
+	// Stop and cleanup
+	syntropyNetAgent.Stop()
 }

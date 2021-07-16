@@ -25,8 +25,7 @@ func NewAgent(version string) (*Agent, error) {
 
 // Loop is main loop of SyntropyStack agent
 func (agent *Agent) Loop() {
-	agent.controller.Start()
-
+	go agent.controller.Start()
 }
 
 // Stop closes connections to controller and stops all runners
