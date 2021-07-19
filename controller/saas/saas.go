@@ -71,16 +71,16 @@ func (cc *CloudController) createWebsocketConnection() (err error) {
 }
 
 // Start is main loop of SyntropyStack agent
-func (cc *CloudController) Start() {
+func (cc *CloudController) Start(c chan []byte) {
 	defer close(cc.quit)
 
 	for {
-		mtype, message, err := cc.ws.ReadMessage()
+		_, message, err := cc.ws.ReadMessage()
 		if err != nil {
 			log.Println("read error:", err)
 			return
 		}
-		log.Printf("recv: [%d] %s", mtype, message)
+		c <- message
 	}
 }
 

@@ -1,6 +1,6 @@
 package controller
 
 type Controller interface {
-	Start()
+	Start(c chan []byte)
 	Stop()
 }
