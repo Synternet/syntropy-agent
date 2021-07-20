@@ -64,6 +64,7 @@ func (agent *Agent) Transmit(msg []byte) {
 		return
 	}
 
+	log.Println("Sending: ", string(msg))
 	agent.msgChanTx <- msg
 }
 

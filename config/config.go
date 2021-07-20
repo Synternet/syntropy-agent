@@ -5,8 +5,8 @@ import "time"
 const version = "0.0.69"
 
 type Location struct {
-	Latitude  float32
-	Longitude float32
+	Latitude  string
+	Longitude string
 }
 
 // This struct is used to cache commonly used Syntropy agent configuration

@@ -151,16 +151,8 @@ func initCloudURL() {
 }
 
 func initLocation() {
-	lat, err := strconv.ParseFloat(os.Getenv("SYNTROPY_LAT"), 32)
-	if err != nil {
-		return
-	}
-	lon, err := strconv.ParseFloat(os.Getenv("SYNTROPY_LON"), 32)
-	if err != nil {
-		return
-	}
-	cache.location.Latitude = float32(lat)
-	cache.location.Longitude = float32(lon)
+	cache.location.Latitude = os.Getenv("SYNTROPY_LAT")
+	cache.location.Longitude = os.Getenv("SYNTROPY_LON")
 }
 
 func initContainerType() {

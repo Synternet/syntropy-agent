@@ -31,11 +31,19 @@ func GetServicesStatus() bool {
 }
 
 func GetAgentTags() []string {
-	return cache.agentTags
+	if len(cache.agentTags) > 0 {
+		return cache.agentTags
+	} else {
+		return []string{}
+	}
 }
 
 func GetNetworkIDs() []string {
-	return cache.networkIDs
+	if len(cache.networkIDs) > 0 {
+		return cache.networkIDs
+	} else {
+		return []string{}
+	}
 }
 
 func GetPublicIp() string {
