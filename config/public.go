@@ -34,6 +34,10 @@ func GetAgentTags() []string {
 	return cache.agentTags
 }
 
+func GetNetworkIDs() []string {
+	return cache.networkIDs
+}
+
 func GetPublicIp() string {
 	if time.Now().After(cache.publicIP.updated.Add(ipUpdatePeriod)) {
 		updatePublicIp()
@@ -44,4 +48,8 @@ func GetPublicIp() string {
 
 func GetDeviceID() string {
 	return cache.deviceID
+}
+
+func IsContainerDocker() bool {
+	return cache.containerType == "docker"
 }

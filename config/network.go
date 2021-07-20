@@ -3,6 +3,7 @@ package config
 import (
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -38,4 +39,8 @@ func updatePublicIp() {
 
 	cache.publicIP.ip = ip
 	cache.publicIP.updated = time.Now()
+}
+
+func initNetworkIDs() {
+	cache.networkIDs = strings.Split(os.Getenv("SYNTROPY_NETWORK_IDS"), ",")
 }

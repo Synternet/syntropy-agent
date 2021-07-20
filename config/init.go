@@ -12,15 +12,19 @@ import (
 func init() {
 	initAgentToken()
 	initCloudURL()
+	initDeviceID()
 
 	initAgentName()
 	initAgentProvider()
 	initAgentCategory()
 	initServicesStatus()
 	initAgentTags()
-	initDeviceID()
+	initNetworkIDs()
 
 	updatePublicIp()
+
+	initLocation()
+	initContainerType()
 
 	log.Println("Config init completed")
 }
@@ -144,4 +148,21 @@ func initCloudURL() {
 	if url != "" {
 		cache.cloudURL = url
 	}
+}
+
+func initLocation() {
+	lat, err := strconv.ParseFloat(os.Getenv("SYNTROPY_LAT"), 32)
+	if err != nil {
+		return
+	}
+	lon, err := strconv.ParseFloat(os.Getenv("SYNTROPY_LON"), 32)
+	if err != nil {
+		return
+	}
+	cache.location.Latitude = float32(lat)
+	cache.location.Longitude = float32(lon)
+}
+
+func initContainerType() {
+	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
 }
