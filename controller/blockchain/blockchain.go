@@ -5,7 +5,7 @@ type BlockchainControler struct {
 }
 
 // Start is main loop of SyntropyStack agent
-func (bcc *BlockchainControler) Start(c chan []byte) {
+func (bcc *BlockchainControler) Start(rx, tx chan []byte) {
 }
 
 // Stop closes websocket connection
