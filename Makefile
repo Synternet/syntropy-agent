@@ -3,7 +3,7 @@
 all: agent-go
 
 agent-go:
-	go build -o sag -ldflags="-s -w" main.go
+	go build -o sag -ldflags="-s -w" ./cmd/main.go
 
 clean:
 	go clean
