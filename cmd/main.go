@@ -6,17 +6,17 @@ import (
 	"os/signal"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent"
+	"github.com/SyntropyNet/syntropy-agent-go/config"
 )
 
 const appName = "sag"
-const version = "0.0.69"
 
 func main() {
-	log.Println(appName, version, "started")
+	log.Println(appName, config.GetVersion(), "started")
 
 	// TODO: init Wireguard (see pyroyte2.Wireguard())
 
-	syntropyNetAgent, err := agent.NewAgent(version)
+	syntropyNetAgent, err := agent.NewAgent()
 	if err != nil {
 		log.Fatal("Could not create Syntropy Stack agent: ", err)
 	}

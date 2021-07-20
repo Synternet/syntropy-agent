@@ -19,11 +19,11 @@ type Agent struct {
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func NewAgent(version string) (*Agent, error) {
+func NewAgent() (*Agent, error) {
 	var err error
 	agent := new(Agent)
 
-	agent.controller, err = saas.NewCloudController(version)
+	agent.controller, err = saas.NewCloudController()
 	if err != nil {
 		return nil, err
 	}

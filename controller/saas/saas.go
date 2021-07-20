@@ -1,13 +1,12 @@
 package saas
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/gorilla/websocket"
 )
@@ -24,19 +23,12 @@ type CloudController struct {
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func NewCloudController(version string) (controller.Controller, error) {
+func NewCloudController() (controller.Controller, error) {
+	// Note: config package returns already validated values and no need to validate them here
 	cc := CloudController{
-		url:     os.Getenv("SYNTROPY_CONTROLLER_URL"),
-		token:   os.Getenv("SYNTROPY_AGENT_TOKEN"),
-		version: version,
-	}
-
-	if cc.token == "" {
-		return nil, fmt.Errorf("SYNTROPY_AGENT_TOKEN is not set")
-	}
-
-	if cc.url == "" {
-		cc.url = "controller-prod-platform-agents.syntropystack.com"
+		url:     config.GetCloudURL(),
+		token:   config.GetAgentToken(),
+		version: config.GetVersion(),
 	}
 
 	err := cc.createWebsocketConnection()
@@ -55,9 +47,9 @@ func (cc *CloudController) createWebsocketConnection() (err error) {
 
 	// Without these headers connection will be ignored silently
 	headers.Set("authorization", cc.token)
-	headers.Set("x-deviceid", generateDeviceId())
-	headers.Set("x-deviceip", getPublicIp())
-	headers.Set("x-devicename", getAgentName())
+	headers.Set("x-deviceid", config.GetDeviceID())
+	headers.Set("x-deviceip", config.GetPublicIp())
+	headers.Set("x-devicename", config.GetAgentName())
 	headers.Set("x-devicestatus", "OK")
 	headers.Set("x-agenttype", "Linux")
 	headers.Set("x-agentversion", cc.version)
