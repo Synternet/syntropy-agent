@@ -9,7 +9,7 @@ import (
 )
 
 func (a *Agent) processCommand(raw []byte) error {
-	var req MessageHeader
+	var req messageHeader
 	if err := json.Unmarshal(raw, &req); err != nil {
 		return fmt.Errorf("json unmarshal error: %s", err.Error())
 	}
@@ -49,14 +49,14 @@ func getInfo(a *Agent, raw []byte) (rv []byte, err error) {
 	}
 
 	resp := getInfoResponce{
-		MessageHeader: req.MessageHeader,
+		messageHeader: req.messageHeader,
 	}
 	resp.Data.Provider = config.GetAgentProvider()
 	resp.Data.Status = config.GetServicesStatus()
 	resp.Data.Tags = config.GetAgentTags()
 	resp.Data.ExternalIP = config.GetPublicIp()
-	resp.Data.NetworkInfo = []int{}
-	resp.Data.ContainerInfo = []int{}
+	resp.Data.NetworkInfo = FakeNetworkInfo()
+	resp.Data.ContainerInfo = FakeContainerInfo()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {
