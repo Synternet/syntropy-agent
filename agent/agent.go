@@ -33,6 +33,7 @@ func NewAgent() (*Agent, error) {
 	agent.commands = make(map[string]func(a *Agent, req []byte) ([]byte, error))
 	agent.commands["AUTO_PING"] = autoPing
 	agent.commands["GET_INFO"] = getInfo
+	agent.commands["CONFIG_INFO"] = configInfo
 
 	return agent, nil
 }
