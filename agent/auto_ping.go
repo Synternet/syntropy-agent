@@ -2,6 +2,8 @@ package agent
 
 import "encoding/json"
 
+// I think I will use https://github.com/go-ping/ping
+
 type autoPingRequest struct {
 	messageHeader
 	Data struct {
