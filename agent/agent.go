@@ -18,7 +18,7 @@ type Agent struct {
 
 	wg *wgctrl.Client
 
-	commands map[string]func(a *Agent, req []byte) ([]byte, error)
+	commands map[string]func(a *Agent, req []byte) error
 }
 
 // NewAgent allocates instance of agent struct
@@ -42,10 +42,11 @@ func NewAgent() (*Agent, error) {
 	agent.msgChanRx = make(chan []byte)
 	agent.msgChanTx = make(chan []byte)
 
-	agent.commands = make(map[string]func(a *Agent, req []byte) ([]byte, error))
+	agent.commands = make(map[string]func(a *Agent, req []byte) error)
 	agent.commands["AUTO_PING"] = autoPing
 	agent.commands["GET_INFO"] = getInfo
 	agent.commands["CONFIG_INFO"] = configInfo
+	agent.commands["WG_CONF"] = wireguardConfigure
 
 	return agent, nil
 }

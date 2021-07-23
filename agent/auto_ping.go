@@ -22,11 +22,11 @@ type autoPingResponce struct {
 	} `json:"data"`
 }
 
-func autoPing(a *Agent, raw []byte) (resp []byte, err error) {
+func autoPing(a *Agent, raw []byte) error {
 
 	var pingReq autoPingRequest
-	err = json.Unmarshal(raw, &pingReq)
+	err := json.Unmarshal(raw, &pingReq)
 
 	// TODO: implement me
-	return resp, err
+	return err
 }

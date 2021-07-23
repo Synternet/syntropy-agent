@@ -153,11 +153,11 @@ func createInterface(a *Agent, ifname string, e *configInfoNetworkEntry) (*updat
 	return rv, nil
 }
 
-func configInfo(a *Agent, raw []byte) (rv []byte, err error) {
+func configInfo(a *Agent, raw []byte) error {
 	var req configInfoMsg
-	err = json.Unmarshal(raw, &req)
+	err := json.Unmarshal(raw, &req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	log.Println(req)
 	resp := updateAgentConfigMsg{
@@ -169,43 +169,43 @@ func configInfo(a *Agent, raw []byte) (rv []byte, err error) {
 	// Dump pretty idented json to temp file
 	prettyJson, err := json.MarshalIndent(req, "", "    ")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
 
 	wgdevs, err := a.wg.Devices()
 	if err != nil {
 		log.Println("wgctrl.Devices: ", err)
-		return nil, err
+		return err
 	}
 	log.Println("Existing wireguard interfaces: ", wgdevs)
 
 	// create missing interfaces
 	respEntry, err := createInterface(a, "SYNTROPY_PUBLIC", &req.Data.Network.Public)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	resp.Data = append(resp.Data, *respEntry)
 	respEntry, err = createInterface(a, "SYNTROPY_SDN1", &req.Data.Network.Sdn1)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	resp.Data = append(resp.Data, *respEntry)
 	respEntry, err = createInterface(a, "SYNTROPY_SDN2", &req.Data.Network.Sdn2)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	resp.Data = append(resp.Data, *respEntry)
 	respEntry, err = createInterface(a, "SYNTROPY_SDN3", &req.Data.Network.Sdn3)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	resp.Data = append(resp.Data, *respEntry)
 
 	wgdevs, err = a.wg.Devices()
 	if err != nil {
 		log.Println("wgctrl.Devices: ", err)
-		return nil, err
+		return err
 	}
 	log.Println("Existing/created wireguard interfaces: ", wgdevs)
 
@@ -213,9 +213,9 @@ func configInfo(a *Agent, raw []byte) (rv []byte, err error) {
 
 	arr, err := json.Marshal(resp)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	a.Transmit(arr)
 
-	return nil, nil
+	return nil
 }

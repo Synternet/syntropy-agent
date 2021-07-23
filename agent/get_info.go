@@ -82,12 +82,12 @@ type getInfoResponce struct {
 	} `json:"data"`
 }
 
-func getInfo(a *Agent, raw []byte) (rv []byte, err error) {
+func getInfo(a *Agent, raw []byte) error {
 
 	var req getInfoRequest
-	err = json.Unmarshal(raw, &req)
+	err := json.Unmarshal(raw, &req)
 	if err != nil {
-		return
+		return err
 	}
 
 	resp := getInfoResponce{
@@ -103,10 +103,10 @@ func getInfo(a *Agent, raw []byte) (rv []byte, err error) {
 	arr, err := json.Marshal(&resp)
 	if err != nil {
 		log.Println("Marshal error: ", err)
-		return
+		return err
 	}
 
 	a.Transmit(arr)
 
-	return rv, err
+	return err
 }
