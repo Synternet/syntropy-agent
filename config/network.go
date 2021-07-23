@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -43,4 +44,26 @@ func updatePublicIp() {
 
 func initNetworkIDs() {
 	cache.networkIDs = strings.Split(os.Getenv("SYNTROPY_NETWORK_IDS"), ",")
+}
+
+func initPortsRange() {
+	const maxPort = 65535
+	// Init to sane defaults
+	cache.portsRange.start = 49152
+	cache.portsRange.end = maxPort
+
+	strport := strings.Split(os.Getenv("SYNTROPY_PORT_RANGE"), "-")
+	if len(strport) != 2 {
+		return
+	}
+	p1, e1 := strconv.Atoi(strport[0])
+	p2, e2 := strconv.Atoi(strport[0])
+	if e1 != nil || e2 != nil ||
+		p1 <= 0 || p2 <= 0 ||
+		p1 > maxPort || p2 > maxPort {
+		return
+	}
+
+	cache.portsRange.start = uint16(p1)
+	cache.portsRange.end = uint16(p2)
 }

@@ -29,6 +29,10 @@ type configCache struct {
 		ip      string
 		updated time.Time
 	}
+	portsRange struct {
+		start uint16
+		end   uint16
+	}
 
 	location      Location
 	containerType string

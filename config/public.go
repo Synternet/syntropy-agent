@@ -54,6 +54,10 @@ func GetPublicIp() string {
 	return cache.publicIP.ip
 }
 
+func GetPortsRange() (uint16, uint16) {
+	return cache.portsRange.start, cache.portsRange.end
+}
+
 func GetDeviceID() string {
 	return cache.deviceID
 }

@@ -10,6 +10,8 @@ import (
 )
 
 func init() {
+	initAgentDirs()
+
 	initAgentToken()
 	initCloudURL()
 	initDeviceID()
@@ -22,6 +24,7 @@ func init() {
 	initNetworkIDs()
 
 	updatePublicIp()
+	initPortsRange()
 
 	initLocation()
 	initContainerType()

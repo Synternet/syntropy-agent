@@ -6,6 +6,8 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
+	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
+	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
 type Agent struct {
@@ -13,6 +15,8 @@ type Agent struct {
 	controller controller.Controller
 	msgChanRx  chan []byte
 	msgChanTx  chan []byte
+
+	wg *wgctrl.Client
 
 	commands map[string]func(a *Agent, req []byte) ([]byte, error)
 }
@@ -25,8 +29,16 @@ func NewAgent() (*Agent, error) {
 
 	agent.controller, err = saas.NewCloudController()
 	if err != nil {
+		log.Println("Error creating cloud controller")
 		return nil, err
 	}
+
+	agent.wg, err = wgctrl.New()
+	if err != nil {
+		log.Println("Error creating wgctrl client")
+		return nil, err
+	}
+
 	agent.msgChanRx = make(chan []byte)
 	agent.msgChanTx = make(chan []byte)
 
@@ -90,4 +102,7 @@ func (agent *Agent) Stop() {
 	close(agent.msgChanTx)
 	agent.controller.Stop()
 	close(agent.msgChanRx)
+
+	agent.wg.Close()
+	wireguard.DestroyAllInterfaces()
 }

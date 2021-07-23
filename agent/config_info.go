@@ -2,7 +2,14 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"os"
+
+	"github.com/SyntropyNet/syntropy-agent-go/config"
+	netiface "github.com/SyntropyNet/syntropy-agent-go/network/interface"
+	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type configInfoNetworkEntry struct {
@@ -52,18 +59,163 @@ type configInfoMsg struct {
 			Sdn2   configInfoNetworkEntry `json:"SDN2"`
 			Sdn3   configInfoNetworkEntry `json:"SDN3"`
 		}
+		VPN []configInfoVpnEntry `json:"vpn,omitempty"`
 	} `json:"data"`
-	VPN []configInfoVpnEntry `json:"vpn,omitempty"`
+}
+
+func (req *configInfoMsg) HasInterface(ifname string) bool {
+	fixedNames := []string{"PUBLIC"}
+
+	for _, n := range fixedNames {
+		if ifname == n {
+			return true
+		}
+	}
+
+	return false
+}
+
+type updateAgentConfigEntry struct {
+	Function string `json:"fn"`
+	Data     struct {
+		IfName    string `json:"ifname"`
+		PublicKey string `json:"public_key"`
+		IP        string `json:"internal_ip,omitempty"`
+		Port      int    `json:"listen_port,omitempty"`
+	} `json:"data"`
+}
+
+type updateAgentConfigMsg struct {
+	messageHeader
+	Data []updateAgentConfigEntry `json:"data"`
+}
+
+func createInterface(a *Agent, ifname string, e *configInfoNetworkEntry) (*updateAgentConfigEntry, error) {
+	var port int
+
+	wgdevs, err := a.wg.Devices()
+	if err != nil {
+		log.Println("wgctrl.Devices: ", err)
+		return nil, err
+	}
+	for _, w := range wgdevs {
+		if ifname == w.Name {
+			log.Println("Skipping existing interface ", ifname)
+			return nil, nil
+		}
+	}
+
+	if e == nil {
+		return nil, fmt.Errorf("invalid parameters to createInterface")
+	}
+	if e.Port != 0 {
+		port = e.Port
+	} else {
+		port = wireguard.GetFreePort(ifname)
+	}
+
+	log.Println("Creating interface ", ifname, e, port)
+	err = netiface.CreateInterfaceCmd(ifname)
+	if err != nil {
+		return nil, fmt.Errorf("create wg interface failed: %s", err.Error())
+	}
+
+	privKey, err := wgtypes.GeneratePrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("generate private key error: %s", err.Error())
+	}
+
+	cfg := wgtypes.Config{
+		PrivateKey: &privKey,
+		ListenPort: &port,
+	}
+	err = a.wg.ConfigureDevice(ifname, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("configure interface %s failed: %s", ifname, err.Error())
+	}
+
+	netiface.SetInterfaceUpCmd(ifname)
+	netiface.SetInterfaceIPCmd(ifname, e.IP)
+
+	dev, err := a.wg.Device(ifname)
+	if err != nil {
+		return nil, fmt.Errorf("get device %s failed: %s", ifname, err.Error())
+	}
+
+	rv := &updateAgentConfigEntry{
+		Function: "create_interface",
+	}
+	rv.Data.IfName = ifname
+	rv.Data.IP = e.IP
+	rv.Data.Port = dev.ListenPort
+	rv.Data.PublicKey = dev.PublicKey.String()
+
+	return rv, nil
 }
 
 func configInfo(a *Agent, raw []byte) (rv []byte, err error) {
-	var cfg configInfoMsg
-	err = json.Unmarshal(raw, &cfg)
+	var req configInfoMsg
+	err = json.Unmarshal(raw, &req)
 	if err != nil {
 		return nil, err
 	}
+	log.Println(req)
+	resp := updateAgentConfigMsg{
+		messageHeader: req.messageHeader,
+	}
+	log.Print("Initial responce: ", resp)
+	resp.MsgType = "UPDATE_AGENT_CONFIG"
 
-	log.Println(cfg)
+	// Dump pretty idented json to temp file
+	prettyJson, err := json.MarshalIndent(req, "", "    ")
+	if err != nil {
+		return nil, err
+	}
+	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
+
+	wgdevs, err := a.wg.Devices()
+	if err != nil {
+		log.Println("wgctrl.Devices: ", err)
+		return nil, err
+	}
+	log.Println("Existing wireguard interfaces: ", wgdevs)
+
+	// create missing interfaces
+	respEntry, err := createInterface(a, "SYNTROPY_PUBLIC", &req.Data.Network.Public)
+	if err != nil {
+		return nil, err
+	}
+	resp.Data = append(resp.Data, *respEntry)
+	respEntry, err = createInterface(a, "SYNTROPY_SDN1", &req.Data.Network.Sdn1)
+	if err != nil {
+		return nil, err
+	}
+	resp.Data = append(resp.Data, *respEntry)
+	respEntry, err = createInterface(a, "SYNTROPY_SDN2", &req.Data.Network.Sdn2)
+	if err != nil {
+		return nil, err
+	}
+	resp.Data = append(resp.Data, *respEntry)
+	respEntry, err = createInterface(a, "SYNTROPY_SDN3", &req.Data.Network.Sdn3)
+	if err != nil {
+		return nil, err
+	}
+	resp.Data = append(resp.Data, *respEntry)
+
+	wgdevs, err = a.wg.Devices()
+	if err != nil {
+		log.Println("wgctrl.Devices: ", err)
+		return nil, err
+	}
+	log.Println("Existing/created wireguard interfaces: ", wgdevs)
+
+	resp.Now()
+
+	arr, err := json.Marshal(resp)
+	if err != nil {
+		return nil, err
+	}
+	a.Transmit(arr)
 
 	return nil, nil
 }
