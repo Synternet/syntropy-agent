@@ -2,20 +2,34 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
-	netiface "github.com/SyntropyNet/syntropy-agent-go/network/interface"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type configInfoNetworkEntry struct {
 	IP        string `json:"internal_ip"`
 	PublicKey string `json:"public_key,omitempty"`
 	Port      int    `json:"listen_port"`
+}
+
+func (e *configInfoNetworkEntry) AsWireguardInterface() *wireguard.InterfaceInfo {
+	return &wireguard.InterfaceInfo{
+		IP:        e.IP,
+		PublicKey: e.PublicKey,
+		Port:      e.Port,
+	}
+}
+
+func (e *configInfoVpnEntry) AsWireguardInterface() *wireguard.InterfaceInfo {
+	return &wireguard.InterfaceInfo{
+		IfName:    e.Args.IfName,
+		IP:        e.Args.InternalIP,
+		PublicKey: e.Args.PublicKey,
+		Port:      0, // TODO: check if I have it here
+	}
 }
 
 /****    TODO: review me      ******/
@@ -90,6 +104,17 @@ type updateAgentConfigMsg struct {
 	Data []updateAgentConfigEntry `json:"data"`
 }
 
+func (msg *updateAgentConfigMsg) AddEntry(function string, data *wireguard.InterfaceInfo) {
+	e := updateAgentConfigEntry{Function: function}
+	e.Data.IfName = data.IfName
+	e.Data.IP = data.IP
+	e.Data.PublicKey = data.PublicKey
+	e.Data.Port = data.Port
+
+	msg.Data = append(msg.Data, e)
+}
+
+/*
 func createInterface(a *Agent, ifname string, e *configInfoNetworkEntry) (*updateAgentConfigEntry, error) {
 	var port int
 
@@ -152,6 +177,7 @@ func createInterface(a *Agent, ifname string, e *configInfoNetworkEntry) (*updat
 
 	return rv, nil
 }
+*/
 
 func configInfo(a *Agent, raw []byte) error {
 	var req configInfoMsg
@@ -159,58 +185,70 @@ func configInfo(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	log.Println(req)
+	log.Println(string(raw))
+
 	resp := updateAgentConfigMsg{
 		messageHeader: req.messageHeader,
 	}
-	log.Print("Initial responce: ", resp)
 	resp.MsgType = "UPDATE_AGENT_CONFIG"
+	// Initialise empty slice, so if no entries is added
+	// json.Marshal will result in empty json, and not a null object
+	resp.Data = []updateAgentConfigEntry{}
 
 	// Dump pretty idented json to temp file
+	// TODO: Do I need this file ??
 	prettyJson, err := json.MarshalIndent(req, "", "    ")
 	if err != nil {
 		return err
 	}
 	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
 
-	wgdevs, err := a.wg.Devices()
-	if err != nil {
-		log.Println("wgctrl.Devices: ", err)
-		return err
-	}
-	log.Println("Existing wireguard interfaces: ", wgdevs)
-
 	// create missing interfaces
-	respEntry, err := createInterface(a, "SYNTROPY_PUBLIC", &req.Data.Network.Public)
+	wgi := req.Data.Network.Public.AsWireguardInterface()
+	wgi.IfName = "SYNTROPY_PUBLIC"
+	err = a.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
 	}
-	resp.Data = append(resp.Data, *respEntry)
-	respEntry, err = createInterface(a, "SYNTROPY_SDN1", &req.Data.Network.Sdn1)
-	if err != nil {
-		return err
+	if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
+		req.Data.Network.Public.Port != wgi.Port {
+		resp.AddEntry("create_interface", wgi)
 	}
-	resp.Data = append(resp.Data, *respEntry)
-	respEntry, err = createInterface(a, "SYNTROPY_SDN2", &req.Data.Network.Sdn2)
-	if err != nil {
-		return err
-	}
-	resp.Data = append(resp.Data, *respEntry)
-	respEntry, err = createInterface(a, "SYNTROPY_SDN3", &req.Data.Network.Sdn3)
-	if err != nil {
-		return err
-	}
-	resp.Data = append(resp.Data, *respEntry)
 
-	wgdevs, err = a.wg.Devices()
+	wgi = req.Data.Network.Sdn1.AsWireguardInterface()
+	wgi.IfName = "SYNTROPY_SDN1"
+	err = a.wg.CreateInterface(wgi)
 	if err != nil {
-		log.Println("wgctrl.Devices: ", err)
 		return err
 	}
-	log.Println("Existing/created wireguard interfaces: ", wgdevs)
+	if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
+		req.Data.Network.Sdn1.Port != wgi.Port {
+		resp.AddEntry("create_interface", wgi)
+	}
+
+	wgi = req.Data.Network.Sdn2.AsWireguardInterface()
+	wgi.IfName = "SYNTROPY_SDN2"
+	err = a.wg.CreateInterface(wgi)
+	if err != nil {
+		return err
+	}
+	if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
+		req.Data.Network.Sdn2.Port != wgi.Port {
+		resp.AddEntry("create_interface", wgi)
+	}
+
+	wgi = req.Data.Network.Sdn3.AsWireguardInterface()
+	wgi.IfName = "SYNTROPY_SDN3"
+	err = a.wg.CreateInterface(wgi)
+	if err != nil {
+		return err
+	}
+	if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
+		req.Data.Network.Sdn3.Port != wgi.Port {
+		resp.AddEntry("create_interface", wgi)
+	}
 
 	resp.Now()
-
 	arr, err := json.Marshal(resp)
 	if err != nil {
 		return err

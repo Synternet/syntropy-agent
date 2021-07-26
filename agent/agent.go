@@ -7,7 +7,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
-	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
 type Agent struct {
@@ -16,7 +15,7 @@ type Agent struct {
 	msgChanRx  chan []byte
 	msgChanTx  chan []byte
 
-	wg *wgctrl.Client
+	wg *wireguard.Wireguard
 
 	commands map[string]func(a *Agent, req []byte) error
 }
@@ -33,7 +32,7 @@ func NewAgent() (*Agent, error) {
 		return nil, err
 	}
 
-	agent.wg, err = wgctrl.New()
+	agent.wg, err = wireguard.New()
 	if err != nil {
 		log.Println("Error creating wgctrl client")
 		return nil, err

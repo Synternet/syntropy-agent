@@ -7,16 +7,15 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
-	netiface "github.com/SyntropyNet/syntropy-agent-go/network/interface"
 )
 
 func DestroyAllInterfaces() {
 	// TODO: ugly hack here to delete preconfigured interfaces
 	// Review me asap
-	netiface.DeleteInterfaceCmd("SYNTROPY_PUBLIC")
-	netiface.DeleteInterfaceCmd("SYNTROPY_SDN1")
-	netiface.DeleteInterfaceCmd("SYNTROPY_SDN2")
-	netiface.DeleteInterfaceCmd("SYNTROPY_SDN3")
+	deleteInterfaceCmd("SYNTROPY_PUBLIC")
+	deleteInterfaceCmd("SYNTROPY_SDN1")
+	deleteInterfaceCmd("SYNTROPY_SDN2")
+	deleteInterfaceCmd("SYNTROPY_SDN3")
 }
 
 func isBehindNAT() bool {
