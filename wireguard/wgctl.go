@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -11,12 +12,41 @@ import (
 
 type InterfaceInfo struct {
 	IfName    string
-	IP        string
 	PublicKey string
+	IP        string
 	Port      int
 }
 
 type PeerInfo struct {
+	IfName     string
+	PublicKey  string
+	IP         string
+	Port       int
+	Gateway    string
+	AllowedIPs []string
+}
+
+func (pi *PeerInfo) AsPeerConfig() (*wgtypes.PeerConfig, error) {
+	var err error
+	pcfg := &wgtypes.PeerConfig{}
+
+	pcfg.PublicKey, err = wgtypes.ParseKey(pi.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	pcfg.Endpoint = &net.UDPAddr{
+		IP:   net.ParseIP(pi.IP),
+		Port: pi.Port,
+	}
+
+	for _, e := range pi.AllowedIPs {
+		_, netip, err := net.ParseCIDR(e)
+		if err == nil && netip != nil {
+			pcfg.AllowedIPs = append(pcfg.AllowedIPs, *netip)
+		}
+	}
+
+	return pcfg, nil
 }
 
 func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
@@ -94,11 +124,11 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		ii.Port = GetFreePort(ii.IfName)
 	}
 
-	cfg := wgtypes.Config{
+	wgconf := wgtypes.Config{
 		PrivateKey: &privKey,
 		ListenPort: &ii.Port,
 	}
-	err = wg.ConfigureDevice(ii.IfName, cfg)
+	err = wg.ConfigureDevice(ii.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
@@ -132,9 +162,54 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 }
 
 func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
+	if pi == nil {
+		return fmt.Errorf("invalid parameters to AddPeer")
+	}
+
+	if !wg.InterfaceExist(pi.IfName) {
+		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
+	}
+
+	log.Println("AddPeer ", pi)
+
+	wgconf := wgtypes.Config{}
+	pcfg, err := pi.AsPeerConfig()
+	if err != nil {
+		return err
+	}
+	wgconf.Peers = append(wgconf.Peers, *pcfg)
+
+	err = wg.ConfigureDevice(pi.IfName, wgconf)
+	if err != nil {
+		return fmt.Errorf("configure interface failed: %s", err.Error())
+	}
+
 	return nil
 }
 
 func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
+	if pi == nil {
+		return fmt.Errorf("invalid parameters to RemovePeer")
+	}
+
+	if !wg.InterfaceExist(pi.IfName) {
+		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
+	}
+
+	log.Println("RemovePeer ", pi)
+
+	wgconf := wgtypes.Config{}
+	pcfg, err := pi.AsPeerConfig()
+	if err != nil {
+		return err
+	}
+	pcfg.Remove = true
+	wgconf.Peers = append(wgconf.Peers, *pcfg)
+
+	err = wg.ConfigureDevice(pi.IfName, wgconf)
+	if err != nil {
+		return fmt.Errorf("configure interface failed: %s", err.Error())
+	}
+
 	return nil
 }

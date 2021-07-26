@@ -15,7 +15,7 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port"`
 }
 
-func (e *configInfoNetworkEntry) AsWireguardInterface() *wireguard.InterfaceInfo {
+func (e *configInfoNetworkEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
 	return &wireguard.InterfaceInfo{
 		IP:        e.IP,
 		PublicKey: e.PublicKey,
@@ -23,12 +23,14 @@ func (e *configInfoNetworkEntry) AsWireguardInterface() *wireguard.InterfaceInfo
 	}
 }
 
-func (e *configInfoVpnEntry) AsWireguardInterface() *wireguard.InterfaceInfo {
-	return &wireguard.InterfaceInfo{
-		IfName:    e.Args.IfName,
-		IP:        e.Args.InternalIP,
-		PublicKey: e.Args.PublicKey,
-		Port:      0, // TODO: check if I have it here
+func (e *configInfoVpnEntry) AsPeerInfo() *wireguard.PeerInfo {
+	return &wireguard.PeerInfo{
+		IfName:     e.Args.IfName,
+		IP:         e.Args.EndpointIPv4,
+		PublicKey:  e.Args.PublicKey,
+		Port:       e.Args.EndpointPort,
+		Gateway:    e.Args.GatewayIPv4,
+		AllowedIPs: e.Args.AllowedIPs,
 	}
 }
 
@@ -77,18 +79,6 @@ type configInfoMsg struct {
 	} `json:"data"`
 }
 
-func (req *configInfoMsg) HasInterface(ifname string) bool {
-	fixedNames := []string{"PUBLIC"}
-
-	for _, n := range fixedNames {
-		if ifname == n {
-			return true
-		}
-	}
-
-	return false
-}
-
 type updateAgentConfigEntry struct {
 	Function string `json:"fn"`
 	Data     struct {
@@ -104,8 +94,8 @@ type updateAgentConfigMsg struct {
 	Data []updateAgentConfigEntry `json:"data"`
 }
 
-func (msg *updateAgentConfigMsg) AddEntry(function string, data *wireguard.InterfaceInfo) {
-	e := updateAgentConfigEntry{Function: function}
+func (msg *updateAgentConfigMsg) AddInterface(data *wireguard.InterfaceInfo) {
+	e := updateAgentConfigEntry{Function: "create_interface"}
 	e.Data.IfName = data.IfName
 	e.Data.IP = data.IP
 	e.Data.PublicKey = data.PublicKey
@@ -114,70 +104,15 @@ func (msg *updateAgentConfigMsg) AddEntry(function string, data *wireguard.Inter
 	msg.Data = append(msg.Data, e)
 }
 
-/*
-func createInterface(a *Agent, ifname string, e *configInfoNetworkEntry) (*updateAgentConfigEntry, error) {
-	var port int
+func (msg *updateAgentConfigMsg) AddPeer(data *wireguard.PeerInfo) {
+	e := updateAgentConfigEntry{Function: "add_peer"}
+	e.Data.IfName = data.IfName
+	e.Data.IP = data.IP
+	e.Data.PublicKey = data.PublicKey
+	e.Data.Port = data.Port
 
-	wgdevs, err := a.wg.Devices()
-	if err != nil {
-		log.Println("wgctrl.Devices: ", err)
-		return nil, err
-	}
-	for _, w := range wgdevs {
-		if ifname == w.Name {
-			log.Println("Skipping existing interface ", ifname)
-			return nil, nil
-		}
-	}
-
-	if e == nil {
-		return nil, fmt.Errorf("invalid parameters to createInterface")
-	}
-	if e.Port != 0 {
-		port = e.Port
-	} else {
-		port = wireguard.GetFreePort(ifname)
-	}
-
-	log.Println("Creating interface ", ifname, e, port)
-	err = netiface.CreateInterfaceCmd(ifname)
-	if err != nil {
-		return nil, fmt.Errorf("create wg interface failed: %s", err.Error())
-	}
-
-	privKey, err := wgtypes.GeneratePrivateKey()
-	if err != nil {
-		return nil, fmt.Errorf("generate private key error: %s", err.Error())
-	}
-
-	cfg := wgtypes.Config{
-		PrivateKey: &privKey,
-		ListenPort: &port,
-	}
-	err = a.wg.ConfigureDevice(ifname, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("configure interface %s failed: %s", ifname, err.Error())
-	}
-
-	netiface.SetInterfaceUpCmd(ifname)
-	netiface.SetInterfaceIPCmd(ifname, e.IP)
-
-	dev, err := a.wg.Device(ifname)
-	if err != nil {
-		return nil, fmt.Errorf("get device %s failed: %s", ifname, err.Error())
-	}
-
-	rv := &updateAgentConfigEntry{
-		Function: "create_interface",
-	}
-	rv.Data.IfName = ifname
-	rv.Data.IP = e.IP
-	rv.Data.Port = dev.ListenPort
-	rv.Data.PublicKey = dev.PublicKey.String()
-
-	return rv, nil
+	msg.Data = append(msg.Data, e)
 }
-*/
 
 func configInfo(a *Agent, raw []byte) error {
 	var req configInfoMsg
@@ -204,7 +139,7 @@ func configInfo(a *Agent, raw []byte) error {
 	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
 
 	// create missing interfaces
-	wgi := req.Data.Network.Public.AsWireguardInterface()
+	wgi := req.Data.Network.Public.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_PUBLIC"
 	err = a.wg.CreateInterface(wgi)
 	if err != nil {
@@ -212,10 +147,10 @@ func configInfo(a *Agent, raw []byte) error {
 	}
 	if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Public.Port != wgi.Port {
-		resp.AddEntry("create_interface", wgi)
+		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn1.AsWireguardInterface()
+	wgi = req.Data.Network.Sdn1.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_SDN1"
 	err = a.wg.CreateInterface(wgi)
 	if err != nil {
@@ -223,10 +158,10 @@ func configInfo(a *Agent, raw []byte) error {
 	}
 	if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn1.Port != wgi.Port {
-		resp.AddEntry("create_interface", wgi)
+		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn2.AsWireguardInterface()
+	wgi = req.Data.Network.Sdn2.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_SDN2"
 	err = a.wg.CreateInterface(wgi)
 	if err != nil {
@@ -234,10 +169,10 @@ func configInfo(a *Agent, raw []byte) error {
 	}
 	if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn2.Port != wgi.Port {
-		resp.AddEntry("create_interface", wgi)
+		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn3.AsWireguardInterface()
+	wgi = req.Data.Network.Sdn3.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_SDN3"
 	err = a.wg.CreateInterface(wgi)
 	if err != nil {
@@ -245,7 +180,20 @@ func configInfo(a *Agent, raw []byte) error {
 	}
 	if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn3.Port != wgi.Port {
-		resp.AddEntry("create_interface", wgi)
+		resp.AddInterface(wgi)
+	}
+
+	for _, cmd := range req.Data.VPN {
+		switch cmd.Function {
+		case "add_peer":
+			err = a.wg.AddPeer(cmd.AsPeerInfo())
+		}
+		if err != nil {
+			log.Println(err)
+			// TODO:
+			//  * should I return error here ?
+			//  * should I fallback to prev known good state
+		}
 	}
 
 	resp.Now()
