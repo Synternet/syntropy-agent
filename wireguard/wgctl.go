@@ -34,9 +34,11 @@ func (pi *PeerInfo) AsPeerConfig() (*wgtypes.PeerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	pcfg.Endpoint = &net.UDPAddr{
-		IP:   net.ParseIP(pi.IP),
-		Port: pi.Port,
+	if pi.IP != "" && pi.Port > 0 {
+		pcfg.Endpoint = &net.UDPAddr{
+			IP:   net.ParseIP(pi.IP),
+			Port: pi.Port,
+		}
 	}
 
 	for _, e := range pi.AllowedIPs {
