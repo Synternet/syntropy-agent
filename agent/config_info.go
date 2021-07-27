@@ -205,7 +205,6 @@ func configInfo(a *Agent, raw []byte) error {
 				cmd.Args.ListenPort != wgi.Port {
 				resp.AddInterface(wgi)
 			}
-
 		}
 		if err != nil {
 			log.Println(err)
