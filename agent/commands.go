@@ -19,6 +19,7 @@ func (a *Agent) processCommand(raw []byte) error {
 
 	// TODO process and send back responce
 	log.Println("Calling ", req.MsgType, req.ID)
+	log.Println(string(raw))
 
 	if err := functionCall(a, raw); err != nil {
 		return fmt.Errorf("error while executing `%s` commant: %s",

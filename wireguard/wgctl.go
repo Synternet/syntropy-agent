@@ -172,8 +172,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
 	}
 
-	log.Println("AddPeer ", pi)
-
 	wgconf := wgtypes.Config{}
 	pcfg, err := pi.AsPeerConfig()
 	if err != nil {
@@ -197,8 +195,6 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	if !wg.InterfaceExist(pi.IfName) {
 		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
 	}
-
-	log.Println("RemovePeer ", pi)
 
 	wgconf := wgtypes.Config{}
 	pcfg, err := pi.AsPeerConfig()

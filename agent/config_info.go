@@ -130,7 +130,6 @@ func configInfo(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	log.Println(string(raw))
 
 	resp := updateAgentConfigMsg{
 		messageHeader: req.messageHeader,

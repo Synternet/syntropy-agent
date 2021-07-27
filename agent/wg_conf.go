@@ -71,7 +71,6 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	log.Println(string(raw))
 
 	for _, cmd := range req.Data {
 		switch cmd.Function {
