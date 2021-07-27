@@ -34,6 +34,15 @@ func (e *configInfoVpnEntry) AsPeerInfo() *wireguard.PeerInfo {
 	}
 }
 
+func (e *configInfoVpnEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
+	return &wireguard.InterfaceInfo{
+		IfName:    e.Args.IfName,
+		IP:        e.Args.InternalIP,
+		PublicKey: e.Args.PublicKey,
+		Port:      e.Args.ListenPort,
+	}
+}
+
 /****    TODO: review me      ******/
 //	I'm not sure this is a good idea, but I wanted to decode json in one step
 //	So I am mixing different structs in one instance
@@ -43,14 +52,15 @@ type configInfoVpnEntry struct {
 
 	Args struct {
 		// Common fields
-		IfName string `json:"ifname"`
+		IfName    string `json:"ifname"`
+		PublicKey string `json:"public_key,omitempty"`
 		// create_interface
 		InternalIP string `json:"internal_ip,omitempty"`
+		ListenPort int    `json:"listen_port,omitempty"`
 		// add_peer
 		AllowedIPs   []string `json:"allowed_ips,omitempty"`
 		EndpointIPv4 string   `json:"endpoint_ipv4,omitempty"`
 		EndpointPort int      `json:"endpoint_port,omitempty"`
-		PublicKey    string   `json:"public_key,omitempty"`
 		GatewayIPv4  string   `json:"gw_ipv4,omitempty"`
 	} `json:"args,omitempty"`
 
@@ -187,6 +197,15 @@ func configInfo(a *Agent, raw []byte) error {
 		switch cmd.Function {
 		case "add_peer":
 			err = a.wg.AddPeer(cmd.AsPeerInfo())
+		case "create_interface":
+			wgi = cmd.AsInterfaceInfo()
+			err = a.wg.CreateInterface(wgi)
+			if err == nil &&
+				cmd.Args.PublicKey != wgi.PublicKey ||
+				cmd.Args.ListenPort != wgi.Port {
+				resp.AddInterface(wgi)
+			}
+
 		}
 		if err != nil {
 			log.Println(err)
