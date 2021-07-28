@@ -104,6 +104,7 @@ func (agent *Agent) Stop() {
 		log.Println("Agent instance is not running")
 		return
 	}
+	agent.ping.Stop()
 
 	close(agent.msgChanTx)
 	agent.controller.Stop()
