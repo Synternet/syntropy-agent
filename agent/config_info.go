@@ -197,6 +197,7 @@ func configInfo(a *Agent, raw []byte) error {
 		case "add_peer":
 			err = a.wg.AddPeer(cmd.AsPeerInfo())
 		case "create_interface":
+			// TODO: need to rething where and how to setup `routes` and `iptables` rules
 			wgi = cmd.AsInterfaceInfo()
 			err = a.wg.CreateInterface(wgi)
 			if err == nil &&
@@ -218,7 +219,7 @@ func configInfo(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	a.Transmit(arr)
+	a.Write(arr)
 
 	return nil
 }

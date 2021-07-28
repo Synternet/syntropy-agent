@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"log"
 	"sync/atomic"
 
@@ -71,14 +72,15 @@ func (agent *Agent) messageHadler() {
 	}
 }
 
-func (agent *Agent) Transmit(msg []byte) {
+func (agent *Agent) Write(msg []byte) (int, error) {
 	if atomic.LoadUint32(&agent.running) == 0 {
-		log.Println("Trying to transmit on stopped agent instance")
-		return
+		return 0, fmt.Errorf("sending on stopped agent instance")
 	}
 
 	log.Println("Sending: ", string(msg))
 	agent.msgChanTx <- msg
+
+	return len(msg), nil
 }
 
 // Loop is main loop of SyntropyStack agent

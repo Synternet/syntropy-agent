@@ -106,7 +106,7 @@ func getInfo(a *Agent, raw []byte) error {
 		return err
 	}
 
-	a.Transmit(arr)
+	a.Write(arr)
 
 	return err
 }

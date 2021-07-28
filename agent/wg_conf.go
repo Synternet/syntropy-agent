@@ -110,6 +110,6 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	a.Transmit(respArr)
+	a.Write(respArr)
 	return nil
 }
