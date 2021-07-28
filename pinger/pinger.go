@@ -1,25 +1,35 @@
 package pinger
 
 import (
-	"io"
-	"log"
 	"sync"
 	"time"
+
+	"github.com/go-ping/ping"
 )
+
+type PingResult struct {
+	IP      string  `json:"ip"`
+	Latency int     `json:"latency_ms"`
+	Loss    float32 `json:"packet_loss"`
+}
+
+type PingResultProcessor interface {
+	ProcessPingResults(pr []PingResult)
+}
 
 type Pinger struct {
 	sync.RWMutex
 	stop       chan bool
 	running    bool
-	w          io.Writer
+	prp        PingResultProcessor
 	hosts      []string
 	period     time.Duration
 	limitCount int
 }
 
-func NewPinger(w io.Writer) *Pinger {
+func NewPinger(p PingResultProcessor) *Pinger {
 	return &Pinger{
-		w:          w,
+		prp:        p,
 		period:     time.Minute,
 		limitCount: 1000,
 		stop:       make(chan bool),
@@ -69,19 +79,62 @@ func (p *Pinger) DelHost(hosts ...string) {
 	}
 }
 
-func pingHost(h string) {
-	log.Println("Pinging ", h)
+func pingHost(h string, c chan PingResult) {
+	pinger, err := ping.NewPinger(h)
+	res := PingResult{
+		IP:      h,
+		Latency: -1,
+		Loss:    1,
+	}
+	defer func() { c <- res }()
+
+	if err != nil {
+		return
+	}
+
+	pinger.Count = 2
+	pinger.Timeout = time.Second
+
+	err = pinger.Run()
+	if err != nil {
+		return
+	}
+
+	stats := pinger.Statistics()
+	res.IP = stats.Addr
+	res.Loss = float32(stats.PacketLoss) / 100
+	if res.Loss == 1 {
+		res.Latency = -1
+	} else {
+		res.Latency = int(stats.AvgRtt.Milliseconds())
+	}
+	// `res` added to channel from defer
 }
 
 func (p *Pinger) pingAll() {
 	p.RLock()
 	defer p.RUnlock()
 
+	c := make(chan PingResult)
+	count := len(p.hosts)
+
+	// Ping results listener. Reads count of hosts entries from channel
+	// Closes the channel and sends collected results
+	go func() {
+		var result []PingResult
+		for count > 0 {
+			r := <-c
+			result = append(result, r)
+			count--
+		}
+		close(c)
+		p.prp.ProcessPingResults(result)
+	}()
+
+	// Spawn all host pinging to goroutines
 	for i := 0; i < len(p.hosts); i++ {
-		pingHost(p.hosts[i])
-
+		go pingHost(p.hosts[i], c)
 	}
-
 }
 
 // Starts configured pinger

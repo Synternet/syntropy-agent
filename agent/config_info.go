@@ -195,6 +195,7 @@ func configInfo(a *Agent, raw []byte) error {
 	for _, cmd := range req.Data.VPN {
 		switch cmd.Function {
 		case "add_peer":
+			a.ping.AddHost(cmd.Args.EndpointIPv4)
 			err = a.wg.AddPeer(cmd.AsPeerInfo())
 		case "create_interface":
 			// TODO: need to rething where and how to setup `routes` and `iptables` rules

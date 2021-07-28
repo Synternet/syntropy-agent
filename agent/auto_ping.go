@@ -2,7 +2,11 @@ package agent
 
 import (
 	"encoding/json"
+	"log"
+	"strconv"
 	"time"
+
+	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 )
 
 type autoPingRequest struct {
@@ -17,11 +21,7 @@ type autoPingRequest struct {
 type autoPingResponce struct {
 	messageHeader
 	Data struct {
-		Pings []struct {
-			IP      string  `json:"ip"`
-			Latency int     `json:"latency_ms"`
-			Loss    float32 `json:"packet_loss"`
-		} `json:"pings"`
+		Pings []pinger.PingResult `json:"pings"`
 	} `json:"data"`
 }
 
@@ -39,4 +39,20 @@ func autoPing(a *Agent, raw []byte) error {
 	a.ping.Start()
 
 	return nil
+}
+
+func (a *Agent) ProcessPingResults(pr []pinger.PingResult) {
+	var resp autoPingResponce
+	resp.Data.Pings = pr
+	resp.MsgType = "AUTO_PING"
+	resp.ID = "ID." + strconv.FormatInt(time.Now().Unix(), 10)
+	resp.Now()
+
+	arr, err := json.Marshal(resp)
+	if err != nil {
+		log.Println("ProcessPingResults JSON marshal error: ", err)
+		return
+	}
+
+	a.Write(arr)
 }

@@ -75,9 +75,11 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
+			a.ping.AddHost(cmd.Args.EndpointIPv4)
 			err = a.wg.AddPeer(cmd.AsPeerInfo())
 
 		case "remove_peer":
+			a.ping.DelHost(cmd.Args.EndpointIPv4)
 			err = a.wg.RemovePeer(cmd.AsPeerInfo())
 
 		case "create_interface":
