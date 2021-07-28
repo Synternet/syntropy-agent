@@ -1,8 +1,9 @@
 package agent
 
-import "encoding/json"
-
-// I think I will use https://github.com/go-ping/ping
+import (
+	"encoding/json"
+	"time"
+)
 
 type autoPingRequest struct {
 	messageHeader
@@ -26,9 +27,16 @@ type autoPingResponce struct {
 
 func autoPing(a *Agent, raw []byte) error {
 
-	var pingReq autoPingRequest
-	err := json.Unmarshal(raw, &pingReq)
+	var req autoPingRequest
+	err := json.Unmarshal(raw, &req)
+	if err != nil {
+		return err
+	}
 
-	// TODO: implement me
-	return err
+	a.ping.Stop()
+	a.ping.Setup(time.Duration(req.Data.Interval)*time.Second, req.Data.RespLimit)
+	a.ping.AddHost(req.Data.IPs...)
+	a.ping.Start()
+
+	return nil
 }

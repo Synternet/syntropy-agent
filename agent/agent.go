@@ -7,6 +7,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
+	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -16,7 +17,8 @@ type Agent struct {
 	msgChanRx  chan []byte
 	msgChanTx  chan []byte
 
-	wg *wireguard.Wireguard
+	wg   *wireguard.Wireguard
+	ping *pinger.Pinger
 
 	commands map[string]func(a *Agent, req []byte) error
 }
@@ -38,6 +40,8 @@ func NewAgent() (*Agent, error) {
 		log.Println("Error creating wgctrl client")
 		return nil, err
 	}
+
+	agent.ping = pinger.NewPinger(agent)
 
 	agent.msgChanRx = make(chan []byte)
 	agent.msgChanTx = make(chan []byte)
