@@ -6,6 +6,10 @@ func GetVersion() string {
 	return version
 }
 
+func GetFullVersion() string {
+	return version + "-" + subversion
+}
+
 func GetAgentToken() string {
 	return cache.apiKey
 }
@@ -62,6 +66,6 @@ func GetDeviceID() string {
 	return cache.deviceID
 }
 
-func IsContainerDocker() bool {
-	return cache.containerType == "docker"
+func GetDockerNetworkInfo() []DockerNetworkInfoEntry {
+	return cache.dockerNetInfo
 }

@@ -12,7 +12,7 @@ import (
 const appName = "sag"
 
 func main() {
-	log.Println(appName, config.GetVersion(), "started")
+	log.Println(appName, config.GetFullVersion(), "started")
 
 	// TODO: init Wireguard (see pyroyte2.Wireguard())
 

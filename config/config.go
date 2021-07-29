@@ -3,6 +3,7 @@ package config
 import "time"
 
 const version = "0.0.69"
+const subversion = "local"
 
 type Location struct {
 	Latitude  string
@@ -36,6 +37,7 @@ type configCache struct {
 
 	location      Location
 	containerType string
+	dockerNetInfo []DockerNetworkInfoEntry
 }
 
 var cache configCache
