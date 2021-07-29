@@ -11,32 +11,6 @@ type getInfoRequest struct {
 	messageHeader
 	Data interface{} `json:"data,omitempty"`
 }
-
-type NetworkInfoEntry struct {
-	ID      string   `json:"agent_network_id,omitempty"`
-	Name    string   `json:"agent_network_name,omitempty"`
-	Subnets []string `json:"agent_network_subnets,omitempty"`
-	// TODO: review why different names in array ?
-	/*
-		""network_info?"": [
-			{
-				""agent_network_id"": ""agent_network_id"",
-				""agent_network_name"": ""agent_network_name"",
-				""agent_network_subnets"": [
-					""1.2.3.4/12""
-				]
-			},
-			{
-				""docker_network_id"": ""agent_network_id"",
-				""docker_network_name"": ""agent_network_name"",
-				""docker_network_subnets"": [
-					""1.2.3.4/12""
-				]
-			}
-		]
-	*/
-}
-
 type ContainerInfoEntry struct {
 	ID   string `json:"agent_container_id,omitempty"`
 	Name string `json:"agent_container_name,omitempty"`
@@ -77,8 +51,8 @@ type getInfoResponce struct {
 		Tags       []string `json:"agent_tags"`
 		ExternalIP string   `json:"external_ip"`
 
-		NetworkInfo   []NetworkInfoEntry   `json:"network_info"`
-		ContainerInfo []ContainerInfoEntry `json:"container_info"`
+		NetworkInfo   []config.DockerNetworkInfoEntry `json:"network_info"`
+		ContainerInfo []ContainerInfoEntry            `json:"container_info"`
 	} `json:"data"`
 }
 
@@ -97,7 +71,7 @@ func getInfo(a *Agent, raw []byte) error {
 	resp.Data.Status = config.GetServicesStatus()
 	resp.Data.Tags = config.GetAgentTags()
 	resp.Data.ExternalIP = config.GetPublicIp()
-	resp.Data.NetworkInfo = FakeNetworkInfo()
+	resp.Data.NetworkInfo = config.GetDockerNetworkInfo()
 	resp.Data.ContainerInfo = FakeContainerInfo()
 
 	arr, err := json.Marshal(&resp)

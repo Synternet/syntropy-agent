@@ -27,7 +27,7 @@ func init() {
 	initPortsRange()
 
 	initLocation()
-	initContainerType()
+	initContainer()
 
 	log.Println("Config init completed")
 }
@@ -156,8 +156,4 @@ func initCloudURL() {
 func initLocation() {
 	cache.location.Latitude = os.Getenv("SYNTROPY_LAT")
 	cache.location.Longitude = os.Getenv("SYNTROPY_LON")
-}
-
-func initContainerType() {
-	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
 }
