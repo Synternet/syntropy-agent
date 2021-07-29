@@ -11,37 +11,6 @@ type getInfoRequest struct {
 	messageHeader
 	Data interface{} `json:"data,omitempty"`
 }
-type ContainerInfoEntry struct {
-	ID   string `json:"agent_container_id,omitempty"`
-	Name string `json:"agent_container_name,omitempty"`
-
-	// TODO: review for complete structure
-	/*
-		""container_info"":  [
-				{
-					""agent_container_id"": ""4e67bdb06bb2a9e19a61ad5a420b8701115263fe56b2918547cc9138084bf1c9"",
-					""agent_container_name"": ""pgadmin"",
-					""agent_container_networks: [aaa,bbb],
-					""agent_container_ips"": [""172.18.0.2""],
-					""agent_container_ports"": {""udp"": [], ""tcp"": [443, 5050, 5050, 80]},
-					""agent_container_state"": ""running"",
-					""agent_container_uptime"": ""Up About a minute""
-				},
-				{
-					""agent_container_id"": ""5d1774cb76c9385dcd025abbc84faea12dc7d7f247597042882361a7baa86fe6"",
-					""agent_container_name"": ""postgres"",
-					""agent_container_ips: ['aaa', 'bbb'],
-					""agent_container_subnets"": [""172.18.0.3/16""],
-					""agent_container_ports"": {
-							""udp"": [],
-							""tcp"": [5432, 5435]
-					},
-					""agent_container_state"": ""running"",
-					""agent_container_uptime"": ""Up About a minute""
-				}
-		]
-	*/
-}
 
 type getInfoResponce struct {
 	messageHeader
@@ -51,8 +20,8 @@ type getInfoResponce struct {
 		Tags       []string `json:"agent_tags"`
 		ExternalIP string   `json:"external_ip"`
 
-		NetworkInfo   []config.DockerNetworkInfoEntry `json:"network_info"`
-		ContainerInfo []ContainerInfoEntry            `json:"container_info"`
+		NetworkInfo   []config.DockerNetworkInfoEntry   `json:"network_info"`
+		ContainerInfo []config.DockerContainerInfoEntry `json:"container_info"`
 	} `json:"data"`
 }
 
@@ -72,7 +41,7 @@ func getInfo(a *Agent, raw []byte) error {
 	resp.Data.Tags = config.GetAgentTags()
 	resp.Data.ExternalIP = config.GetPublicIp()
 	resp.Data.NetworkInfo = config.GetDockerNetworkInfo()
-	resp.Data.ContainerInfo = FakeContainerInfo()
+	resp.Data.ContainerInfo = config.GetDockerContainerInfo()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {

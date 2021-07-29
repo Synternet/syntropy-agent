@@ -37,7 +37,10 @@ type configCache struct {
 
 	location      Location
 	containerType string
-	dockerNetInfo []DockerNetworkInfoEntry
+	docker        struct {
+		networkInfo   []DockerNetworkInfoEntry
+		containerInfo []DockerContainerInfoEntry
+	}
 }
 
 var cache configCache

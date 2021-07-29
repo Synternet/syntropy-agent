@@ -67,5 +67,9 @@ func GetDeviceID() string {
 }
 
 func GetDockerNetworkInfo() []DockerNetworkInfoEntry {
-	return cache.dockerNetInfo
+	return cache.docker.networkInfo
+}
+
+func GetDockerContainerInfo() []DockerContainerInfoEntry {
+	return cache.docker.containerInfo
 }
