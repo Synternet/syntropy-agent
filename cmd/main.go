@@ -24,6 +24,7 @@ func main() {
 	log.Println(appName, config.GetFullVersion(), "started")
 
 	config.Init()
+	defer config.Close()
 	// TODO: init Wireguard (see pyroyte2.Wireguard())
 
 	syntropyNetAgent, err := agent.NewAgent()

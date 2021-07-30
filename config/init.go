@@ -32,6 +32,10 @@ func Init() {
 	log.Println("Config init completed")
 }
 
+func Close() {
+	// Anything needed to be closed or destroyed at the end of program, goes here
+}
+
 func initAgentName() {
 	var err error
 	cache.agentName = os.Getenv("SYNTROPY_AGENT_NAME")
