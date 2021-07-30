@@ -2,8 +2,10 @@ package config
 
 import "time"
 
-const version = "0.0.69"
-const subversion = "local"
+var (
+	version    = "0.0.0"
+	subversion = "local"
+)
 
 type Location struct {
 	Latitude  string
