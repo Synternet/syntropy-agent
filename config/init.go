@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func init() {
+func Init() {
 	initAgentDirs()
 
 	initAgentToken()

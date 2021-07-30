@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -12,8 +14,16 @@ import (
 const appName = "sag"
 
 func main() {
+	showVersionAndExit := flag.Bool("version", false, "Show version and exit")
+	flag.Parse()
+	if *showVersionAndExit {
+		fmt.Printf("%s:\t%s\n\n", appName, config.GetFullVersion())
+		return
+	}
+
 	log.Println(appName, config.GetFullVersion(), "started")
 
+	config.Init()
 	// TODO: init Wireguard (see pyroyte2.Wireguard())
 
 	syntropyNetAgent, err := agent.NewAgent()
