@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/router"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -184,6 +185,12 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
+	// TODO: check and cleanup old obsolete rules
+	err = router.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
+	if err != nil {
+		return fmt.Errorf("route add failed: %s", err.Error())
+	}
+
 	return nil
 }
 
@@ -207,6 +214,11 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	err = wg.ConfigureDevice(pi.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
+	}
+
+	err = router.RouteDel(pi.IfName, pi.AllowedIPs...)
+	if err != nil {
+		return fmt.Errorf("route add failed: %s", err.Error())
 	}
 
 	return nil
