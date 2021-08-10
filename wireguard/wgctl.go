@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/router"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -138,6 +139,10 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	setInterfaceUpCmd(ii.IfName)
 	setInterfaceIPCmd(ii.IfName, ii.IP)
+	err = netfilter.ForwardEnable(ii.IfName)
+	if err != nil {
+		return fmt.Errorf("netfilter forward enable error: %s", err.Error())
+	}
 
 	dev, err := wg.Device(ii.IfName)
 	if err != nil {
@@ -190,6 +195,10 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
 	}
+	err = netfilter.RulesAdd(pi.AllowedIPs...)
+	if err != nil {
+		return fmt.Errorf("iptables rules add failed: %s", err.Error())
+	}
 
 	return nil
 }
@@ -219,6 +228,10 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	err = router.RouteDel(pi.IfName, pi.AllowedIPs...)
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
+	}
+	err = netfilter.RulesDel(pi.AllowedIPs...)
+	if err != nil {
+		return fmt.Errorf("iptables rules del failed: %s", err.Error())
 	}
 
 	return nil

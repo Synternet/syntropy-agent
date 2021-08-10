@@ -7,6 +7,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
+	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
@@ -51,6 +52,8 @@ func NewAgent() (*Agent, error) {
 	agent.commands["GET_INFO"] = getInfo
 	agent.commands["CONFIG_INFO"] = configInfo
 	agent.commands["WG_CONF"] = wireguardConfigure
+
+	netfilter.CreateChain()
 
 	return agent, nil
 }
