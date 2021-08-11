@@ -54,8 +54,14 @@ func (cc *CloudController) createWebsocketConnection() (err error) {
 	headers.Set("x-agenttype", "Linux")
 	headers.Set("x-agentversion", cc.version)
 
-	cc.ws, _, err = websocket.DefaultDialer.Dial(url.String(), headers)
+	var resp *http.Response
+	var httpCode int
+	cc.ws, resp, err = websocket.DefaultDialer.Dial(url.String(), headers)
 	if err != nil {
+		if resp != nil {
+			httpCode = resp.StatusCode
+		}
+		log.Printf("WSS dialer error: %s (HTTP: %d)\n", err.Error(), httpCode)
 		return err
 	}
 
