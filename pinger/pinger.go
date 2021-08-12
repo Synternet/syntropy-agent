@@ -167,15 +167,21 @@ func (p *Pinger) Stop() {
 	p.Lock()
 	defer p.Unlock()
 
-	if !p.running {
-		return
+	if p.running {
+		p.running = false
+
+		// Stop the goroutine
+		p.stop <- true
 	}
-
-	p.running = false
-
-	// Stop the goroutine
-	p.stop <- true
 
 	// remove all configured hosts
 	p.hosts = []string{}
+}
+
+// Runs the configured pinger only once
+func (p *Pinger) RunOnce() {
+	p.Lock()
+	defer p.Unlock()
+
+	p.pingAll()
 }
