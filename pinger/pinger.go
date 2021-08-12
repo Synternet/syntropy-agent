@@ -180,8 +180,5 @@ func (p *Pinger) Stop() {
 
 // Runs the configured pinger only once
 func (p *Pinger) RunOnce() {
-	p.Lock()
-	defer p.Unlock()
-
 	p.pingAll()
 }
