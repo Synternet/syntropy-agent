@@ -112,6 +112,7 @@ func (agent *Agent) Stop() {
 		return
 	}
 	agent.ping.Stop()
+	agent.wgWatcher.Stop()
 
 	close(agent.msgChanTx)
 	agent.controller.Stop()
