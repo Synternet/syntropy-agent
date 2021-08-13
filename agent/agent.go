@@ -31,7 +31,7 @@ func NewAgent() (*Agent, error) {
 	var err error
 	agent := new(Agent)
 
-	agent.controller, err = saas.NewCloudController()
+	agent.controller, err = saas.NewController()
 	if err != nil {
 		log.Println("Error creating cloud controller", err)
 		return nil, err

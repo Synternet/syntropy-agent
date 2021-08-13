@@ -1,4 +1,4 @@
-package dummyc
+package dummy
 
 import (
 	"fmt"

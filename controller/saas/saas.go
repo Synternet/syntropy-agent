@@ -21,9 +21,9 @@ type CloudController struct {
 	ws *websocket.Conn
 }
 
-// NewAgent allocates instance of agent struct
-// Parses shell environment and setups internal variables
-func NewCloudController() (controller.Controller, error) {
+// NewController allocates instance of Software-As-A-Service
+// (aka WSS) controller
+func NewController() (controller.Controller, error) {
 	// Note: config package returns already validated values and no need to validate them here
 	cc := CloudController{
 		url:     config.GetCloudURL(),
