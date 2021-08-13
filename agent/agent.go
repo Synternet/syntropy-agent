@@ -18,8 +18,9 @@ type Agent struct {
 	msgChanRx  chan []byte
 	msgChanTx  chan []byte
 
-	wg   *wireguard.Wireguard
-	ping *pinger.Pinger
+	wg        *wireguard.Wireguard
+	ping      *pinger.Pinger
+	wgWatcher *WgPeerWatcher
 
 	commands map[string]func(a *Agent, req []byte) error
 }
@@ -43,6 +44,7 @@ func NewAgent() (*Agent, error) {
 	}
 
 	agent.ping = pinger.NewPinger(agent)
+	agent.wgWatcher = NewWgPeerWatcher(agent.wg, agent)
 
 	agent.msgChanRx = make(chan []byte)
 	agent.msgChanTx = make(chan []byte)
@@ -54,6 +56,8 @@ func NewAgent() (*Agent, error) {
 	agent.commands["WG_CONF"] = wireguardConfigure
 
 	netfilter.CreateChain()
+
+	agent.wgWatcher.Start()
 
 	return agent, nil
 }
