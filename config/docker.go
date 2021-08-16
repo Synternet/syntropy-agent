@@ -62,8 +62,9 @@ func initDockerNetInfo() {
 
 	for _, n := range networks {
 		ni := DockerNetworkInfoEntry{
-			Name: n.Name,
-			ID:   n.ID,
+			Name:    n.Name,
+			ID:      n.ID,
+			Subnets: []string{},
 		}
 		for _, netcfg := range n.IPAM.Config {
 			if netcfg.Subnet != "" {
