@@ -12,10 +12,10 @@ import (
 func DestroyAllInterfaces() {
 	// TODO: ugly hack here to delete preconfigured interfaces
 	// Review me asap
-	deleteInterfaceCmd("SYNTROPY_PUBLIC")
-	deleteInterfaceCmd("SYNTROPY_SDN1")
-	deleteInterfaceCmd("SYNTROPY_SDN2")
-	deleteInterfaceCmd("SYNTROPY_SDN3")
+	deleteInterface("SYNTROPY_PUBLIC")
+	deleteInterface("SYNTROPY_SDN1")
+	deleteInterface("SYNTROPY_SDN2")
+	deleteInterface("SYNTROPY_SDN3")
 }
 
 func isBehindNAT() bool {

@@ -114,7 +114,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return nil
 	}
 
-	err := createInterfaceCmd(ii.IfName)
+	err := createInterface(ii.IfName)
 	if err != nil {
 		return fmt.Errorf("create wg interface failed: %s", err.Error())
 	}
@@ -137,8 +137,14 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
-	setInterfaceUpCmd(ii.IfName)
-	setInterfaceIPCmd(ii.IfName, ii.IP)
+	err = setInterfaceUp(ii.IfName)
+	if err != nil {
+		log.Println(err)
+	}
+	err = setInterfaceIP(ii.IfName, ii.IP)
+	if err != nil {
+		log.Println(err)
+	}
 	err = netfilter.ForwardEnable(ii.IfName)
 	if err != nil {
 		return fmt.Errorf("netfilter forward enable error: %s", err.Error())
@@ -166,7 +172,7 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 		return nil
 	}
 
-	return deleteInterfaceCmd(ii.IfName)
+	return deleteInterface(ii.IfName)
 }
 
 func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
