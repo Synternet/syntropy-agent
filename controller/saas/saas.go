@@ -83,6 +83,10 @@ func (cc *CloudController) connect() (err error) {
 }
 
 func (cc *CloudController) Recv() ([]byte, error) {
+	if atomic.LoadUint32(&cc.state) == stopped {
+		return nil, fmt.Errorf("controller is not running")
+	}
+
 	// In this application we have only one reader, so no need to lock here
 
 	for {
