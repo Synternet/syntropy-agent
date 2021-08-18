@@ -126,38 +126,6 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
-// Start is main loop of SyntropyStack agent
-func (cc *CloudController) Start(rx, tx chan []byte) {
-
-	// Receiver goroutine
-	go func() {
-		for {
-			_, message, err := cc.ws.ReadMessage()
-			if err != nil {
-				log.Println("Websocket read error:", err)
-				return
-			}
-			rx <- message
-		}
-	}()
-
-	// Sender goroutine
-	go func() {
-		for {
-			message, ok := <-tx
-			if !ok {
-				return // terminate, because channel is closed
-			}
-			err := cc.ws.WriteMessage(websocket.TextMessage, message)
-			if err != nil {
-				log.Println("Websocket write error:", err)
-				return
-			}
-		}
-	}()
-
-}
-
 // Close closes websocket connection to saas backend
 func (cc *CloudController) Close() error {
 	state := atomic.LoadUint32(&cc.state)
