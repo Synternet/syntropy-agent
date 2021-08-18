@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"sync/atomic"
 
@@ -15,8 +16,6 @@ import (
 type Agent struct {
 	running    uint32
 	controller controller.Controller
-	msgChanRx  chan []byte
-	msgChanTx  chan []byte
 
 	wg        *wireguard.Wireguard
 	ping      *pinger.Pinger
@@ -46,9 +45,6 @@ func NewAgent() (*Agent, error) {
 	agent.ping = pinger.NewPinger(agent)
 	agent.wgWatcher = NewWgPeerWatcher(agent.wg, agent)
 
-	agent.msgChanRx = make(chan []byte)
-	agent.msgChanTx = make(chan []byte)
-
 	agent.commands = make(map[string]func(a *Agent, req []byte) error)
 	agent.commands["AUTO_PING"] = autoPing
 	agent.commands["GET_INFO"] = getInfo
@@ -62,24 +58,24 @@ func NewAgent() (*Agent, error) {
 	return agent, nil
 }
 
-func (agent *Agent) messageHadler() {
-	var err error
-
+func (agent *Agent) messageHandler() {
 	// Mark as not running on exit
 	defer atomic.StoreUint32(&agent.running, 0)
 
 	for {
-		raw, ok := <-agent.msgChanRx
-		// Stop runner if the channel is closed
-		if !ok {
+		raw, err := agent.controller.Recv()
+
+		if err == io.EOF {
+			// Stop runner if the reader is done
+			log.Println("Closing message handler: EOF")
+			return
+		} else if err != nil {
+			// Simple errors are handled inside controller. This should be only fatal errors
+			log.Println("Message handler error: ", err)
 			return
 		}
 
-		err = agent.processCommand(raw)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
+		agent.processCommand(raw)
 	}
 }
 
@@ -89,9 +85,7 @@ func (agent *Agent) Write(msg []byte) (int, error) {
 	}
 
 	log.Println("Sending: ", string(msg))
-	agent.msgChanTx <- msg
-
-	return len(msg), nil
+	return agent.controller.Write(msg)
 }
 
 // Loop is main loop of SyntropyStack agent
@@ -101,8 +95,7 @@ func (agent *Agent) Loop() {
 		return
 	}
 
-	go agent.messageHadler()
-	go agent.controller.Start(agent.msgChanRx, agent.msgChanTx)
+	go agent.messageHandler()
 }
 
 // Stop closes connections to controller and stops all runners
@@ -114,9 +107,7 @@ func (agent *Agent) Stop() {
 	agent.ping.Stop()
 	agent.wgWatcher.Stop()
 
-	close(agent.msgChanTx)
-	agent.controller.Stop()
-	close(agent.msgChanRx)
+	agent.controller.Close()
 
 	agent.wg.Close()
 	wireguard.DestroyAllInterfaces()

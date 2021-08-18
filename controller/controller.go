@@ -1,6 +1,10 @@
 package controller
 
+import "io"
+
 type Controller interface {
-	Start(rx, tx chan []byte)
-	Stop()
+	// komentarai komentarai
+	io.Writer
+	io.Closer
+	Recv() ([]byte, error)
 }
