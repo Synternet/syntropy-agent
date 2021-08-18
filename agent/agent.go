@@ -65,8 +65,6 @@ func NewAgent() (*Agent, error) {
 
 	netfilter.CreateChain()
 
-	agent.wgWatcher.Start()
-
 	return agent, nil
 }
 
@@ -107,6 +105,10 @@ func (agent *Agent) Loop() {
 		return
 	}
 
+	// Start all "services"
+	agent.wgWatcher.Start()
+
+	// Main agent loop - handles messages, received from controller
 	go agent.messageHandler()
 }
 
@@ -116,11 +118,15 @@ func (agent *Agent) Stop() {
 		log.Println("Agent instance is not running")
 		return
 	}
+
+	// Stop all "services"
 	agent.ping.Stop()
 	agent.wgWatcher.Stop()
 
+	// Close controler will also terminate agent loop
 	agent.controller.Close()
 
+	// cleanup
 	agent.wg.Close()
 	wireguard.DestroyAllInterfaces()
 }
