@@ -17,9 +17,10 @@ type Location struct {
 // Some may be generated.
 // Cache them and use from here
 type configCache struct {
-	apiKey   string // aka AGENT_TOKEN
-	cloudURL string
-	deviceID string
+	apiKey         string // aka AGENT_TOKEN
+	cloudURL       string
+	deviceID       string
+	controllerType int
 
 	agentName      string
 	agentProvider  int

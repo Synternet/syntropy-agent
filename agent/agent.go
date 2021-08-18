@@ -6,8 +6,11 @@ import (
 	"log"
 	"sync/atomic"
 
+	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
+	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
@@ -30,7 +33,16 @@ func NewAgent() (*Agent, error) {
 	var err error
 	agent := new(Agent)
 
-	agent.controller, err = saas.NewController()
+	switch config.GetControllerType() {
+	case config.ControllerSaas:
+		agent.controller, err = saas.NewController()
+	case config.ControllerScript:
+		agent.controller, err = script.NewController()
+	case config.ControllerBlockchain:
+		agent.controller, err = blockchain.NewController()
+	default:
+		err = fmt.Errorf("unexpected controller type %d", config.GetControllerType())
+	}
 	if err != nil {
 		log.Println("Error creating cloud controller", err)
 		return nil, err

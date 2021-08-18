@@ -15,6 +15,7 @@ func Init() {
 	initAgentToken()
 	initCloudURL()
 	initDeviceID()
+	initControllerType()
 
 	initAgentName()
 	initAgentProvider()
@@ -160,4 +161,23 @@ func initCloudURL() {
 func initLocation() {
 	cache.location.Latitude = os.Getenv("SYNTROPY_LAT")
 	cache.location.Longitude = os.Getenv("SYNTROPY_LON")
+}
+
+func initControllerType() {
+	// Always default to Software-as-a-Service
+	cache.controllerType = ControllerSaas
+
+	sct := os.Getenv("SYNTROPY_CONTROLLER_TYPE")
+	switch strings.ToLower(sct) {
+	case "saas":
+		cache.controllerType = ControllerSaas
+	case "script":
+		cache.controllerType = ControllerScript
+	case "blockchain":
+		cache.controllerType = ControllerBlockchain
+	case "":
+		// If env variable is unset - stick with default
+	default:
+		log.Printf("Unknown controller type `%s`. Using default controller\n", sct)
+	}
 }

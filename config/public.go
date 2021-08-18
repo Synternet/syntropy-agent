@@ -2,12 +2,23 @@ package config
 
 import "time"
 
+const (
+	ControllerSaas = iota
+	ControllerScript
+	ControllerBlockchain
+	ControllerUnknown
+)
+
 func GetVersion() string {
 	return version
 }
 
 func GetFullVersion() string {
 	return version + "-" + subversion
+}
+
+func GetControllerType() int {
+	return cache.controllerType
 }
 
 func GetAgentToken() string {
