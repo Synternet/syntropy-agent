@@ -48,11 +48,13 @@ func (a *Agent) ProcessPingResults(pr []pinger.PingResult) {
 	resp.ID = "ID." + strconv.FormatInt(time.Now().Unix(), 10)
 	resp.Now()
 
-	arr, err := json.Marshal(resp)
-	if err != nil {
-		log.Println("ProcessPingResults JSON marshal error: ", err)
-		return
-	}
+	if len(resp.Data.Pings) > 0 {
+		arr, err := json.Marshal(resp)
+		if err != nil {
+			log.Println("ProcessPingResults JSON marshal error: ", err)
+			return
+		}
 
-	a.Write(arr)
+		a.Write(arr)
+	}
 }
