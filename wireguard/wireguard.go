@@ -10,6 +10,8 @@ type Wireguard struct {
 	*wgctrl.Client
 }
 
+// TODO: review and redesign Wireguard implementation.
+// Maybe it should be an object, containing WG interface data and separate objects per interface ?
 func New() (*Wireguard, error) {
 	wgc, err := wgctrl.New()
 	if err != nil {
