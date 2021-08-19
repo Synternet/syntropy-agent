@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 )
@@ -45,7 +44,6 @@ func getInfo(a *Agent, raw []byte) error {
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {
-		log.Println("Marshal error: ", err)
 		return err
 	}
 

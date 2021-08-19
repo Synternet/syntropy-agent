@@ -2,10 +2,10 @@ package agent
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -126,6 +126,7 @@ func (msg *updateAgentConfigMsg) AddPeer(data *wireguard.PeerInfo) {
 
 func configInfo(a *Agent, raw []byte) error {
 	var req configInfoMsg
+	var errorCount int
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
 		return err
@@ -207,11 +208,13 @@ func configInfo(a *Agent, raw []byte) error {
 			}
 		}
 		if err != nil {
-			log.Println(err)
-			// TODO:
-			//  * should I return error here ?
-			//  * should I fallback to prev known good state
+			logger.Error().Println(pkgName, cmd.Function, err)
+			errorCount++
 		}
+	}
+
+	if errorCount > 0 {
+		// TODO: add error information to controller
 	}
 
 	resp.Now()

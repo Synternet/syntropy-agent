@@ -2,10 +2,10 @@ package agent
 
 import (
 	"encoding/json"
-	"log"
 	"strconv"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 )
 
@@ -51,7 +51,7 @@ func (a *Agent) ProcessPingResults(pr []pinger.PingResult) {
 	if len(resp.Data.Pings) > 0 {
 		arr, err := json.Marshal(resp)
 		if err != nil {
-			log.Println("ProcessPingResults JSON marshal error: ", err)
+			logger.Error().Println(pkgName, "Process Ping Results: ", err)
 			return
 		}
 
