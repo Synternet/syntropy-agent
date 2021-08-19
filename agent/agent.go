@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"io"
+	"os"
 	"sync/atomic"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
@@ -48,6 +49,11 @@ func NewAgent(contype int) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Config loggers early - to get more info logged
+	// TODO: do not spam controller in development stage
+	// logger.SetControllerWriter(agent.controller)
+	logger.Setup(config.GetDebugLevel(), os.Stdout)
 
 	agent.wg, err = wireguard.New()
 	if err != nil {

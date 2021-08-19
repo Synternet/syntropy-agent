@@ -34,12 +34,6 @@ func main() {
 		log.Fatal("Could not create ", fullAppName, err)
 	}
 
-	// Loggers started with ERR level to stderr
-	// After creating agent instance reconfigure loggers
-
-	// NotYet: do not spam controller in development stage
-	// NotYet: logger.SetControllerWriter(syntropyNetAgent)
-	logger.Setup(config.GetDebugLevel(), os.Stdout)
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Printf("%s Using [%d] controller.\n", fullAppName, config.GetControllerType())
 
