@@ -2,10 +2,10 @@ package wireguard
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os/exec"
 
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/vishvananda/netlink"
 )
 
@@ -22,7 +22,7 @@ func createInterface(ifname string) error {
 	// XXX vishvananda netlink package is not (yet) capable of creating wireguard interface type
 	err := exec.Command("ip", "link", "add", "dev", ifname, "type", "wireguard").Run()
 	if err != nil {
-		log.Println("could not create kernel type wireguard interface: ", err)
+		logger.Warning().Println(pkgName, "Could not create kernel wireguard interface: ", err)
 		err = exec.Command("wireguard-go", ifname).Run()
 	}
 	return err

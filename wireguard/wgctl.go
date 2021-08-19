@@ -3,10 +3,10 @@ package wireguard
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/router"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -55,16 +55,16 @@ func (pi *PeerInfo) AsPeerConfig() (*wgtypes.PeerConfig, error) {
 
 func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
 	privateFileName := config.AgentConfigDir + "/privatekey-" + ifname
-	publicFileName := config.AgentConfigDir + "/publickey-" + ifname
 
 	// at first try to read cached key
 	strKey, err := ioutil.ReadFile(privateFileName)
 	if err == nil {
 		key, err = wgtypes.ParseKey(string(strKey))
 		if err != nil {
-			log.Println("parse key error: ", err)
 			// Could not parse key. Most probably cache file is corrupted.
-			// Do not exit and create a new key (continue to new key generation fallback)
+			// Do not exit and create a new key
+			// (continue to new key generation fallback)
+			logger.Warning().Println(pkgName, "cached key error: ", err)
 		}
 	}
 
@@ -78,12 +78,7 @@ func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
 		// cache for future reuse
 		err = ioutil.WriteFile(privateFileName, []byte(key.String()), 0600)
 		if err != nil {
-			log.Println("Caching private key error: ", err)
-		}
-		// TODO: do I really need to cache public key ??
-		err = ioutil.WriteFile(publicFileName, []byte(key.PublicKey().String()), 0600)
-		if err != nil {
-			log.Println("Caching public key error: ", err)
+			logger.Debug().Println(pkgName, "Caching private key error: ", err)
 		}
 	}
 
@@ -93,7 +88,7 @@ func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
 func (wg *Wireguard) InterfaceExist(ifname string) bool {
 	wgdevs, err := wg.Devices()
 	if err != nil {
-		log.Println("wgctrl.Devices: ", err)
+		logger.Error().Println(pkgName, "Failed listing wireguard devices: ", err)
 		return false
 	}
 	for _, w := range wgdevs {
@@ -110,7 +105,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	}
 
 	if wg.InterfaceExist(ii.IfName) {
-		log.Println("Skipping existing interface ", ii.IfName)
+		logger.Debug().Println(pkgName, "Do not (re)creating existing interface ", ii.IfName)
 		return nil
 	}
 
@@ -139,11 +134,11 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	err = setInterfaceUp(ii.IfName)
 	if err != nil {
-		log.Println(err)
+		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
 	}
 	err = setInterfaceIP(ii.IfName, ii.IP)
 	if err != nil {
-		log.Println(err)
+		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
 	err = netfilter.ForwardEnable(ii.IfName)
 	if err != nil {
@@ -168,7 +163,7 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 	}
 
 	if !wg.InterfaceExist(ii.IfName) {
-		log.Println("Cannot remove non-existing interface ", ii.IfName)
+		logger.Warning().Println(pkgName, "Cannot remove non-existing interface ", ii.IfName)
 		return nil
 	}
 

@@ -2,8 +2,8 @@ package agent
 
 import (
 	"encoding/json"
-	"log"
 
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -67,6 +67,7 @@ type wgConfReq struct {
 
 func wireguardConfigure(a *Agent, raw []byte) error {
 	var req wgConfReq
+	var errorCount int
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
 		return err
@@ -93,15 +94,17 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 
 		case "remove_interface":
 			wgi := cmd.AsInterfaceInfo()
-			err = a.wg.CreateInterface(wgi)
+			err = a.wg.RemoveInterface(wgi)
 		}
 		if err != nil {
-			log.Println(err)
-			// TODO:
-			//  * should I return error here ?
-			//  * should I fallback to prev known good state
+			errorCount++
+			logger.Error().Println(pkgName, cmd.Function, err)
 		}
 
+	}
+
+	if errorCount > 0 {
+		// TODO: add sending errors to controller
 	}
 
 	// TODO: send back ACTUAL info (e.g. ports may change, or create_interface public key)
