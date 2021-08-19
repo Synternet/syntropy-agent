@@ -3,13 +3,13 @@
 package netfilter
 
 import (
-	"log"
-
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/vishvananda/netlink"
 )
 
 // TODO: review `-nft` and `-legacy` usage
+
+var disabled bool
 
 const (
 	defaultTable  = "filter"
@@ -17,7 +17,15 @@ const (
 	syntropyChain = "SYNTROPY_CHAIN"
 )
 
+func Disable() {
+	disabled = true
+}
+
 func CreateChain() error {
+	if disabled {
+		return nil
+	}
+
 	rule := []string{"-s", "0.0.0.0/0", "-d", "0.0.0.0/0", "-j", syntropyChain}
 
 	ipt, err := iptables.New()
@@ -45,6 +53,10 @@ func CreateChain() error {
 }
 
 func processPeerRule(ipt *iptables.IPTables, add bool, ip string) (err error) {
+	if disabled {
+		return nil
+	}
+
 	rule := []string{"-p", "all", "-s", ip, "-j", "ACCEPT"}
 	if add {
 		err = ipt.AppendUnique(defaultTable, syntropyChain, rule...)
@@ -62,9 +74,6 @@ func RulesAdd(ips ...string) error {
 	for _, ip := range ips {
 		err := processPeerRule(ipt, true, ip)
 		if err != nil {
-			log.Println(err)
-			// TODO fallback to last known good state ?
-			// TODO or maybe try adding all rules, and return concatenated errors ?
 			return err
 		}
 	}
@@ -79,9 +88,6 @@ func RulesDel(ips ...string) error {
 	for _, ip := range ips {
 		err := processPeerRule(ipt, false, ip)
 		if err != nil {
-			log.Println(err)
-			// TODO fallback to last known good state ?
-			// TODO or maybe try adding all rules, and return concatenated errors ?
 			return err
 		}
 	}
@@ -89,6 +95,10 @@ func RulesDel(ips ...string) error {
 }
 
 func ForwardEnable(ifname string) error {
+	if disabled {
+		return nil
+	}
+
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
@@ -117,7 +127,6 @@ func defaultRouteIfname() string {
 
 	routes, err := netlink.RouteList(nil, AF_INET)
 	if err != nil {
-		log.Println(err)
 		return ifname
 	}
 
