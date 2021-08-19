@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	debugLevel = iota
-	infoLevel
-	warningLevel
-	errorLevel
+	DebugLevel = iota
+	InfoLevel
+	WarningLevel
+	ErrorLevel
 	logLevelsCount // actually not a real log level, but simplifies some code
 )
 
@@ -19,18 +19,18 @@ var controllerWriter io.Writer
 
 func init() {
 	// Start with only error lvel to stderr
-	Setup(errorLevel, os.Stderr)
+	Setup(ErrorLevel, os.Stderr)
 }
 
 func logLevelString(level int) string {
 	switch level {
-	case debugLevel:
+	case DebugLevel:
 		return "DEBUG"
-	case infoLevel:
+	case InfoLevel:
 		return "INFO"
-	case warningLevel:
+	case WarningLevel:
 		return "WARNING"
-	case errorLevel:
+	case ErrorLevel:
 		return "ERROR"
 	default:
 		return "?????"
@@ -39,13 +39,13 @@ func logLevelString(level int) string {
 
 func logLevelPrefix(level int) string {
 	switch level {
-	case debugLevel:
+	case DebugLevel:
 		return "[DBG] "
-	case infoLevel:
+	case InfoLevel:
 		return "[INF] "
-	case warningLevel:
+	case WarningLevel:
 		return "[WRN] "
-	case errorLevel:
+	case ErrorLevel:
 		return "[ERR] "
 	default:
 		return "[???] "
@@ -91,17 +91,17 @@ func Setup(level int, w ...io.Writer) {
 }
 
 func Debug() *log.Logger {
-	return loggers[debugLevel]
+	return loggers[DebugLevel]
 }
 
 func Info() *log.Logger {
-	return loggers[infoLevel]
+	return loggers[InfoLevel]
 }
 
 func Warning() *log.Logger {
-	return loggers[warningLevel]
+	return loggers[WarningLevel]
 }
 
 func Error() *log.Logger {
-	return loggers[errorLevel]
+	return loggers[ErrorLevel]
 }
