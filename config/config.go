@@ -2,6 +2,8 @@ package config
 
 import "time"
 
+const pkgName = "SyntropyAgentConfig. "
+
 var (
 	version    = "0.0.0"
 	subversion = "local"

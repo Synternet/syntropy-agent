@@ -1,10 +1,11 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 )
 
 const (
@@ -18,11 +19,13 @@ func initAgentDirs() {
 	// And I can simplify my code and do not check if dirs already exist
 	err := os.MkdirAll(AgentConfigDir, 0700)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error().Printf("%s Config dir %s: %s\n", pkgName, AgentConfigDir, err.Error())
+		os.Exit(-2)
 	}
 	err = os.MkdirAll(AgentTempDir, 0700)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error().Printf("%s Temp dir %s: %s\n", pkgName, AgentTempDir, err.Error())
+		os.Exit(-2)
 	}
 
 }
@@ -70,7 +73,8 @@ func initAgentToken() {
 	cache.apiKey = os.Getenv("SYNTROPY_AGENT_TOKEN")
 
 	if cache.apiKey == "" {
-		log.Fatal("SYNTROPY_AGENT_TOKEN is not set")
+		logger.Error().Println(pkgName, "SYNTROPY_AGENT_TOKEN is not set")
+		os.Exit(-1)
 	}
 }
 
@@ -85,20 +89,14 @@ func initCloudURL() {
 }
 
 func initControllerType() {
-	// Always default to Software-as-a-Service
-	cache.controllerType = ControllerSaas
-
-	sct := os.Getenv("SYNTROPY_CONTROLLER_TYPE")
-	switch strings.ToLower(sct) {
+	switch strings.ToLower(os.Getenv("SYNTROPY_CONTROLLER_TYPE")) {
 	case "saas":
 		cache.controllerType = ControllerSaas
 	case "script":
 		cache.controllerType = ControllerScript
 	case "blockchain":
 		cache.controllerType = ControllerBlockchain
-	case "":
-		// If env variable is unset - stick with default
 	default:
-		log.Printf("Unknown controller type `%s`. Using default controller\n", sct)
+		cache.controllerType = ControllerSaas
 	}
 }

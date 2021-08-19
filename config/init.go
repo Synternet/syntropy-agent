@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -29,8 +28,6 @@ func Init() {
 
 	initLocation()
 	initContainer()
-
-	log.Println("Config init completed")
 }
 
 func Close() {
