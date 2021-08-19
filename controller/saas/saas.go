@@ -3,7 +3,6 @@ package saas
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -11,9 +10,11 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/gorilla/websocket"
 )
 
+const pkgName = "Saas Controller. "
 const (
 	stopped = iota
 	connecting
@@ -70,7 +71,7 @@ func (cc *CloudController) connect() (err error) {
 		if resp != nil {
 			httpCode = resp.StatusCode
 		}
-		log.Printf("WSS dialer error: %s (HTTP: %d)\n", err.Error(), httpCode)
+		logger.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
 		return err
 	}
 	_, cc.reader, err = cc.ws.NextReader()
@@ -95,16 +96,17 @@ func (cc *CloudController) Recv() ([]byte, error) {
 		switch {
 		case err == nil:
 			// successfully received message
-			log.Println("Message type: ", msgtype)
+			if msgtype != websocket.TextMessage {
+				logger.Warning().Println(pkgName, "Received unexpected message type ", msgtype)
+			}
 			return msg, nil
 
 		case atomic.LoadUint32(&cc.state) == stopped:
 			// The connection is closed - simulate EOF
-			log.Println("Saas connection is closed")
 			return nil, io.EOF
 		}
 
-		log.Println("SaaS agent error: ", err, ". Reconnecting...")
+		logger.Warning().Printf("%s Connection error: %s. Reconnecting...", pkgName, err.Error())
 		cc.connect() // reconnect and continue receiving
 	}
 }
@@ -123,7 +125,7 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 
 	err = cc.ws.WriteMessage(websocket.TextMessage, b)
 	if err != nil {
-		log.Println("Websocket write error:", err)
+		logger.Error().Println(pkgName, "Send error: ", err)
 	} else {
 		n = len(b)
 	}
@@ -142,7 +144,7 @@ func (cc *CloudController) Close() error {
 	// waiting (with timeout) for the server to close the connection.
 	err := cc.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	if err != nil {
-		log.Println("write close:", err)
+		logger.Error().Println(pkgName, "connection close error: ", err)
 	}
 	atomic.StoreUint32(&cc.state, stopped)
 
