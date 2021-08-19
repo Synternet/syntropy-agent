@@ -2,7 +2,11 @@
 
 FULL_VERSION = $(shell git describe --tags --dirty --candidates=1)
 VERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f1)
+ifeq ($(FULL_VERSION), $(VERSION))
+SUBVERSION := ""
+else
 SUBVERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f2-4)
+endif
 
 all: agent-go
 
