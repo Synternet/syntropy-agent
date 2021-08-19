@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 )
 
 func Init() {
@@ -13,6 +15,7 @@ func Init() {
 	initCloudURL()
 	initDeviceID()
 	initControllerType()
+	initDebugLevel()
 
 	initAgentName()
 	initAgentProvider()
@@ -45,4 +48,19 @@ func initServicesStatus() {
 func initLocation() {
 	cache.location.Latitude = os.Getenv("SYNTROPY_LAT")
 	cache.location.Longitude = os.Getenv("SYNTROPY_LON")
+}
+
+func initDebugLevel() {
+	switch strings.ToUpper(os.Getenv("SYNTROPY_LOG_LEVEL")) {
+	case "DEBUG":
+		cache.debugLevel = logger.DebugLevel
+	case "INFO":
+		cache.debugLevel = logger.InfoLevel
+	case "WARNING":
+		cache.debugLevel = logger.WarningLevel
+	case "ERROR":
+		cache.debugLevel = logger.ErrorLevel
+	default:
+		cache.debugLevel = logger.InfoLevel
+	}
 }

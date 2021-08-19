@@ -21,6 +21,10 @@ func GetControllerType() int {
 	return cache.controllerType
 }
 
+func GetDebugLevel() int {
+	return cache.debugLevel
+}
+
 func GetAgentToken() string {
 	return cache.apiKey
 }

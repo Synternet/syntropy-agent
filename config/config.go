@@ -38,6 +38,7 @@ type configCache struct {
 		end   uint16
 	}
 
+	debugLevel    int
 	location      Location
 	containerType string
 	docker        struct {

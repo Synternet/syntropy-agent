@@ -12,7 +12,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 )
 
-const fullAppName = "Syntropy Stack Agent"
+const fullAppName = "Syntropy Stack Agent. "
 
 func main() {
 	execName := os.Args[0]
@@ -39,9 +39,9 @@ func main() {
 
 	// NotYet: do not spam controller in development stage
 	// NotYet: logger.SetControllerWriter(syntropyNetAgent)
-	logger.Setup(logger.DebugLevel, os.Stdout)
-	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started")
-	logger.Info().Println(fullAppName, "Using [%d] controller.", config.GetControllerType())
+	logger.Setup(config.GetDebugLevel(), os.Stdout)
+	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
+	logger.Info().Printf("%s Using [%d] controller.\n", fullAppName, config.GetControllerType())
 
 	//Start main agent loop (forks to goroutines internally)
 	syntropyNetAgent.Loop()
