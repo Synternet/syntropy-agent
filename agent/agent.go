@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"io"
-	"log"
 	"sync/atomic"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
@@ -11,10 +10,13 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
+
+const pkgName = "SyntropyAgent. "
 
 type Agent struct {
 	running    uint32
@@ -29,11 +31,11 @@ type Agent struct {
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func NewAgent() (*Agent, error) {
+func NewAgent(contype int) (*Agent, error) {
 	var err error
 	agent := new(Agent)
 
-	switch config.GetControllerType() {
+	switch contype {
 	case config.ControllerSaas:
 		agent.controller, err = saas.NewController()
 	case config.ControllerScript:
@@ -41,16 +43,14 @@ func NewAgent() (*Agent, error) {
 	case config.ControllerBlockchain:
 		agent.controller, err = blockchain.NewController()
 	default:
-		err = fmt.Errorf("unexpected controller type %d", config.GetControllerType())
+		err = fmt.Errorf("unexpected controller type %d", contype)
 	}
 	if err != nil {
-		log.Println("Error creating cloud controller", err)
 		return nil, err
 	}
 
 	agent.wg, err = wireguard.New()
 	if err != nil {
-		log.Println("Error creating wgctrl client")
 		return nil, err
 	}
 
@@ -77,11 +77,11 @@ func (agent *Agent) messageHandler() {
 
 		if err == io.EOF {
 			// Stop runner if the reader is done
-			log.Println("Closing message handler: EOF")
+			logger.Info().Println(pkgName, "Closing message handler - EOF")
 			return
 		} else if err != nil {
 			// Simple errors are handled inside controller. This should be only fatal errors
-			log.Println("Message handler error: ", err)
+			logger.Error().Println(pkgName, "Message handler error: ", err)
 			return
 		}
 
@@ -94,14 +94,16 @@ func (agent *Agent) Write(msg []byte) (int, error) {
 		return 0, fmt.Errorf("sending on stopped agent instance")
 	}
 
-	log.Println("Sending: ", string(msg))
+	logger.Debug().Println(pkgName, "Sending: ", string(msg))
 	return agent.controller.Write(msg)
 }
 
 // Loop is main loop of SyntropyStack agent
 func (agent *Agent) Loop() {
+	logger.Info().Println(pkgName, "Starting Agent messages handler")
+
 	if !atomic.CompareAndSwapUint32(&agent.running, 0, 1) {
-		log.Println("Agent instance is already running")
+		logger.Warning().Println(pkgName, "Agent instance is already running")
 		return
 	}
 
@@ -114,8 +116,10 @@ func (agent *Agent) Loop() {
 
 // Stop closes connections to controller and stops all runners
 func (agent *Agent) Stop() {
+	logger.Info().Println(pkgName, "Stopping Agent")
 	if !atomic.CompareAndSwapUint32(&agent.running, 1, 0) {
-		log.Println("Agent instance is not running")
+		logger.Warning().Println(pkgName, "Agent instance is not running")
+
 		return
 	}
 

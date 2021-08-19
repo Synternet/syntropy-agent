@@ -29,7 +29,7 @@ func main() {
 
 	// TODO: init Wireguard (see pyroyte2.Wireguard())
 
-	syntropyNetAgent, err := agent.NewAgent()
+	syntropyNetAgent, err := agent.NewAgent(config.GetControllerType())
 	if err != nil {
 		log.Fatal("Could not create ", fullAppName, err)
 	}
@@ -41,6 +41,7 @@ func main() {
 	// NotYet: logger.SetControllerWriter(syntropyNetAgent)
 	logger.Setup(logger.DebugLevel, os.Stdout)
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started")
+	logger.Info().Println(fullAppName, "Using [%d] controller.", config.GetControllerType())
 
 	//Start main agent loop (forks to goroutines internally)
 	syntropyNetAgent.Loop()
