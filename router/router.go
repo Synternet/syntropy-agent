@@ -2,16 +2,18 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"net"
 
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/vishvananda/netlink"
 )
+
+const pkgName = "RouteWatcher. "
 
 func RouteAdd(ifname string, gw string, ips ...string) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
-		return fmt.Errorf("failed to lookup interface %v", ifname)
+		return fmt.Errorf("failed to lookup interface %s", ifname)
 	}
 	gateway := net.ParseIP(gw)
 
@@ -32,15 +34,15 @@ func RouteAdd(ifname string, gw string, ips ...string) error {
 		dupp := false
 		for _, r := range routes {
 			if r.Dst != nil && r.Dst.String() == ip && r.Gw.String() == gw {
-				log.Printf("Skipping already existing route: %s %s via %s\n",
-					ifname, ip, gw)
+				logger.Debug().Printf("%s Skipping already existing route: %s %s via %s\n",
+					pkgName, ifname, ip, gw)
 				dupp = true
 				break
 			}
 		}
 		if !dupp {
 			err = netlink.RouteAdd(&route)
-			log.Println("Route add ", ip, " via ", gw)
+			logger.Info().Println(pkgName, "Route add ", ip, " via ", gw)
 			if err != nil {
 				return err
 			}
@@ -63,7 +65,7 @@ func RouteDel(ifname string, ips ...string) error {
 		for _, r := range routes {
 			if r.Dst != nil && r.Dst.String() == ip {
 				err = netlink.RouteDel(&r)
-				log.Println("Route del ", ip)
+				logger.Info().Println(pkgName, "Route del ", ip)
 				if err != nil {
 					return err
 				}
@@ -93,7 +95,7 @@ func RouteReplace(ifname string, gw string, ips ...string) error {
 		if err != nil {
 			return err
 		}
-		log.Println("Route replace ", ip, gw)
+		logger.Info().Println("Route replace ", ip, gw)
 	}
 	return nil
 }
