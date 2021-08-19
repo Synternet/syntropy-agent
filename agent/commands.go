@@ -2,29 +2,28 @@ package agent
 
 import (
 	"encoding/json"
-	"log"
+
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 )
 
 func (a *Agent) processCommand(raw []byte) {
 	var req messageHeader
 	if err := json.Unmarshal(raw, &req); err != nil {
-		log.Println("json unmarshal error: ", err)
+		logger.Error().Println(pkgName, "json message unmarshal error: ", err)
 		return
 	}
 
 	functionCall, ok := a.commands[req.MsgType]
 	if !ok {
-		log.Printf("command '%s' not found\n", req.MsgType)
+		logger.Error().Printf("%s Command '%s' not found\n", pkgName, req.MsgType)
 		return
 	}
 
-	// TODO process and send back responce
-	log.Println("Calling ", req.MsgType, req.ID)
-	log.Println(string(raw))
+	logger.Debug().Println(pkgName, "Received: ", string(raw))
 
 	err := functionCall(a, raw)
 	if err != nil {
-		log.Printf("error while executing `%s` command: %s\n",
-			req.ID, err.Error())
+		logger.Error().Printf("%s Command '%s' failed: %s\n", pkgName, req.ID, err.Error())
 	}
+	logger.Info().Printf("%s Command '%s' completed.", pkgName, req.ID)
 }
