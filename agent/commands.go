@@ -23,7 +23,7 @@ func (a *Agent) processCommand(raw []byte) {
 
 	err := functionCall(a, raw)
 	if err != nil {
-		logger.Error().Printf("%s Command '%s' failed: %s\n", pkgName, req.ID, err.Error())
+		logger.Error().Printf("%s Command '%s' failed: %s\n", pkgName, req.MsgType, err.Error())
 	}
-	logger.Info().Printf("%s Command '%s' completed.", pkgName, req.ID)
+	logger.Info().Printf("%s Command '%s' completed.", pkgName, req.MsgType)
 }
