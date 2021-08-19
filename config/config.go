@@ -4,11 +4,6 @@ import "time"
 
 const pkgName = "SyntropyAgentConfig. "
 
-var (
-	version    = "0.0.0"
-	subversion = "local"
-)
-
 type Location struct {
 	Latitude  string
 	Longitude string

@@ -9,14 +9,6 @@ const (
 	ControllerUnknown
 )
 
-func GetVersion() string {
-	return version
-}
-
-func GetFullVersion() string {
-	return version + "-" + subversion
-}
-
 func GetControllerType() int {
 	return cache.controllerType
 }
