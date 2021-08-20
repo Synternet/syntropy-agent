@@ -6,6 +6,11 @@ import (
 	"os"
 	"sync/atomic"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
@@ -13,7 +18,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
-	"github.com/SyntropyNet/syntropy-agent-go/pinger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -23,11 +27,10 @@ type Agent struct {
 	running    uint32
 	controller controller.Controller
 
-	wg        *wireguard.Wireguard
-	ping      *pinger.Pinger
-	wgWatcher *WgPeerWatcher
+	wg *wireguard.Wireguard
 
-	commands map[string]func(a *Agent, req []byte) error
+	commands map[string]controller.Command
+	services []controller.Service
 }
 
 // NewAgent allocates instance of agent struct
@@ -60,14 +63,19 @@ func NewAgent(contype int) (*Agent, error) {
 		return nil, err
 	}
 
-	agent.ping = pinger.NewPinger(agent)
-	agent.wgWatcher = NewWgPeerWatcher(agent.wg, agent)
+	//	agent.ping = pinger.NewPinger(agent)
+	//	agent.wgWatcher = NewWgPeerWatcher(agent.wg, agent)
 
-	agent.commands = make(map[string]func(a *Agent, req []byte) error)
-	agent.commands["AUTO_PING"] = autoPing
-	agent.commands["GET_INFO"] = getInfo
-	agent.commands["CONFIG_INFO"] = configInfo
-	agent.commands["WG_CONF"] = wireguardConfigure
+	agent.commands = make(map[string]controller.Command)
+	agent.addCommand(getinfo.New(agent.controller))
+	agent.addCommand(configinfo.New(agent.controller, agent.wg))
+	agent.addCommand(wgconf.New(agent.controller, agent.wg))
+
+	autoping := autoping.New(agent.controller)
+	agent.addCommand(autoping)
+	agent.addService(autoping)
+
+	agent.addService(peerdata.New(agent.controller, agent.wg))
 
 	netfilter.CreateChain()
 
@@ -114,7 +122,7 @@ func (agent *Agent) Loop() {
 	}
 
 	// Start all "services"
-	agent.wgWatcher.Start()
+	agent.startServices()
 
 	// Main agent loop - handles messages, received from controller
 	go agent.messageHandler()
@@ -130,8 +138,7 @@ func (agent *Agent) Stop() {
 	}
 
 	// Stop all "services"
-	agent.ping.Stop()
-	agent.wgWatcher.Stop()
+	agent.stopServices()
 
 	// Close controler will also terminate agent loop
 	agent.controller.Close()

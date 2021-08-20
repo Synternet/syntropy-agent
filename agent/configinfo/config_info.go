@@ -1,18 +1,40 @@
-package agent
+package configinfo
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
+
+const cmd = "CONFIG_INFO"
+const cmdRest = "UPDATE_CONFIG_INFO"
+const pkgName = "Config_Info. "
+
+type configInfo struct {
+	writer io.Writer
+	wg     *wireguard.Wireguard
+}
 
 type configInfoNetworkEntry struct {
 	IP        string `json:"internal_ip"`
 	PublicKey string `json:"public_key,omitempty"`
 	Port      int    `json:"listen_port"`
+}
+
+func New(w io.Writer, wg *wireguard.Wireguard) controller.Command {
+	return &configInfo{
+		writer: w,
+		wg:     wg,
+	}
+}
+
+func (obj *configInfo) Name() string {
+	return cmd
 }
 
 func (e *configInfoNetworkEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
@@ -76,7 +98,7 @@ type configInfoVpnEntry struct {
 }
 
 type configInfoMsg struct {
-	messageHeader
+	controller.MessageHeader
 	Data struct {
 		AgentID int `json:"agent_id"`
 		Network struct {
@@ -100,7 +122,7 @@ type updateAgentConfigEntry struct {
 }
 
 type updateAgentConfigMsg struct {
-	messageHeader
+	controller.MessageHeader
 	Data []updateAgentConfigEntry `json:"data"`
 }
 
@@ -124,7 +146,7 @@ func (msg *updateAgentConfigMsg) AddPeer(data *wireguard.PeerInfo) {
 	msg.Data = append(msg.Data, e)
 }
 
-func configInfo(a *Agent, raw []byte) error {
+func (obj *configInfo) Exec(raw []byte) error {
 	var req configInfoMsg
 	var errorCount int
 	err := json.Unmarshal(raw, &req)
@@ -133,7 +155,7 @@ func configInfo(a *Agent, raw []byte) error {
 	}
 
 	resp := updateAgentConfigMsg{
-		messageHeader: req.messageHeader,
+		MessageHeader: req.MessageHeader,
 	}
 	resp.MsgType = "UPDATE_AGENT_CONFIG"
 	// Initialise empty slice, so if no entries is added
@@ -151,7 +173,7 @@ func configInfo(a *Agent, raw []byte) error {
 	// create missing interfaces
 	wgi := req.Data.Network.Public.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_PUBLIC"
-	err = a.wg.CreateInterface(wgi)
+	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
 	}
@@ -162,7 +184,7 @@ func configInfo(a *Agent, raw []byte) error {
 
 	wgi = req.Data.Network.Sdn1.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_SDN1"
-	err = a.wg.CreateInterface(wgi)
+	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
 	}
@@ -173,7 +195,7 @@ func configInfo(a *Agent, raw []byte) error {
 
 	wgi = req.Data.Network.Sdn2.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_SDN2"
-	err = a.wg.CreateInterface(wgi)
+	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
 	}
@@ -184,7 +206,7 @@ func configInfo(a *Agent, raw []byte) error {
 
 	wgi = req.Data.Network.Sdn3.AsInterfaceInfo()
 	wgi.IfName = "SYNTROPY_SDN3"
-	err = a.wg.CreateInterface(wgi)
+	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
 	}
@@ -196,11 +218,11 @@ func configInfo(a *Agent, raw []byte) error {
 	for _, cmd := range req.Data.VPN {
 		switch cmd.Function {
 		case "add_peer":
-			err = a.wg.AddPeer(cmd.AsPeerInfo())
+			err = obj.wg.AddPeer(cmd.AsPeerInfo())
 		case "create_interface":
 			// TODO: need to rethink where and how to setup `routes` and `iptables` rules
 			wgi = cmd.AsInterfaceInfo()
-			err = a.wg.CreateInterface(wgi)
+			err = obj.wg.CreateInterface(wgi)
 			if err == nil &&
 				cmd.Args.PublicKey != wgi.PublicKey ||
 				cmd.Args.ListenPort != wgi.Port {
@@ -222,7 +244,7 @@ func configInfo(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	a.Write(arr)
+	obj.writer.Write(arr)
 
 	return nil
 }

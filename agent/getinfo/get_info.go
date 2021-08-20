@@ -1,18 +1,22 @@
-package agent
+package getinfo
 
 import (
 	"encoding/json"
+	"io"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/controller"
 )
 
+const cmd = "GET_INFO"
+
 type getInfoRequest struct {
-	messageHeader
+	controller.MessageHeader
 	Data interface{} `json:"data,omitempty"`
 }
 
 type getInfoResponce struct {
-	messageHeader
+	controller.MessageHeader
 	Data struct {
 		Provider   int      `json:"agent_provider,omitempty"` // 0 is not used and do not send
 		Status     bool     `json:"service_status"`
@@ -24,8 +28,21 @@ type getInfoResponce struct {
 	} `json:"data"`
 }
 
-func getInfo(a *Agent, raw []byte) error {
+type getInfo struct {
+	w io.Writer
+}
 
+func New(w io.Writer) controller.Command {
+	return &getInfo{
+		w: w,
+	}
+}
+
+func (obj *getInfo) Name() string {
+	return cmd
+}
+
+func (obj *getInfo) Exec(raw []byte) error {
 	var req getInfoRequest
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
@@ -33,8 +50,9 @@ func getInfo(a *Agent, raw []byte) error {
 	}
 
 	resp := getInfoResponce{
-		messageHeader: req.messageHeader,
+		MessageHeader: req.MessageHeader,
 	}
+
 	resp.Data.Provider = config.GetAgentProvider()
 	resp.Data.Status = config.GetServicesStatus()
 	resp.Data.Tags = config.GetAgentTags()
@@ -47,7 +65,7 @@ func getInfo(a *Agent, raw []byte) error {
 		return err
 	}
 
-	a.Write(arr)
+	obj.w.Write(arr)
 
 	return err
 }

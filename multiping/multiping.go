@@ -1,4 +1,4 @@
-package pinger
+package multiping
 
 import (
 	"sync"
@@ -17,34 +17,31 @@ type PingResultProcessor interface {
 	ProcessPingResults(pr []PingResult)
 }
 
-type Pinger struct {
+type MultiPing struct {
 	sync.RWMutex
 	stop       chan bool
 	running    bool
 	prp        PingResultProcessor
 	hosts      []string
-	period     time.Duration
-	limitCount int
+	Count      int
+	Timeout    time.Duration
+	Period     time.Duration
+	LimitCount int
 }
 
-func NewPinger(p PingResultProcessor) *Pinger {
-	return &Pinger{
+func New(p PingResultProcessor) *MultiPing {
+	return &MultiPing{
 		prp:        p,
-		period:     time.Minute,
-		limitCount: 1000,
+		Period:     0,
+		Count:      1,
+		Timeout:    1,
+		LimitCount: 1000,
 		stop:       make(chan bool),
 		running:    false,
 	}
 }
 
-func (p *Pinger) Setup(period time.Duration, limit int) {
-	p.Lock()
-	defer p.Unlock()
-	p.period = period
-	p.limitCount = limit
-}
-
-func (p *Pinger) AddHost(hosts ...string) {
+func (p *MultiPing) AddHost(hosts ...string) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -62,7 +59,7 @@ func (p *Pinger) AddHost(hosts ...string) {
 	}
 }
 
-func (p *Pinger) DelHost(hosts ...string) {
+func (p *MultiPing) DelHost(hosts ...string) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -79,7 +76,12 @@ func (p *Pinger) DelHost(hosts ...string) {
 	}
 }
 
-func pingHost(h string, c chan PingResult) {
+func (p *MultiPing) Flush() {
+	// remove all configured hosts
+	p.hosts = []string{}
+}
+
+func (p *MultiPing) pingHost(h string, c chan PingResult) {
 	pinger, err := ping.NewPinger(h)
 	res := PingResult{
 		IP:      h,
@@ -92,8 +94,8 @@ func pingHost(h string, c chan PingResult) {
 		return
 	}
 
-	pinger.Count = 2
-	pinger.Timeout = time.Second
+	pinger.Count = p.Count
+	pinger.Timeout = p.Timeout
 
 	err = pinger.Run()
 	if err != nil {
@@ -111,7 +113,7 @@ func pingHost(h string, c chan PingResult) {
 	// `res` added to channel from defer
 }
 
-func (p *Pinger) pingAll() {
+func (p *MultiPing) Ping() {
 	p.RLock()
 	defer p.RUnlock()
 
@@ -133,21 +135,25 @@ func (p *Pinger) pingAll() {
 
 	// Spawn all host pinging to goroutines
 	for i := 0; i < len(p.hosts); i++ {
-		go pingHost(p.hosts[i], c)
+		go p.pingHost(p.hosts[i], c)
 	}
 }
 
 // Starts configured pinger
-func (p *Pinger) Start() {
+func (p *MultiPing) Start() {
 	p.Lock()
 	defer p.Unlock()
 	if p.running {
 		// Do not start new pinger, if one is alredy running
 		return
 	}
+
+	if p.Period == 0 {
+		return
+	}
 	p.running = true
 
-	t := time.NewTicker(p.period)
+	t := time.NewTicker(p.Period)
 
 	go func() {
 		for {
@@ -155,7 +161,7 @@ func (p *Pinger) Start() {
 			case <-p.stop:
 				return
 			case <-t.C:
-				p.pingAll()
+				p.Ping()
 
 			}
 		}
@@ -163,7 +169,7 @@ func (p *Pinger) Start() {
 }
 
 // Stop stops running pinger and removes all configured hosts
-func (p *Pinger) Stop() {
+func (p *MultiPing) Stop() {
 	p.Lock()
 	defer p.Unlock()
 
@@ -173,12 +179,4 @@ func (p *Pinger) Stop() {
 		// Stop the goroutine
 		p.stop <- true
 	}
-
-	// remove all configured hosts
-	p.hosts = []string{}
-}
-
-// Runs the configured pinger only once
-func (p *Pinger) RunOnce() {
-	p.pingAll()
 }

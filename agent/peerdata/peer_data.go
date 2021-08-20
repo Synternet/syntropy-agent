@@ -1,14 +1,18 @@
-package agent
+package peerdata
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/pinger"
+	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
+
+const cmd = "IFACE_PEERS_BW_DATA"
+const pkgName = "Peer_Data. "
 
 const (
 	periodInit = time.Second
@@ -31,7 +35,7 @@ type ifaceBwEntry struct {
 }
 
 type peerBwData struct {
-	messageHeader
+	controller.MessageHeader
 	Data []ifaceBwEntry `json:"data"`
 }
 
@@ -45,7 +49,7 @@ type WgPeerWatcher struct {
 	stop    chan bool
 }
 
-func NewWgPeerWatcher(wgctl *wireguard.Wireguard, writer io.Writer) *WgPeerWatcher {
+func New(writer io.Writer, wgctl *wireguard.Wireguard) controller.Service {
 	return &WgPeerWatcher{
 		wg:      wgctl,
 		writer:  writer,
@@ -54,7 +58,7 @@ func NewWgPeerWatcher(wgctl *wireguard.Wireguard, writer io.Writer) *WgPeerWatch
 	}
 }
 
-func (ie *ifaceBwEntry) ProcessPingResults(pr []pinger.PingResult) {
+func (ie *ifaceBwEntry) ProcessPingResults(pr []multiping.PingResult) {
 	for _, pingres := range pr {
 		entry := peerDataEntry{
 			IP:      pingres.IP,
@@ -84,8 +88,8 @@ func (ie *ifaceBwEntry) ProcessPingResults(pr []pinger.PingResult) {
 func (wpw *WgPeerWatcher) execute() error {
 	wg := wpw.wg
 	resp := peerBwData{}
-	resp.ID = "UNKNOWN"
-	resp.MsgType = "IFACES_PEERS_BW_DATA"
+	resp.ID = "-"
+	resp.MsgType = cmd
 
 	wgdevs, err := wg.Devices()
 	if err != nil {
@@ -118,7 +122,7 @@ func (wpw *WgPeerWatcher) execute() error {
 			Peers:     []peerDataEntry{},
 			channel:   c,
 		}
-		ping := pinger.NewPinger(&ifaceData)
+		ping := multiping.New(&ifaceData)
 
 		for _, p := range wgdev.Peers {
 			if len(p.AllowedIPs) == 0 {
@@ -128,7 +132,7 @@ func (wpw *WgPeerWatcher) execute() error {
 			ping.AddHost(ip.IP.String())
 		}
 
-		ping.RunOnce()
+		ping.Ping()
 	}
 
 	for count > 0 {
@@ -148,11 +152,15 @@ func (wpw *WgPeerWatcher) execute() error {
 	return nil
 }
 
-func (wpw *WgPeerWatcher) Start() {
+func (wpw *WgPeerWatcher) Name() string {
+	return cmd
+}
+
+func (wpw *WgPeerWatcher) Start() error {
 	// I'm not doing concurency prevention here,
 	// because this Start() should not be called concurently and this is only a sanity check
 	if wpw.ticker != nil {
-		log.Fatal("A peer watcher is already running")
+		return fmt.Errorf("%s is already running", pkgName)
 	}
 
 	wpw.ticker = time.NewTicker(periodInit)
@@ -167,14 +175,18 @@ func (wpw *WgPeerWatcher) Start() {
 			}
 		}
 	}()
+	return nil
 }
 
-func (wpw *WgPeerWatcher) Stop() {
+func (wpw *WgPeerWatcher) Stop() error {
 	// Cannot stop not running instance
 	if wpw.ticker == nil {
-		return
+		return fmt.Errorf("%s is not running", pkgName)
+
 	}
 
 	wpw.ticker.Stop()
 	wpw.stop <- true
+
+	return nil
 }

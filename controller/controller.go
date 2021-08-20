@@ -1,6 +1,9 @@
 package controller
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 type Controller interface {
 	// The primary idea was to use Reader interface here
@@ -13,4 +16,36 @@ type Controller interface {
 	// Close() terminates controller. After Close controller will not reconnect
 	// and may bot be used to  receive or send messages.
 	io.Closer
+}
+
+// Command interface is used for controller commands executors
+type Command interface {
+	Name() string
+	Exec(data []byte) error
+}
+
+// Service interface describes background running instances
+type Service interface {
+	Name() string
+	Start() error
+	Stop() error
+}
+
+// Generic message struct (common part for all messages)
+type MessageHeader struct {
+	ID        string `json:"id"`
+	MsgType   string `json:"type"`
+	Timestamp string `json:"executed_at,omitempty"`
+}
+
+func (mh *MessageHeader) Now() {
+	mh.Timestamp = time.Now().Format("2006-01-02T15:04:05 -07:00")
+}
+
+type ErrorResponce struct {
+	MessageHeader
+	Data struct {
+		Type    string `json:"type"`
+		Message string `json:"error"`
+	} `json:"data"`
 }

@@ -1,11 +1,21 @@
-package agent
+package wgconf
 
 import (
 	"encoding/json"
+	"io"
 
+	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
+
+const pkgName = "Wg_Conf. "
+const cmd = "WG_CONF"
+
+type wgConf struct {
+	writer io.Writer
+	wg     *wireguard.Wireguard
+}
 
 type allowedIPsInfoEntry struct {
 	ServiceName string `json:"agent_service_name,omitempty"`
@@ -61,11 +71,22 @@ func (e *wgConfEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
 }
 
 type wgConfReq struct {
-	messageHeader
+	controller.MessageHeader
 	Data []wgConfEntry `json:"data"`
 }
 
-func wireguardConfigure(a *Agent, raw []byte) error {
+func New(w io.Writer, wg *wireguard.Wireguard) controller.Command {
+	return &wgConf{
+		writer: w,
+		wg:     wg,
+	}
+}
+
+func (obj *wgConf) Name() string {
+	return cmd
+}
+
+func (obj *wgConf) Exec(raw []byte) error {
 	var req wgConfReq
 	var errorCount int
 	err := json.Unmarshal(raw, &req)
@@ -76,14 +97,14 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
-			err = a.wg.AddPeer(cmd.AsPeerInfo())
+			err = obj.wg.AddPeer(cmd.AsPeerInfo())
 
 		case "remove_peer":
-			err = a.wg.RemovePeer(cmd.AsPeerInfo())
+			err = obj.wg.RemovePeer(cmd.AsPeerInfo())
 
 		case "create_interface":
 			wgi := cmd.AsInterfaceInfo()
-			err = a.wg.CreateInterface(wgi)
+			err = obj.wg.CreateInterface(wgi)
 			/*
 				if err == nil &&
 					cmd.Args.PublicKey != wgi.PublicKey ||
@@ -94,7 +115,7 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 
 		case "remove_interface":
 			wgi := cmd.AsInterfaceInfo()
-			err = a.wg.RemoveInterface(wgi)
+			err = obj.wg.RemoveInterface(wgi)
 		}
 		if err != nil {
 			errorCount++
@@ -113,6 +134,6 @@ func wireguardConfigure(a *Agent, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	a.Write(respArr)
+	obj.writer.Write(respArr)
 	return nil
 }
