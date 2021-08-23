@@ -12,7 +12,7 @@ import (
 )
 
 const cmd = "CONFIG_INFO"
-const cmdRest = "UPDATE_CONFIG_INFO"
+const cmdResp = "UPDATE_CONFIG_INFO"
 const pkgName = "Config_Info. "
 
 type configInfo struct {
@@ -157,7 +157,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	resp := updateAgentConfigMsg{
 		MessageHeader: req.MessageHeader,
 	}
-	resp.MsgType = "UPDATE_AGENT_CONFIG"
+	resp.MsgType = cmdResp
 	// Initialise empty slice, so if no entries is added
 	// json.Marshal will result in empty json, and not a null object
 	resp.Data = []updateAgentConfigEntry{}

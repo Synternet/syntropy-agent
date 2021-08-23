@@ -5,6 +5,8 @@ import (
 	"io"
 )
 
+const cmd = "LOGGER"
+
 type loggerMessage struct {
 	ID        string `json:"id"`
 	MsgType   string `json:"type"`
@@ -23,7 +25,7 @@ type controllerLogger struct {
 func (l *controllerLogger) Write(b []byte) (n int, err error) {
 	msg := loggerMessage{
 		ID:      "-",
-		MsgType: "LOGGER",
+		MsgType: cmd,
 	}
 
 	msg.Data.Message = string(b)

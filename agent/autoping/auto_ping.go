@@ -69,7 +69,7 @@ func (obj *AutoPing) Exec(raw []byte) error {
 func (obj *AutoPing) ProcessPingResults(pr []multiping.PingResult) {
 	var resp autoPingResponce
 	resp.Data.Pings = pr
-	resp.MsgType = "AUTO_PING"
+	resp.MsgType = cmd
 	resp.ID = "ID." + strconv.FormatInt(time.Now().Unix(), 10)
 	resp.Now()
 
