@@ -39,9 +39,7 @@ type peerBwData struct {
 	Data []ifaceBwEntry `json:"data"`
 }
 
-// TODO: think of INTERFACE type to fit all background runners.
-// Make this object interface. If possible - remove Agent dependency
-type WgPeerWatcher struct {
+type wgPeerWatcher struct {
 	wg      *wireguard.Wireguard
 	writer  io.Writer
 	ticker  *time.Ticker
@@ -50,7 +48,7 @@ type WgPeerWatcher struct {
 }
 
 func New(writer io.Writer, wgctl *wireguard.Wireguard) controller.Service {
-	return &WgPeerWatcher{
+	return &wgPeerWatcher{
 		wg:      wgctl,
 		writer:  writer,
 		timeout: periodInit,
@@ -85,8 +83,8 @@ func (ie *ifaceBwEntry) ProcessPingResults(pr []multiping.PingResult) {
 	ie.channel <- ie
 }
 
-func (wpw *WgPeerWatcher) execute() error {
-	wg := wpw.wg
+func (obj *wgPeerWatcher) execute() error {
+	wg := obj.wg
 	resp := peerBwData{}
 	resp.ID = "-"
 	resp.MsgType = cmd
@@ -101,14 +99,14 @@ func (wpw *WgPeerWatcher) execute() error {
 	// If no interfaces are created yet - I send nothing to controller and wait a short time
 	// When interfaces are created - switch to less frequently check
 	if count == 0 {
-		if wpw.timeout != periodInit {
-			wpw.timeout = periodInit
-			wpw.ticker.Reset(wpw.timeout)
+		if obj.timeout != periodInit {
+			obj.timeout = periodInit
+			obj.ticker.Reset(obj.timeout)
 		}
 		return nil
-	} else if wpw.timeout != periodRun {
-		wpw.timeout = periodRun
-		wpw.ticker.Reset(wpw.timeout)
+	} else if obj.timeout != periodRun {
+		obj.timeout = periodRun
+		obj.ticker.Reset(obj.timeout)
 	}
 
 	// The pinger runs in background, so I will create a channel with number of interfaces
@@ -147,30 +145,30 @@ func (wpw *WgPeerWatcher) execute() error {
 	if err != nil {
 		return err
 	}
-	wpw.writer.Write(raw)
+	obj.writer.Write(raw)
 
 	return nil
 }
 
-func (wpw *WgPeerWatcher) Name() string {
+func (obj *wgPeerWatcher) Name() string {
 	return cmd
 }
 
-func (wpw *WgPeerWatcher) Start() error {
+func (obj *wgPeerWatcher) Start() error {
 	// I'm not doing concurency prevention here,
 	// because this Start() should not be called concurently and this is only a sanity check
-	if wpw.ticker != nil {
+	if obj.ticker != nil {
 		return fmt.Errorf("%s is already running", pkgName)
 	}
 
-	wpw.ticker = time.NewTicker(periodInit)
+	obj.ticker = time.NewTicker(periodInit)
 	go func() {
 		for {
 			select {
-			case <-wpw.stop:
+			case <-obj.stop:
 				return
-			case <-wpw.ticker.C:
-				wpw.execute()
+			case <-obj.ticker.C:
+				obj.execute()
 
 			}
 		}
@@ -178,15 +176,15 @@ func (wpw *WgPeerWatcher) Start() error {
 	return nil
 }
 
-func (wpw *WgPeerWatcher) Stop() error {
+func (obj *wgPeerWatcher) Stop() error {
 	// Cannot stop not running instance
-	if wpw.ticker == nil {
+	if obj.ticker == nil {
 		return fmt.Errorf("%s is not running", pkgName)
 
 	}
 
-	wpw.ticker.Stop()
-	wpw.stop <- true
+	obj.ticker.Stop()
+	obj.stop <- true
 
 	return nil
 }
