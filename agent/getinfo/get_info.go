@@ -6,6 +6,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/docker"
 )
 
 const cmd = "GET_INFO"
@@ -18,13 +19,15 @@ type getInfoRequest struct {
 type getInfoResponce struct {
 	controller.MessageHeader
 	Data struct {
-		Provider   int      `json:"agent_provider,omitempty"` // 0 is not used and do not send
-		Status     bool     `json:"service_status"`
-		Tags       []string `json:"agent_tags"`
-		ExternalIP string   `json:"external_ip"`
+		Provider          int      `json:"agent_provider,omitempty"` // 0 is not used and do not send
+		Status            bool     `json:"service_status"`
+		Tags              []string `json:"agent_tags"`
+		ExternalIP        string   `json:"external_ip"`
+		LocationLatitude  string   `json:"location_lat"`
+		LocationLongitude string   `json:"location_lon"`
 
-		NetworkInfo   []config.DockerNetworkInfoEntry   `json:"network_info"`
-		ContainerInfo []config.DockerContainerInfoEntry `json:"container_info"`
+		NetworkInfo   []docker.DockerNetworkInfoEntry   `json:"network_info"`
+		ContainerInfo []docker.DockerContainerInfoEntry `json:"container_info"`
 	} `json:"data"`
 }
 
@@ -57,8 +60,10 @@ func (obj *getInfo) Exec(raw []byte) error {
 	resp.Data.Status = config.GetServicesStatus()
 	resp.Data.Tags = config.GetAgentTags()
 	resp.Data.ExternalIP = config.GetPublicIp()
-	resp.Data.NetworkInfo = config.GetDockerNetworkInfo()
-	resp.Data.ContainerInfo = config.GetDockerContainerInfo()
+	resp.Data.LocationLatitude = config.GetLocationLatitude()
+	resp.Data.LocationLongitude = config.GetLocationLongitude()
+	resp.Data.NetworkInfo = docker.NetworkInfo()
+	resp.Data.ContainerInfo = docker.ContainerInfo()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {

@@ -73,10 +73,14 @@ func GetDeviceID() string {
 	return cache.deviceID
 }
 
-func GetDockerNetworkInfo() []DockerNetworkInfoEntry {
-	return cache.docker.networkInfo
+func GetContainerType() string {
+	return cache.containerType
 }
 
-func GetDockerContainerInfo() []DockerContainerInfoEntry {
-	return cache.docker.containerInfo
+func GetLocationLatitude() string {
+	return cache.location.Latitude
+}
+
+func GetLocationLongitude() string {
+	return cache.location.Longitude
 }

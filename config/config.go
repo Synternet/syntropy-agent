@@ -38,10 +38,6 @@ type configCache struct {
 	debugLevel    int
 	location      Location
 	containerType string
-	docker        struct {
-		networkInfo   []DockerNetworkInfoEntry
-		containerInfo []DockerContainerInfoEntry
-	}
 }
 
 var cache configCache

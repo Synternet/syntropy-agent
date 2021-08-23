@@ -47,6 +47,10 @@ func initLocation() {
 	cache.location.Longitude = os.Getenv("SYNTROPY_LON")
 }
 
+func initContainer() {
+	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
+}
+
 func initDebugLevel() {
 	switch strings.ToUpper(os.Getenv("SYNTROPY_LOG_LEVEL")) {
 	case "DEBUG":

@@ -1,11 +1,10 @@
-package config
+package docker
 
 import (
 	"context"
 	"log"
-	"os"
-	"strings"
 
+	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
@@ -29,20 +28,12 @@ type DockerContainerInfoEntry struct {
 	} `json:"agent_container_ports"`
 }
 
-func initContainer() {
-	log.Println("Init Docker container")
-	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
-	initDockerNetInfo()
-	initDockerContainerInfo()
-	// TODO: shedule docker changes subscribe and monitor
-}
-
 func isDockerContainer() bool {
-	return cache.containerType == "docker"
+	return config.GetContainerType() == "docker"
 }
 
-func initDockerNetInfo() {
-	cache.docker.networkInfo = []DockerNetworkInfoEntry{}
+func NetworkInfo() (networkInfo []DockerNetworkInfoEntry) {
+	networkInfo = []DockerNetworkInfoEntry{}
 	if !isDockerContainer() {
 		return
 	}
@@ -73,14 +64,14 @@ func initDockerNetInfo() {
 
 		}
 		if len(ni.Subnets) > 0 {
-			cache.docker.networkInfo = append(cache.docker.networkInfo, ni)
+			networkInfo = append(networkInfo, ni)
 		}
 	}
-
+	return networkInfo
 }
 
-func initDockerContainerInfo() {
-	cache.docker.containerInfo = []DockerContainerInfoEntry{}
+func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
+	containerInfo = []DockerContainerInfoEntry{}
 	if !isDockerContainer() {
 		return
 	}
@@ -97,6 +88,18 @@ func initDockerContainerInfo() {
 	if err != nil {
 		log.Println(err)
 		return
+	}
+
+	addPort := func(arr *[]int, port uint16) {
+		if port == 0 {
+			return
+		}
+		for _, p := range *arr {
+			if p == int(port) {
+				return
+			}
+		}
+		*arr = append(*arr, int(port))
 	}
 
 	for _, c := range containers {
@@ -116,6 +119,20 @@ func initDockerContainerInfo() {
 		// TODO: Add network names, IPs and ports info
 		log.Printf("Container info %+v\n\t\nNetInfo: %+v\n\n", c, c.NetworkSettings.Networks)
 
-		cache.docker.containerInfo = append(cache.docker.containerInfo, ci)
+		for _, p := range c.Ports {
+			switch p.Type {
+			case "tcp":
+				addPort(&ci.Ports.TCP, p.PrivatePort)
+				addPort(&ci.Ports.TCP, p.PublicPort)
+			case "udp":
+				addPort(&ci.Ports.UDP, p.PrivatePort)
+				addPort(&ci.Ports.UDP, p.PublicPort)
+			}
+
+		}
+
+		containerInfo = append(containerInfo, ci)
 	}
+
+	return containerInfo
 }
