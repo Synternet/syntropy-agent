@@ -25,8 +25,6 @@ func (a *Agent) processCommand(raw []byte) {
 		return
 	}
 
-	logger.Debug().Println(pkgName, "Received: ", string(raw))
-
 	err := cmd.Exec(raw)
 	if err != nil {
 		logger.Error().Printf("%s Command '%s' failed: %s\n", pkgName, req.MsgType, err.Error())

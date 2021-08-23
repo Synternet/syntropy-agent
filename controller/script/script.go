@@ -12,6 +12,8 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 )
 
+const pkgName = "ScriptController. "
+
 // Script controller just reads files from
 // `/etc/syntropy-agent/script` directory and setups accordinly
 type ScriptController struct {
@@ -54,39 +56,40 @@ func (cc *ScriptController) Recv() ([]byte, error) {
 		fname := cc.list[cc.index]
 		cc.index++
 		if fname == "" || fname[0] == '#' {
-			logger.Debug().Printf("Script Controller: Skip \"%s\"\n", fname)
+			logger.Debug().Printf("%s Skip \"%s\"\n", pkgName, fname)
 			continue
 		}
 		msg, err := ioutil.ReadFile(scriptPath + "/" + fname)
 		if err != nil {
-			logger.Error().Printf("ScriptControler: File %s: %s", fname, err.Error())
+			logger.Error().Printf("%s File %s: %s", pkgName, fname, err.Error())
 			continue
 		}
-		logger.Debug().Printf("Script Controller: Receiving \"%s\"\n", fname)
+		logger.Debug().Printf("%s Receiving \"%s\"\n", pkgName, fname)
 
 		return msg, nil
 	}
 
 	// When no more configuration scripts are left - just block the Recv
 	// and keep agent waiting
-	logger.Debug().Println("Script Controller: No more messages.")
+	logger.Debug().Println(pkgName, "No more messages.")
 	_, ok := <-cc.stop
 	if !ok {
-		logger.Debug().Println("Script Controller: EOF")
+		logger.Debug().Println(pkgName, "EOF")
 		return nil, io.EOF
 	}
-	logger.Error().Println("Script Controller: Reading from closed controller.")
+	logger.Error().Println(pkgName, "Reading from closed controller.")
 	return nil, fmt.Errorf("unexpected controller usage")
 }
 
 // Write sends nowhere
 func (cc *ScriptController) Write(b []byte) (n int, err error) {
+	logger.Debug().Println(pkgName, "Writting: ", string(b))
 	return len(b), nil
 }
 
 // Close terminates connection
 func (cc *ScriptController) Close() error {
-	logger.Info().Println("Script Controller closing.")
+	logger.Info().Println(pkgName, "Closing.")
 	close(cc.stop)
 	return nil
 }

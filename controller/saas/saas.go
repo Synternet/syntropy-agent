@@ -99,10 +99,12 @@ func (cc *CloudController) Recv() ([]byte, error) {
 			if msgtype != websocket.TextMessage {
 				logger.Warning().Println(pkgName, "Received unexpected message type ", msgtype)
 			}
+			logger.Debug().Println(pkgName, "Received: ", string(msg))
 			return msg, nil
 
 		case atomic.LoadUint32(&cc.state) == stopped:
 			// The connection is closed - simulate EOF
+			logger.Debug().Println(pkgName, "EOF")
 			return nil, io.EOF
 		}
 
