@@ -2,6 +2,7 @@ package wgconf
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 
@@ -88,9 +89,35 @@ func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 	}
 }
 
-type wgConfReq struct {
+type wgConfMsg struct {
 	controller.MessageHeader
 	Data []wgConfEntry `json:"data"`
+}
+
+func (msg *wgConfMsg) AddPeerCmd(cmd string, pi *wireguard.PeerInfo) {
+	e := wgConfEntry{
+		Function: cmd,
+	}
+	e.Args.IfName = pi.IfName
+	e.Args.EndpointIPv4 = pi.IP
+	e.Args.PublicKey = pi.PublicKey
+	e.Args.EndpointPort = pi.Port
+	e.Args.GatewayIPv4 = pi.Gateway
+	e.Args.AllowedIPs = pi.AllowedIPs
+
+	msg.Data = append(msg.Data, e)
+}
+
+func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *wireguard.InterfaceInfo) {
+	e := wgConfEntry{
+		Function: cmd,
+	}
+	e.Args.IfName = ii.IfName
+	e.Args.IP = ii.IP
+	e.Args.PublicKey = ii.PublicKey
+	e.Args.Port = ii.Port
+
+	msg.Data = append(msg.Data, e)
 }
 
 func New(w io.Writer, wg *wireguard.Wireguard) controller.Command {
@@ -105,36 +132,38 @@ func (obj *wgConf) Name() string {
 }
 
 func (obj *wgConf) Exec(raw []byte) error {
-	var req wgConfReq
+	var req wgConfMsg
 	var errorCount int
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
 		return err
 	}
 
+	resp := wgConfMsg{
+		MessageHeader: req.MessageHeader,
+		Data:          []wgConfEntry{},
+	}
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
-			err = obj.wg.AddPeer(cmd.asPeerInfo())
+			wgp := cmd.asPeerInfo()
+			err = obj.wg.AddPeer(wgp)
+			resp.AddPeerCmd(cmd.Function, wgp)
 
 		case "remove_peer":
-			err = obj.wg.RemovePeer(cmd.asPeerInfo())
+			wgp := cmd.asPeerInfo()
+			err = obj.wg.RemovePeer(wgp)
+			resp.AddPeerCmd(cmd.Function, wgp)
 
 		case "create_interface":
 			wgi := cmd.asInterfaceInfo()
 			err = obj.wg.CreateInterface(wgi)
-			/*
-				TODO
-				if err == nil &&
-					cmd.Args.PublicKey != wgi.PublicKey ||
-					cmd.Args.ListenPort != wgi.Port {
-					resp.AddInterface(wgi)
-				}
-			*/
+			resp.AddInterfaceCmd(cmd.Function, wgi)
 
 		case "remove_interface":
 			wgi := cmd.asInterfaceInfo()
 			err = obj.wg.RemoveInterface(wgi)
+			resp.AddInterfaceCmd(cmd.Function, wgi)
 		}
 		if err != nil {
 			errorCount++
@@ -144,15 +173,28 @@ func (obj *wgConf) Exec(raw []byte) error {
 	}
 
 	if errorCount > 0 {
-		// TODO: add sending errors to controller
+		errResp := controller.ErrorResponce{
+			MessageHeader: req.MessageHeader,
+		}
+		errResp.Data.Type = cmd + "_ERROR"
+		errResp.Data.Message = fmt.Sprintf("There were %d errors while performing %s request %s",
+			errorCount, req.MsgType, req.ID)
+		errResp.Now()
+		arr, err := json.Marshal(errResp)
+		if err != nil {
+			return err
+		}
+		// Tricky here: I have errors, and I send them back to controller
+		// But they are not internal application errors
+		obj.writer.Write(arr)
+		return nil
 	}
 
-	// TODO: send back ACTUAL info (e.g. ports may change, or create_interface public key)
-	req.Now()
-	respArr, err := json.Marshal(req)
+	resp.Now()
+	arr, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
-	obj.writer.Write(respArr)
+	obj.writer.Write(arr)
 	return nil
 }
