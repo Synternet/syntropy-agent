@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
@@ -11,9 +12,12 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
-const cmd = "CONFIG_INFO"
-const cmdResp = "UPDATE_CONFIG_INFO"
-const pkgName = "Config_Info. "
+const (
+	cmd         = "CONFIG_INFO"
+	cmdResp     = "UPDATE_CONFIG_INFO"
+	pkgName     = "Config_Info. "
+	ifacePrefix = "SYNTROPY_"
+)
 
 type configInfo struct {
 	writer io.Writer
@@ -37,8 +41,15 @@ func (obj *configInfo) Name() string {
 	return cmd
 }
 
-func (e *configInfoNetworkEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
+func (e *configInfoNetworkEntry) AsInterfaceInfo(ifname string) *wireguard.InterfaceInfo {
+	var name string
+	if strings.HasPrefix(ifname, ifacePrefix) {
+		name = ifname
+	} else {
+		name = ifacePrefix + ifname
+	}
 	return &wireguard.InterfaceInfo{
+		IfName:    name,
 		IP:        e.IP,
 		PublicKey: e.PublicKey,
 		Port:      e.Port,
@@ -46,8 +57,14 @@ func (e *configInfoNetworkEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
 }
 
 func (e *configInfoVpnEntry) AsPeerInfo() *wireguard.PeerInfo {
+	var name string
+	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
+		name = e.Args.IfName
+	} else {
+		name = ifacePrefix + e.Args.IfName
+	}
 	return &wireguard.PeerInfo{
-		IfName:     e.Args.IfName,
+		IfName:     name,
 		IP:         e.Args.EndpointIPv4,
 		PublicKey:  e.Args.PublicKey,
 		Port:       e.Args.EndpointPort,
@@ -57,8 +74,14 @@ func (e *configInfoVpnEntry) AsPeerInfo() *wireguard.PeerInfo {
 }
 
 func (e *configInfoVpnEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
+	var name string
+	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
+		name = e.Args.IfName
+	} else {
+		name = ifacePrefix + e.Args.IfName
+	}
 	return &wireguard.InterfaceInfo{
-		IfName:    e.Args.IfName,
+		IfName:    name,
 		IP:        e.Args.InternalIP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.ListenPort,
@@ -171,8 +194,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
 
 	// create missing interfaces
-	wgi := req.Data.Network.Public.AsInterfaceInfo()
-	wgi.IfName = "SYNTROPY_PUBLIC"
+	wgi := req.Data.Network.Public.AsInterfaceInfo("PUBLIC")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -182,8 +204,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn1.AsInterfaceInfo()
-	wgi.IfName = "SYNTROPY_SDN1"
+	wgi = req.Data.Network.Sdn1.AsInterfaceInfo("SDN1")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -193,8 +214,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn2.AsInterfaceInfo()
-	wgi.IfName = "SYNTROPY_SDN2"
+	wgi = req.Data.Network.Sdn2.AsInterfaceInfo("SDN2")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -204,8 +224,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn3.AsInterfaceInfo()
-	wgi.IfName = "SYNTROPY_SDN3"
+	wgi = req.Data.Network.Sdn3.AsInterfaceInfo("SDN3")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
