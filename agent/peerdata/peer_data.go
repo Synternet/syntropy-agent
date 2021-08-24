@@ -135,17 +135,21 @@ func (obj *wgPeerWatcher) execute() error {
 
 	for count > 0 {
 		entry := <-c
-		resp.Data = append(resp.Data, *entry)
+		if len(entry.Peers) > 0 {
+			resp.Data = append(resp.Data, *entry)
+		}
 		count--
 	}
 	close(c)
 
-	resp.Now()
-	raw, err := json.Marshal(resp)
-	if err != nil {
-		return err
+	if len(resp.Data) > 0 {
+		resp.Now()
+		raw, err := json.Marshal(resp)
+		if err != nil {
+			return err
+		}
+		obj.writer.Write(raw)
 	}
-	obj.writer.Write(raw)
 
 	return nil
 }
