@@ -17,7 +17,7 @@ const pkgName = "Auto_Ping. "
 
 type AutoPing struct {
 	writer io.Writer
-	ping   multiping.MultiPing
+	ping   *multiping.MultiPing
 }
 
 type autoPingRequest struct {
@@ -40,7 +40,7 @@ func New(w io.Writer) *AutoPing {
 	ap := AutoPing{
 		writer: w,
 	}
-	ap.ping = *multiping.New(&ap)
+	ap.ping = multiping.New(&ap)
 	return &ap
 }
 
