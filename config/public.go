@@ -77,10 +77,10 @@ func GetContainerType() string {
 	return cache.containerType
 }
 
-func GetLocationLatitude() string {
+func GetLocationLatitude() float32 {
 	return cache.location.Latitude
 }
 
-func GetLocationLongitude() string {
+func GetLocationLongitude() float32 {
 	return cache.location.Longitude
 }

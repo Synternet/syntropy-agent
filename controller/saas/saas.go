@@ -125,6 +125,7 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 	cc.Lock()
 	defer cc.Unlock()
 
+	logger.Debug().Println(pkgName, "Sending: ", string(b))
 	err = cc.ws.WriteMessage(websocket.TextMessage, b)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)

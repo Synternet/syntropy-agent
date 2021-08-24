@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
@@ -43,8 +44,14 @@ func initServicesStatus() {
 }
 
 func initLocation() {
-	cache.location.Latitude = os.Getenv("SYNTROPY_LAT")
-	cache.location.Longitude = os.Getenv("SYNTROPY_LON")
+	val, err := strconv.ParseFloat(os.Getenv("SYNTROPY_LAT"), 32)
+	if err == nil {
+		cache.location.Latitude = float32(val)
+	}
+	val, err = strconv.ParseFloat(os.Getenv("SYNTROPY_LON"), 32)
+	if err == nil {
+		cache.location.Longitude = float32(val)
+	}
 }
 
 func initContainer() {

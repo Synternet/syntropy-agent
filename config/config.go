@@ -5,8 +5,8 @@ import "time"
 const pkgName = "SyntropyAgentConfig. "
 
 type Location struct {
-	Latitude  string
-	Longitude string
+	Latitude  float32
+	Longitude float32
 }
 
 // This struct is used to cache commonly used Syntropy agent configuration

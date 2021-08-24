@@ -23,8 +23,8 @@ type getInfoResponce struct {
 		Status            bool     `json:"service_status"`
 		Tags              []string `json:"agent_tags"`
 		ExternalIP        string   `json:"external_ip"`
-		LocationLatitude  string   `json:"location_lat"`
-		LocationLongitude string   `json:"location_lon"`
+		LocationLatitude  float32  `json:"location_lat,omitempty"`
+		LocationLongitude float32  `json:"location_lon,omitempty"`
 
 		NetworkInfo   []docker.DockerNetworkInfoEntry   `json:"network_info"`
 		ContainerInfo []docker.DockerContainerInfoEntry `json:"container_info"`
