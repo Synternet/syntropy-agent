@@ -41,7 +41,7 @@ func (obj *configInfo) Name() string {
 	return cmd
 }
 
-func (e *configInfoNetworkEntry) AsInterfaceInfo(ifname string) *wireguard.InterfaceInfo {
+func (e *configInfoNetworkEntry) asInterfaceInfo(ifname string) *wireguard.InterfaceInfo {
 	var name string
 	if strings.HasPrefix(ifname, ifacePrefix) {
 		name = ifname
@@ -56,7 +56,7 @@ func (e *configInfoNetworkEntry) AsInterfaceInfo(ifname string) *wireguard.Inter
 	}
 }
 
-func (e *configInfoVpnEntry) AsPeerInfo() *wireguard.PeerInfo {
+func (e *configInfoVpnEntry) asPeerInfo() *wireguard.PeerInfo {
 	var name string
 	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
 		name = e.Args.IfName
@@ -73,7 +73,7 @@ func (e *configInfoVpnEntry) AsPeerInfo() *wireguard.PeerInfo {
 	}
 }
 
-func (e *configInfoVpnEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
+func (e *configInfoVpnEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 	var name string
 	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
 		name = e.Args.IfName
@@ -88,10 +88,6 @@ func (e *configInfoVpnEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
 	}
 }
 
-/****    TODO: review me      ******/
-//	I'm not sure this is a good idea, but I wanted to decode json in one step
-//	So I am mixing different structs in one instance
-//	And will try to use only correct fields, depending on `fn` type
 type configInfoVpnEntry struct {
 	Function string `json:"fn"`
 
@@ -179,11 +175,9 @@ func (obj *configInfo) Exec(raw []byte) error {
 
 	resp := updateAgentConfigMsg{
 		MessageHeader: req.MessageHeader,
+		Data:          []updateAgentConfigEntry{},
 	}
 	resp.MsgType = cmdResp
-	// Initialise empty slice, so if no entries is added
-	// json.Marshal will result in empty json, and not a null object
-	resp.Data = []updateAgentConfigEntry{}
 
 	// Dump pretty idented json to temp file
 	// TODO: Do I need this file ??
@@ -194,7 +188,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
 
 	// create missing interfaces
-	wgi := req.Data.Network.Public.AsInterfaceInfo("PUBLIC")
+	wgi := req.Data.Network.Public.asInterfaceInfo("PUBLIC")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -204,7 +198,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn1.AsInterfaceInfo("SDN1")
+	wgi = req.Data.Network.Sdn1.asInterfaceInfo("SDN1")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -214,7 +208,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn2.AsInterfaceInfo("SDN2")
+	wgi = req.Data.Network.Sdn2.asInterfaceInfo("SDN2")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -224,7 +218,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		resp.AddInterface(wgi)
 	}
 
-	wgi = req.Data.Network.Sdn3.AsInterfaceInfo("SDN3")
+	wgi = req.Data.Network.Sdn3.asInterfaceInfo("SDN3")
 	err = obj.wg.CreateInterface(wgi)
 	if err != nil {
 		return err
@@ -237,10 +231,9 @@ func (obj *configInfo) Exec(raw []byte) error {
 	for _, cmd := range req.Data.VPN {
 		switch cmd.Function {
 		case "add_peer":
-			err = obj.wg.AddPeer(cmd.AsPeerInfo())
+			err = obj.wg.AddPeer(cmd.asPeerInfo())
 		case "create_interface":
-			// TODO: need to rethink where and how to setup `routes` and `iptables` rules
-			wgi = cmd.AsInterfaceInfo()
+			wgi = cmd.asInterfaceInfo()
 			err = obj.wg.CreateInterface(wgi)
 			if err == nil &&
 				cmd.Args.PublicKey != wgi.PublicKey ||
