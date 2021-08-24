@@ -25,7 +25,6 @@ type CloudController struct {
 	sync.Mutex
 	state   uint32 // atomic state: 1 running, 0 closed
 	ws      *websocket.Conn
-	reader  io.Reader
 	url     string
 	token   string
 	version string
@@ -74,10 +73,7 @@ func (cc *CloudController) connect() (err error) {
 		logger.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
 		return err
 	}
-	_, cc.reader, err = cc.ws.NextReader()
-	if err != nil {
-		return err
-	}
+
 	atomic.StoreUint32(&cc.state, running)
 
 	return nil
