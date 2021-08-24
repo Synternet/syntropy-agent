@@ -3,10 +3,12 @@ package saas
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
@@ -63,18 +65,21 @@ func (cc *CloudController) connect() (err error) {
 	headers.Set("x-agenttype", "Linux")
 	headers.Set("x-agentversion", cc.version)
 
-	var resp *http.Response
-	var httpCode int
-	cc.ws, resp, err = websocket.DefaultDialer.Dial(url.String(), headers)
-	if err != nil {
-		if resp != nil {
-			httpCode = resp.StatusCode
+	for {
+		var resp *http.Response
+		var httpCode int
+		cc.ws, resp, err = websocket.DefaultDialer.Dial(url.String(), headers)
+		if err != nil {
+			if resp != nil {
+				httpCode = resp.StatusCode
+			}
+			logger.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
+			continue
 		}
-		logger.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
-		return err
-	}
 
-	atomic.StoreUint32(&cc.state, running)
+		atomic.StoreUint32(&cc.state, running)
+		break
+	}
 
 	return nil
 }
@@ -104,15 +109,24 @@ func (cc *CloudController) Recv() ([]byte, error) {
 			return nil, io.EOF
 		}
 
-		logger.Warning().Printf("%s Connection error: %s. Reconnecting...", pkgName, err.Error())
-		cc.connect() // reconnect and continue receiving
+		// Add some randomised sleep, so if controller was down
+		// the reconnecting agents could DDOS the controller
+		delay := time.Duration(rand.Int31n(10000)) * time.Millisecond
+		logger.Warning().Printf("%s Connection error: %s. Reconnecting in %d ms.", pkgName, err.Error(), delay)
+		time.Sleep(delay)
+		// reconnect and continue receiving
+		// NOTE: connect is blocking and will block untill a connection is established
+		cc.connect()
 	}
 }
 
 func (cc *CloudController) Write(b []byte) (n int, err error) {
-	if atomic.LoadUint32(&cc.state) == stopped {
-		return 0, fmt.Errorf("controller is not running")
+	controllerState := atomic.LoadUint32(&cc.state)
+	if controllerState != running {
+		logger.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
+		return 0, fmt.Errorf("controller is not running (%d)", controllerState)
 	}
+
 	/*
 		gorilla/websocket concurency:
 			Connections support one concurrent reader and one concurrent writer.
