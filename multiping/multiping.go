@@ -34,7 +34,7 @@ func New(p PingResultProcessor) *MultiPing {
 		prp:        p,
 		Period:     0,
 		Count:      1,
-		Timeout:    1,
+		Timeout:    1 * time.Second,
 		LimitCount: 1000,
 		stop:       make(chan bool),
 		running:    false,
