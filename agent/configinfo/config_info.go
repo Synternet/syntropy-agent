@@ -14,7 +14,7 @@ import (
 
 const (
 	cmd         = "CONFIG_INFO"
-	cmdResp     = "UPDATE_CONFIG_INFO"
+	cmdResp     = "UPDATE_AGENT_CONFIG"
 	pkgName     = "Config_Info. "
 	ifacePrefix = "SYNTROPY_"
 )
