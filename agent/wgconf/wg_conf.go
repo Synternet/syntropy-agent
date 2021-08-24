@@ -3,14 +3,18 @@ package wgconf
 import (
 	"encoding/json"
 	"io"
+	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
-const pkgName = "Wg_Conf. "
-const cmd = "WG_CONF"
+const (
+	pkgName     = "Wg_Conf. "
+	cmd         = "WG_CONF"
+	ifacePrefix = "SYNTROPY_"
+)
 
 type wgConf struct {
 	writer io.Writer
@@ -50,9 +54,16 @@ type wgConfEntry struct {
 	}
 }
 
-func (e *wgConfEntry) AsPeerInfo() *wireguard.PeerInfo {
+func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
+	var name string
+	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
+		name = e.Args.IfName
+	} else {
+		name = ifacePrefix + e.Args.IfName
+	}
+
 	return &wireguard.PeerInfo{
-		IfName:     e.Args.IfName,
+		IfName:     name,
 		IP:         e.Args.EndpointIPv4,
 		PublicKey:  e.Args.PublicKey,
 		Port:       e.Args.EndpointPort,
@@ -61,9 +72,16 @@ func (e *wgConfEntry) AsPeerInfo() *wireguard.PeerInfo {
 	}
 }
 
-func (e *wgConfEntry) AsInterfaceInfo() *wireguard.InterfaceInfo {
+func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
+	var name string
+	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
+		name = e.Args.IfName
+	} else {
+		name = ifacePrefix + e.Args.IfName
+	}
+
 	return &wireguard.InterfaceInfo{
-		IfName:    e.Args.IfName,
+		IfName:    name,
 		IP:        e.Args.IP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.Port,
@@ -97,15 +115,16 @@ func (obj *wgConf) Exec(raw []byte) error {
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
-			err = obj.wg.AddPeer(cmd.AsPeerInfo())
+			err = obj.wg.AddPeer(cmd.asPeerInfo())
 
 		case "remove_peer":
-			err = obj.wg.RemovePeer(cmd.AsPeerInfo())
+			err = obj.wg.RemovePeer(cmd.asPeerInfo())
 
 		case "create_interface":
-			wgi := cmd.AsInterfaceInfo()
+			wgi := cmd.asInterfaceInfo()
 			err = obj.wg.CreateInterface(wgi)
 			/*
+				TODO
 				if err == nil &&
 					cmd.Args.PublicKey != wgi.PublicKey ||
 					cmd.Args.ListenPort != wgi.Port {
@@ -114,7 +133,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 			*/
 
 		case "remove_interface":
-			wgi := cmd.AsInterfaceInfo()
+			wgi := cmd.asInterfaceInfo()
 			err = obj.wg.RemoveInterface(wgi)
 		}
 		if err != nil {
