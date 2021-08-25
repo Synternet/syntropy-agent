@@ -49,8 +49,61 @@ func (obj *dockerWatcher) Name() string {
 	return cmdNetwork + " / " + cmdContainer
 }
 
-func (obj *dockerWatcher) update() {
+func (obj *dockerWatcher) run() {
+	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
 
+	for {
+		select {
+		case err, ok := <-errs:
+
+			if !ok {
+				return
+			}
+			logger.Error().Println(pkgName, "Error channel: ", err)
+		case msg, ok := <-msgs:
+			if !ok {
+				return
+			}
+			switch msg.Type {
+			case events.NetworkEventType:
+
+				if msg.Action == "create" || msg.Action == "destroy" {
+					resp := networkInfoMessage{
+						Data: docker.NetworkInfo(),
+					}
+					resp.ID = "-"
+					resp.MsgType = cmdNetwork
+					resp.Now()
+					raw, err := json.Marshal(resp)
+					if err == nil {
+						_, err = obj.writer.Write(raw)
+					}
+					if err != nil {
+						logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
+					}
+				}
+			case events.ContainerEventType:
+				if msg.Action == "create" || msg.Action == "destroy" ||
+					msg.Action == "start" || msg.Action == "stop" {
+					resp := containerInfoMessage{
+						Data: docker.ContainerInfo(),
+					}
+					resp.ID = "-"
+					resp.MsgType = cmdContainer
+					resp.Now()
+					raw, err := json.Marshal(resp)
+					if err == nil {
+						_, err = obj.writer.Write(raw)
+					}
+					if err != nil {
+						logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
+					}
+				}
+			default:
+				logger.Debug().Println(pkgName, "Unhandled message", msg.Type, msg.Action)
+			}
+		}
+	}
 }
 
 func (obj *dockerWatcher) Start() (err error) {
@@ -67,58 +120,8 @@ func (obj *dockerWatcher) Start() (err error) {
 		return err
 	}
 	obj.ctx, obj.cancel = context.WithCancel(context.Background())
-	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
 
-	go func() {
-		for {
-			select {
-			case err, close := <-errs:
-				if close {
-					return
-				}
-				logger.Error().Println(pkgName, "Error channel: ", err)
-			case msg, close := <-msgs:
-				if close {
-					return
-				}
-				switch msg.Type {
-				case events.NetworkEventType:
-					if msg.Action == "create" || msg.Action == "destroy" {
-						resp := networkInfoMessage{
-							Data: docker.NetworkInfo(),
-						}
-						resp.ID = "-"
-						resp.MsgType = cmdNetwork
-						resp.Now()
-						raw, err := json.Marshal(resp)
-						if err == nil {
-							_, err = obj.writer.Write(raw)
-						}
-						if err != nil {
-							logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
-						}
-					}
-				case events.ContainerEventType:
-					if msg.Action == "create" || msg.Action == "destroy" ||
-						msg.Action == "start" || msg.Action == "stop" {
-						resp := containerInfoMessage{
-							Data: docker.ContainerInfo(),
-						}
-						resp.ID = "-"
-						resp.MsgType = cmdContainer
-						resp.Now()
-						raw, err := json.Marshal(resp)
-						if err == nil {
-							_, err = obj.writer.Write(raw)
-						}
-						if err != nil {
-							logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
-						}
-					}
-				}
-			}
-		}
-	}()
+	go obj.run()
 
 	return nil
 }
