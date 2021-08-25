@@ -8,6 +8,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/dockerwatch"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
@@ -16,6 +17,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
+	"github.com/SyntropyNet/syntropy-agent-go/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
@@ -76,6 +78,10 @@ func NewAgent(contype int) (*Agent, error) {
 	agent.addService(autoping)
 
 	agent.addService(peerdata.New(agent.controller, agent.wg))
+
+	if docker.IsDockerContainer() {
+		agent.addService(dockerwatch.New(agent.controller))
+	}
 
 	netfilter.CreateChain()
 

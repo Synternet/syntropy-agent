@@ -33,13 +33,13 @@ type DockerContainerInfoEntry struct {
 	} `json:"agent_container_ports"`
 }
 
-func isDockerContainer() bool {
+func IsDockerContainer() bool {
 	return config.GetContainerType() == "docker"
 }
 
 func NetworkInfo() (networkInfo []DockerNetworkInfoEntry) {
 	networkInfo = []DockerNetworkInfoEntry{}
-	if !isDockerContainer() {
+	if !IsDockerContainer() {
 		return
 	}
 
@@ -91,7 +91,7 @@ func addPort(arr *[]int, port uint16) {
 
 func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
 	containerInfo = []DockerContainerInfoEntry{}
-	if !isDockerContainer() {
+	if !IsDockerContainer() {
 		return
 	}
 
