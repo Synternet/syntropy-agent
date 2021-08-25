@@ -2,11 +2,16 @@ package docker
 
 import (
 	"context"
-	"log"
+	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+)
+
+const (
+	pkgName = "DockerHelper. "
 )
 
 type DockerNetworkInfoEntry struct {
@@ -40,14 +45,14 @@ func NetworkInfo() (networkInfo []DockerNetworkInfoEntry) {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		log.Println(err)
+		logger.Warning().Println(pkgName, "Docker client: ", err)
 		return
 	}
 	defer cli.Close()
 
 	networks, err := cli.NetworkList(context.Background(), types.NetworkListOptions{})
 	if err != nil {
-		log.Println(err)
+		logger.Warning().Println(pkgName, "Docker Network List: ", err)
 		return
 	}
 
@@ -57,17 +62,31 @@ func NetworkInfo() (networkInfo []DockerNetworkInfoEntry) {
 			ID:      n.ID,
 			Subnets: []string{},
 		}
+
 		for _, netcfg := range n.IPAM.Config {
 			if netcfg.Subnet != "" {
 				ni.Subnets = append(ni.Subnets, netcfg.Subnet)
 			}
-
 		}
+
 		if len(ni.Subnets) > 0 {
 			networkInfo = append(networkInfo, ni)
 		}
 	}
+
 	return networkInfo
+}
+
+func addPort(arr *[]int, port uint16) {
+	if port == 0 {
+		return
+	}
+	for _, p := range *arr {
+		if p == int(port) {
+			return
+		}
+	}
+	*arr = append(*arr, int(port))
 }
 
 func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
@@ -76,38 +95,46 @@ func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
 		return
 	}
 
-	log.Println("GetDocker Container Info")
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		log.Println(err)
+		logger.Warning().Println(pkgName, "Docker client: ", err)
 		return
 	}
 	defer cli.Close()
 
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
-		log.Println(err)
+		logger.Warning().Println(pkgName, "Docker Container List: ", err)
 		return
 	}
 
-	addPort := func(arr *[]int, port uint16) {
-		if port == 0 {
-			return
+	for _, c := range containers {
+		jsoncfg, err := cli.ContainerInspect(context.Background(), c.ID)
+		if err != nil {
+			logger.Error().Println(pkgName, "Inspect container ", c.ID, err)
 		}
-		for _, p := range *arr {
-			if p == int(port) {
-				return
+
+		var name string
+		for _, env := range jsoncfg.Config.Env {
+			s := strings.Split(env, "=")
+			if s[0] == "SYNTROPY_SERVICE_NAME" {
+				name = s[1]
+				break
 			}
 		}
-		*arr = append(*arr, int(port))
-	}
-
-	for _, c := range containers {
-		//name := c.HostConfig.
+		if name == "" {
+			name = jsoncfg.Config.Domainname
+		}
+		if name == "" {
+			name = c.Names[0]
+		}
+		if name == "" {
+			name = jsoncfg.Config.Hostname
+		}
 
 		ci := DockerContainerInfoEntry{
 			ID:       c.ID,
-			Name:     c.Names[0], // TODO: is this correct ?
+			Name:     name,
 			State:    c.State,
 			Uptime:   c.Status,
 			Networks: []string{},
@@ -116,8 +143,12 @@ func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
 		ci.Ports.TCP = []int{}
 		ci.Ports.UDP = []int{}
 
-		// TODO: Add network names, IPs and ports info
-		log.Printf("Container info %+v\n\t\nNetInfo: %+v\n\n", c, c.NetworkSettings.Networks)
+		for name, net := range c.NetworkSettings.Networks {
+			if net.IPAddress != "" {
+				ci.Networks = append(ci.Networks, name)
+				ci.IPs = append(ci.IPs, net.IPAddress)
+			}
+		}
 
 		for _, p := range c.Ports {
 			switch p.Type {
@@ -131,7 +162,9 @@ func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
 
 		}
 
-		containerInfo = append(containerInfo, ci)
+		if len(ci.IPs) > 0 {
+			containerInfo = append(containerInfo, ci)
+		}
 	}
 
 	return containerInfo
