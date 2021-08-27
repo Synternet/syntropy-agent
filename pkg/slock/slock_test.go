@@ -7,7 +7,8 @@ import (
 )
 
 func TestLock(t *testing.T) {
-	sl := slock.ServiceLock{}
+	var sl slock.ServiceLocker
+	sl = &slock.AtomicServiceLock{}
 
 	if sl.Running() {
 		t.Error("Expected to be unlocked")

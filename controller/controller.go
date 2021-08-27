@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/env"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
 
 type Controller interface {
@@ -28,6 +29,7 @@ type Command interface {
 
 // Service interface describes background running instances
 type Service interface {
+	slock.ServiceLocker
 	Name() string
 	Start() error
 	Stop() error
