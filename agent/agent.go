@@ -12,7 +12,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
@@ -20,6 +19,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -27,12 +27,12 @@ const pkgName = "SyntropyAgent. "
 
 type Agent struct {
 	running    uint32
-	controller controller.Controller
+	controller common.Controller
 
 	wg *wireguard.Wireguard
 
-	commands map[string]controller.Command
-	services []controller.Service
+	commands map[string]common.Command
+	services []common.Service
 }
 
 // NewAgent allocates instance of agent struct
@@ -68,7 +68,7 @@ func NewAgent(contype int) (*Agent, error) {
 	//	agent.ping = pinger.NewPinger(agent)
 	//	agent.wgWatcher = NewWgPeerWatcher(agent.wg, agent)
 
-	agent.commands = make(map[string]controller.Command)
+	agent.commands = make(map[string]common.Command)
 	agent.addCommand(getinfo.New(agent.controller))
 	agent.addCommand(configinfo.New(agent.controller, agent.wg))
 	agent.addCommand(wgconf.New(agent.controller, agent.wg))

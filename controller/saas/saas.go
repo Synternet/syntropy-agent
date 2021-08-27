@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/gorilla/websocket"
 )
 
@@ -34,7 +34,7 @@ type CloudController struct {
 
 // NewController allocates instance of Software-As-A-Service
 // (aka WSS) controller
-func NewController() (controller.Controller, error) {
+func NewController() (common.Controller, error) {
 	// Note: config package returns already validated values and no need to validate them here
 	cc := CloudController{
 		url:     config.GetCloudURL(),

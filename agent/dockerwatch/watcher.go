@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
@@ -30,16 +30,16 @@ type dockerWatcher struct {
 }
 
 type networkInfoMessage struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data []docker.DockerNetworkInfoEntry `json:"data"`
 }
 
 type containerInfoMessage struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data []docker.DockerContainerInfoEntry `json:"data"`
 }
 
-func New(w io.Writer) controller.Service {
+func New(w io.Writer) common.Service {
 	dw := dockerWatcher{writer: w}
 
 	return &dw

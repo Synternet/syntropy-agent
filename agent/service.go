@@ -1,11 +1,11 @@
 package agent
 
 import (
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
-func (a *Agent) addService(s controller.Service) error {
+func (a *Agent) addService(s common.Service) error {
 	a.services = append(a.services, s)
 	return nil
 }

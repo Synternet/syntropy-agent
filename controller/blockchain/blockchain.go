@@ -3,7 +3,7 @@ package blockchain
 import (
 	"errors"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
 // Blockchain controller. To be implemented in future
@@ -12,7 +12,7 @@ type BlockchainControler struct {
 
 var err = errors.New("blockchain controller not yet implemented")
 
-func NewController() (controller.Controller, error) {
+func NewController() (common.Controller, error) {
 	return nil, err
 }
 

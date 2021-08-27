@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
 const pkgName = "ScriptController. "
@@ -27,7 +27,7 @@ const scriptPath = config.AgentConfigDir + "/script"
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func NewController() (controller.Controller, error) {
+func NewController() (common.Controller, error) {
 	cc := ScriptController{
 		timeout: 1 * time.Second,
 	}

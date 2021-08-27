@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -31,7 +31,7 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port"`
 }
 
-func New(w io.Writer, wg *wireguard.Wireguard) controller.Command {
+func New(w io.Writer, wg *wireguard.Wireguard) common.Command {
 	return &configInfo{
 		writer: w,
 		wg:     wg,
@@ -118,7 +118,7 @@ type configInfoVpnEntry struct {
 }
 
 type configInfoMsg struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data struct {
 		AgentID int `json:"agent_id"`
 		Network struct {
@@ -142,7 +142,7 @@ type updateAgentConfigEntry struct {
 }
 
 type updateAgentConfigMsg struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data []updateAgentConfigEntry `json:"data"`
 }
 
@@ -254,7 +254,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	if errorCount > 0 {
-		errResp := controller.ErrorResponce{
+		errResp := common.ErrorResponce{
 			MessageHeader: req.MessageHeader,
 		}
 		errResp.Data.Type = cmd + "_ERROR"

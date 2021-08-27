@@ -6,9 +6,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -90,7 +90,7 @@ func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 }
 
 type wgConfMsg struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data []wgConfEntry `json:"data"`
 }
 
@@ -120,7 +120,7 @@ func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *wireguard.InterfaceInfo) {
 	msg.Data = append(msg.Data, e)
 }
 
-func New(w io.Writer, wg *wireguard.Wireguard) controller.Command {
+func New(w io.Writer, wg *wireguard.Wireguard) common.Command {
 	return &wgConf{
 		writer: w,
 		wg:     wg,
@@ -173,7 +173,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 	}
 
 	if errorCount > 0 {
-		errResp := controller.ErrorResponce{
+		errResp := common.ErrorResponce{
 			MessageHeader: req.MessageHeader,
 		}
 		errResp.Data.Type = cmd + "_ERROR"

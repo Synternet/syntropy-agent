@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
@@ -24,7 +24,7 @@ type autoPing struct {
 }
 
 type autoPingRequest struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data struct {
 		IPs       []string `json:"ips"`
 		Interval  int      `json:"interval"`
@@ -33,13 +33,13 @@ type autoPingRequest struct {
 }
 
 type autoPingResponce struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data struct {
 		Pings []multiping.PingResult `json:"pings"`
 	} `json:"data"`
 }
 
-func New(w io.Writer) controller.CommandService {
+func New(w io.Writer) common.CommandService {
 	ap := autoPing{
 		writer: w,
 	}

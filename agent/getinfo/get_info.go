@@ -4,20 +4,20 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
 const cmd = "GET_INFO"
 
 type getInfoRequest struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data interface{} `json:"data,omitempty"`
 }
 
 type getInfoResponce struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data struct {
 		Provider          int      `json:"agent_provider,omitempty"` // 0 is not used and do not send
 		Status            bool     `json:"service_status"`
@@ -35,7 +35,7 @@ type getInfo struct {
 	w io.Writer
 }
 
-func New(w io.Writer) controller.Command {
+func New(w io.Writer) common.Command {
 	return &getInfo{
 		w: w,
 	}

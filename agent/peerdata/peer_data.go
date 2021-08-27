@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
@@ -36,7 +36,7 @@ type ifaceBwEntry struct {
 }
 
 type peerBwData struct {
-	controller.MessageHeader
+	common.MessageHeader
 	Data []ifaceBwEntry `json:"data"`
 }
 
@@ -49,7 +49,7 @@ type wgPeerWatcher struct {
 	stop    chan bool
 }
 
-func New(writer io.Writer, wgctl *wireguard.Wireguard) controller.Service {
+func New(writer io.Writer, wgctl *wireguard.Wireguard) common.Service {
 	return &wgPeerWatcher{
 		wg:      wgctl,
 		writer:  writer,

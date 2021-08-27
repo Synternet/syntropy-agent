@@ -3,17 +3,17 @@ package agent
 import (
 	"encoding/json"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
-func (a *Agent) addCommand(cmd controller.Command) error {
+func (a *Agent) addCommand(cmd common.Command) error {
 	a.commands[cmd.Name()] = cmd
 	return nil
 }
 
 func (a *Agent) processCommand(raw []byte) {
-	var req controller.MessageHeader
+	var req common.MessageHeader
 	if err := json.Unmarshal(raw, &req); err != nil {
 		logger.Error().Println(pkgName, "json message unmarshal error: ", err)
 		return
