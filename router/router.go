@@ -27,13 +27,13 @@ func RouteAdd(ifname string, gw string, ips ...string) error {
 		if err != nil {
 			return fmt.Errorf("%s while parsing %s", err.Error(), ip)
 		}
-		routes, err := netlink.RouteList(iface, 0)
+		routes, err := netlink.RouteList(nil, 0)
 		if err != nil {
 			return err
 		}
 		dupp := false
 		for _, r := range routes {
-			if r.Dst != nil && r.Dst.String() == ip && r.Gw.String() == gw {
+			if r.Dst != nil && r.Dst.String() == ip {
 				logger.Debug().Printf("%s Skipping already existing route: %s %s via %s\n",
 					pkgName, ifname, ip, gw)
 				dupp = true
