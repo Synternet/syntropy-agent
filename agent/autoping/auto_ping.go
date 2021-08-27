@@ -15,7 +15,7 @@ import (
 const cmd = "AUTO_PING"
 const pkgName = "Auto_Ping. "
 
-type AutoPing struct {
+type autoPing struct {
 	writer io.Writer
 	ping   *multiping.MultiPing
 }
@@ -36,19 +36,19 @@ type autoPingResponce struct {
 	} `json:"data"`
 }
 
-func New(w io.Writer) *AutoPing {
-	ap := AutoPing{
+func New(w io.Writer) controller.CommandService {
+	ap := autoPing{
 		writer: w,
 	}
 	ap.ping = multiping.New(&ap)
 	return &ap
 }
 
-func (obj *AutoPing) Name() string {
+func (obj *autoPing) Name() string {
 	return cmd
 }
 
-func (obj *AutoPing) Exec(raw []byte) error {
+func (obj *autoPing) Exec(raw []byte) error {
 
 	var req autoPingRequest
 	err := json.Unmarshal(raw, &req)
@@ -66,7 +66,7 @@ func (obj *AutoPing) Exec(raw []byte) error {
 	return nil
 }
 
-func (obj *AutoPing) ProcessPingResults(pr []multiping.PingResult) {
+func (obj *autoPing) ProcessPingResults(pr []multiping.PingResult) {
 	var resp autoPingResponce
 	resp.Data.Pings = pr
 	resp.MsgType = cmd
@@ -84,13 +84,13 @@ func (obj *AutoPing) ProcessPingResults(pr []multiping.PingResult) {
 	}
 }
 
-func (obj *AutoPing) Start() error {
+func (obj *autoPing) Start() error {
 	// TODO: add universal way for service locking
 	obj.ping.Start()
 	return nil
 }
 
-func (obj *AutoPing) Stop() error {
+func (obj *autoPing) Stop() error {
 	obj.ping.Stop()
 	return nil
 }

@@ -33,6 +33,13 @@ type Service interface {
 	Stop() error
 }
 
+// CommandService implements both: Command + Service
+// Is intendend for those controller commands, that must have background task running
+type CommandService interface {
+	Command
+	Service
+}
+
 // Generic message struct (common part for all messages)
 type MessageHeader struct {
 	ID        string `json:"id"`
