@@ -8,6 +8,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/multiping"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
@@ -40,8 +41,9 @@ type peerBwData struct {
 }
 
 type wgPeerWatcher struct {
-	wg      *wireguard.Wireguard
+	slock.AtomicServiceLock
 	writer  io.Writer
+	wg      *wireguard.Wireguard
 	ticker  *time.Ticker
 	timeout time.Duration
 	stop    chan bool
@@ -159,9 +161,7 @@ func (obj *wgPeerWatcher) Name() string {
 }
 
 func (obj *wgPeerWatcher) Start() error {
-	// I'm not doing concurency prevention here,
-	// because this Start() should not be called concurently and this is only a sanity check
-	if obj.ticker != nil {
+	if !obj.TryLock() {
 		return fmt.Errorf("%s is already running", pkgName)
 	}
 
@@ -182,7 +182,7 @@ func (obj *wgPeerWatcher) Start() error {
 
 func (obj *wgPeerWatcher) Stop() error {
 	// Cannot stop not running instance
-	if obj.ticker == nil {
+	if !obj.TryUnlock() {
 		return fmt.Errorf("%s is not running", pkgName)
 
 	}

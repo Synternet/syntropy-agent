@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
@@ -22,7 +22,7 @@ const (
 )
 
 type dockerWatcher struct {
-	sync.Mutex
+	slock.AtomicServiceLock
 	writer io.Writer
 	cli    *client.Client
 	ctx    context.Context
@@ -107,10 +107,7 @@ func (obj *dockerWatcher) run() {
 }
 
 func (obj *dockerWatcher) Start() (err error) {
-	obj.Lock()
-	defer obj.Unlock()
-
-	if obj.cli != nil {
+	if !obj.TryLock() {
 		return fmt.Errorf("docker watcher already running")
 	}
 
@@ -127,10 +124,7 @@ func (obj *dockerWatcher) Start() (err error) {
 }
 
 func (obj *dockerWatcher) Stop() error {
-	obj.Lock()
-	defer obj.Unlock()
-
-	if obj.cli == nil {
+	if !obj.TryUnlock() {
 		return fmt.Errorf("docker watcher is not running")
 	}
 

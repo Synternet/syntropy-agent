@@ -3,6 +3,7 @@ package autoping
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -10,12 +11,14 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/multiping"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
 
 const cmd = "AUTO_PING"
 const pkgName = "Auto_Ping. "
 
 type autoPing struct {
+	slock.AtomicServiceLock
 	writer io.Writer
 	ping   *multiping.MultiPing
 }
@@ -85,12 +88,18 @@ func (obj *autoPing) ProcessPingResults(pr []multiping.PingResult) {
 }
 
 func (obj *autoPing) Start() error {
-	// TODO: add universal way for service locking
+	if !obj.TryLock() {
+		return fmt.Errorf("%s is already started", pkgName)
+	}
 	obj.ping.Start()
 	return nil
 }
 
 func (obj *autoPing) Stop() error {
+	if !obj.TryUnlock() {
+		return fmt.Errorf("%s is not runnint", pkgName)
+	}
+
 	obj.ping.Stop()
 	return nil
 }
