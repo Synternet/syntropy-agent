@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
-	"github.com/SyntropyNet/syntropy-agent-go/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
 
 const pkgName = "ScriptController. "

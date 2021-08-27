@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/env"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
 

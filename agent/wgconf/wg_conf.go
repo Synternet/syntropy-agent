@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
-	"github.com/SyntropyNet/syntropy-agent-go/env"
-	"github.com/SyntropyNet/syntropy-agent-go/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 )
 
 func DestroyAllInterfaces() {

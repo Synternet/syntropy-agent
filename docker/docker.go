@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/config"
-	"github.com/SyntropyNet/syntropy-agent-go/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )

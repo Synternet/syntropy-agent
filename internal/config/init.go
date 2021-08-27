@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
 
 func Init() {

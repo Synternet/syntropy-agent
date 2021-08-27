@@ -8,8 +8,8 @@ import (
 	"os/signal"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent"
-	"github.com/SyntropyNet/syntropy-agent-go/config"
-	"github.com/SyntropyNet/syntropy-agent-go/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
 
 const fullAppName = "Syntropy Stack Agent. "
