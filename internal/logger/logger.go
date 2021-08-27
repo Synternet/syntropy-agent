@@ -18,8 +18,8 @@ var loggers [logLevelsCount]*log.Logger
 var controllerWriter io.Writer
 
 func init() {
-	// Start with only error lvel to stderr
-	Setup(ErrorLevel, os.Stderr)
+	// Start with error+warning level to stderr
+	Setup(WarningLevel, os.Stderr)
 }
 
 func logLevelString(level int) string {
