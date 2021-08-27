@@ -74,6 +74,11 @@ func (cc *CloudController) connect() (err error) {
 				httpCode = resp.StatusCode
 			}
 			logger.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
+			// Add some randomised sleep, so if controller was down
+			// the reconnecting agents could DDOS the controller
+			delay := time.Duration(rand.Int31n(10000)) * time.Millisecond
+			logger.Warning().Println(pkgName, "Reconnecting in ", delay)
+			time.Sleep(delay)
 			continue
 		}
 
@@ -109,11 +114,6 @@ func (cc *CloudController) Recv() ([]byte, error) {
 			return nil, io.EOF
 		}
 
-		// Add some randomised sleep, so if controller was down
-		// the reconnecting agents could DDOS the controller
-		delay := time.Duration(rand.Int31n(10000)) * time.Millisecond
-		logger.Warning().Printf("%s Connection error: %s. Reconnecting in %d ms.", pkgName, err.Error(), delay)
-		time.Sleep(delay)
 		// reconnect and continue receiving
 		// NOTE: connect is blocking and will block untill a connection is established
 		cc.connect()
