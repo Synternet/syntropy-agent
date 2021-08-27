@@ -17,6 +17,9 @@ agent-go:
 		-X github.com/SyntropyNet/syntropy-agent-go/config.subversion=$(SUBVERSION) -s -w" \
 		./cmd/main.go
 
+test:
+	go test ./...
+
 clean:
 	go clean
 	rm -f sag
