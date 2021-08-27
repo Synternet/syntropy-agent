@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
 	"github.com/gorilla/websocket"
 )
 
@@ -24,8 +24,8 @@ const (
 )
 
 type CloudController struct {
-	sync.Mutex
-	state   uint32 // atomic state: 1 running, 0 closed
+	sync.Mutex // this lock makes Write thread safe
+	state.StateMachine
 	ws      *websocket.Conn
 	url     string
 	token   string
@@ -40,8 +40,8 @@ func NewController() (common.Controller, error) {
 		url:     config.GetCloudURL(),
 		token:   config.GetAgentToken(),
 		version: config.GetVersion(),
-		state:   stopped,
 	}
+	cc.SetState(stopped)
 
 	err := cc.connect()
 	if err != nil {
@@ -52,7 +52,7 @@ func NewController() (common.Controller, error) {
 }
 
 func (cc *CloudController) connect() (err error) {
-	// not yet atomic.StoreUint32(&cc.state, connecting)
+	cc.SetState(connecting)
 	url := url.URL{Scheme: "wss", Host: cc.url, Path: "/"}
 	headers := http.Header(make(map[string][]string))
 
@@ -77,7 +77,7 @@ func (cc *CloudController) connect() (err error) {
 			continue
 		}
 
-		atomic.StoreUint32(&cc.state, running)
+		cc.SetState(running)
 		break
 	}
 
@@ -85,7 +85,7 @@ func (cc *CloudController) connect() (err error) {
 }
 
 func (cc *CloudController) Recv() ([]byte, error) {
-	if atomic.LoadUint32(&cc.state) == stopped {
+	if cc.GetState() == stopped {
 		return nil, fmt.Errorf("controller is not running")
 	}
 
@@ -103,7 +103,7 @@ func (cc *CloudController) Recv() ([]byte, error) {
 			logger.Debug().Println(pkgName, "Received: ", string(msg))
 			return msg, nil
 
-		case atomic.LoadUint32(&cc.state) == stopped:
+		case cc.GetState() == stopped:
 			// The connection is closed - simulate EOF
 			logger.Debug().Println(pkgName, "EOF")
 			return nil, io.EOF
@@ -121,8 +121,7 @@ func (cc *CloudController) Recv() ([]byte, error) {
 }
 
 func (cc *CloudController) Write(b []byte) (n int, err error) {
-	controllerState := atomic.LoadUint32(&cc.state)
-	if controllerState != running {
+	if controllerState := cc.GetState(); controllerState != running {
 		logger.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
 		return 0, fmt.Errorf("controller is not running (%d)", controllerState)
 	}
@@ -147,11 +146,11 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 
 // Close closes websocket connection to saas backend
 func (cc *CloudController) Close() error {
-	state := atomic.LoadUint32(&cc.state)
-	if state == stopped {
+	if cc.GetState() == stopped {
 		// cannot close already closed connection
 		return fmt.Errorf("controller already closed")
 	}
+	cc.SetState(stopped)
 
 	// Cleanly close the connection by sending a close message and then
 	// waiting (with timeout) for the server to close the connection.
@@ -159,7 +158,6 @@ func (cc *CloudController) Close() error {
 	if err != nil {
 		logger.Error().Println(pkgName, "connection close error: ", err)
 	}
-	atomic.StoreUint32(&cc.state, stopped)
 
 	cc.ws.Close()
 	return nil
