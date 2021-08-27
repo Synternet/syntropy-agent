@@ -1,7 +1,5 @@
 package common
 
-import "github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
-
 // Command interface is used for controller commands executors
 type Command interface {
 	Name() string
@@ -10,7 +8,6 @@ type Command interface {
 
 // Service interface describes background running instances
 type Service interface {
-	slock.ServiceLocker
 	Name() string
 	Start() error
 	Stop() error
