@@ -9,15 +9,15 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/config"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/env"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
 const (
-	cmd         = "CONFIG_INFO"
-	cmdResp     = "UPDATE_AGENT_CONFIG"
-	pkgName     = "Config_Info. "
-	ifacePrefix = "SYNTROPY_"
+	cmd     = "CONFIG_INFO"
+	cmdResp = "UPDATE_AGENT_CONFIG"
+	pkgName = "Config_Info. "
 )
 
 type configInfo struct {
@@ -42,15 +42,15 @@ func (obj *configInfo) Name() string {
 	return cmd
 }
 
-func (e *configInfoNetworkEntry) asInterfaceInfo(ifname string) *wireguard.InterfaceInfo {
-	var name string
-	if strings.HasPrefix(ifname, ifacePrefix) {
-		name = ifname
+func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) *wireguard.InterfaceInfo {
+	var ifname string
+	if strings.HasPrefix(ifaceName, env.InterfaceNamePrefix) {
+		ifname = ifaceName
 	} else {
-		name = ifacePrefix + ifname
+		ifname = env.InterfaceNamePrefix + ifaceName
 	}
 	return &wireguard.InterfaceInfo{
-		IfName:    name,
+		IfName:    ifname,
 		IP:        e.IP,
 		PublicKey: e.PublicKey,
 		Port:      e.Port,
@@ -58,14 +58,14 @@ func (e *configInfoNetworkEntry) asInterfaceInfo(ifname string) *wireguard.Inter
 }
 
 func (e *configInfoVpnEntry) asPeerInfo() *wireguard.PeerInfo {
-	var name string
-	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
-		name = e.Args.IfName
+	var ifname string
+	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
+		ifname = e.Args.IfName
 	} else {
-		name = ifacePrefix + e.Args.IfName
+		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 	return &wireguard.PeerInfo{
-		IfName:     name,
+		IfName:     ifname,
 		IP:         e.Args.EndpointIPv4,
 		PublicKey:  e.Args.PublicKey,
 		Port:       e.Args.EndpointPort,
@@ -75,14 +75,14 @@ func (e *configInfoVpnEntry) asPeerInfo() *wireguard.PeerInfo {
 }
 
 func (e *configInfoVpnEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
-	var name string
-	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
-		name = e.Args.IfName
+	var ifname string
+	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
+		ifname = e.Args.IfName
 	} else {
-		name = ifacePrefix + e.Args.IfName
+		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 	return &wireguard.InterfaceInfo{
-		IfName:    name,
+		IfName:    ifname,
 		IP:        e.Args.InternalIP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.ListenPort,

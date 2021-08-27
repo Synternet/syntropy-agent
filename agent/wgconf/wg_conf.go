@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/env"
 	"github.com/SyntropyNet/syntropy-agent-go/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
 const (
-	pkgName     = "Wg_Conf. "
-	cmd         = "WG_CONF"
-	ifacePrefix = "SYNTROPY_"
+	pkgName = "Wg_Conf. "
+	cmd     = "WG_CONF"
 )
 
 type wgConf struct {
@@ -56,15 +56,15 @@ type wgConfEntry struct {
 }
 
 func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
-	var name string
-	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
-		name = e.Args.IfName
+	var ifname string
+	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
+		ifname = e.Args.IfName
 	} else {
-		name = ifacePrefix + e.Args.IfName
+		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 
 	return &wireguard.PeerInfo{
-		IfName:     name,
+		IfName:     ifname,
 		IP:         e.Args.EndpointIPv4,
 		PublicKey:  e.Args.PublicKey,
 		Port:       e.Args.EndpointPort,
@@ -74,15 +74,15 @@ func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
 }
 
 func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
-	var name string
-	if strings.HasPrefix(e.Args.IfName, ifacePrefix) {
-		name = e.Args.IfName
+	var ifname string
+	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
+		ifname = e.Args.IfName
 	} else {
-		name = ifacePrefix + e.Args.IfName
+		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 
 	return &wireguard.InterfaceInfo{
-		IfName:    name,
+		IfName:    ifname,
 		IP:        e.Args.IP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.Port,
