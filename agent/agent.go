@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync/atomic"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
@@ -20,13 +19,18 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
 const pkgName = "SyntropyAgent. "
+const (
+	stopped = iota
+	running
+)
 
 type Agent struct {
-	running    uint32
+	state.StateMachine
 	controller common.Controller
 
 	wg *wireguard.Wireguard
@@ -86,8 +90,13 @@ func NewAgent(contype int) (*Agent, error) {
 }
 
 func (agent *Agent) messageHandler() {
+	// Change state on start
+	if !agent.ChangeState(stopped, running) {
+		logger.Warning().Println(pkgName, "could not start. Already started ?")
+		return
+	}
 	// Mark as not running on exit
-	defer atomic.StoreUint32(&agent.running, 0)
+	defer agent.SetState(stopped)
 
 	for {
 		raw, err := agent.controller.Recv()
@@ -107,7 +116,7 @@ func (agent *Agent) messageHandler() {
 }
 
 func (agent *Agent) Write(msg []byte) (int, error) {
-	if atomic.LoadUint32(&agent.running) == 0 {
+	if agent.GetState() != running {
 		return 0, fmt.Errorf("sending on stopped agent instance")
 	}
 
@@ -118,7 +127,7 @@ func (agent *Agent) Write(msg []byte) (int, error) {
 func (agent *Agent) Loop() {
 	logger.Info().Println(pkgName, "Starting Agent messages handler")
 
-	if !atomic.CompareAndSwapUint32(&agent.running, 0, 1) {
+	if agent.GetState() != stopped {
 		logger.Warning().Println(pkgName, "Agent instance is already running")
 		return
 	}
@@ -133,7 +142,7 @@ func (agent *Agent) Loop() {
 // Stop closes connections to controller and stops all runners
 func (agent *Agent) Stop() {
 	logger.Info().Println(pkgName, "Stopping Agent")
-	if !atomic.CompareAndSwapUint32(&agent.running, 1, 0) {
+	if agent.GetState() == stopped {
 		logger.Warning().Println(pkgName, "Agent instance is not running")
 
 		return
