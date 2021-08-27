@@ -10,7 +10,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/multiping"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
 

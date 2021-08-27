@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
-	"github.com/SyntropyNet/syntropy-agent-go/multiping"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
