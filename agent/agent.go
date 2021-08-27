@@ -65,9 +65,6 @@ func NewAgent(contype int) (*Agent, error) {
 		return nil, err
 	}
 
-	//	agent.ping = pinger.NewPinger(agent)
-	//	agent.wgWatcher = NewWgPeerWatcher(agent.wg, agent)
-
 	agent.commands = make(map[string]common.Command)
 	agent.addCommand(getinfo.New(agent.controller))
 	agent.addCommand(configinfo.New(agent.controller, agent.wg))
@@ -150,5 +147,10 @@ func (agent *Agent) Stop() {
 
 	// cleanup
 	agent.wg.Close()
+	// TODO: add configuration
+	// Usualy wireguard interfaces should not be destroyed
+	// (e.g. app crash or agent upgrades should keep the network working)
+	// But is a good practice to cleanup after yourself.
+	// Also makes devel&debug stage easier
 	wireguard.DestroyAllInterfaces()
 }
