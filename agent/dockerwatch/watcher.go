@@ -113,6 +113,7 @@ func (obj *dockerWatcher) Start() (err error) {
 
 	obj.cli, err = client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
+		// TODO: add period check for newsly started docker service
 		logger.Error().Println(pkgName, "Docker client: ", err)
 		return err
 	}
