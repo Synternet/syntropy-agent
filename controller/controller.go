@@ -3,6 +3,8 @@ package controller
 import (
 	"io"
 	"time"
+
+	"github.com/SyntropyNet/syntropy-agent-go/env"
 )
 
 type Controller interface {
@@ -39,7 +41,7 @@ type MessageHeader struct {
 }
 
 func (mh *MessageHeader) Now() {
-	mh.Timestamp = time.Now().Format("2006-01-02T15:04:05-07:00")
+	mh.Timestamp = time.Now().Format(env.TimeFormat)
 }
 
 type ErrorResponce struct {
