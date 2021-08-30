@@ -8,6 +8,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/dockerwatch"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/dynroute"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
@@ -79,6 +80,7 @@ func NewAgent(contype int) (*Agent, error) {
 	agent.addService(autoping)
 
 	agent.addService(peerdata.New(agent.controller, agent.wg))
+	agent.addService(dynroute.New(agent.controller, agent.wg))
 
 	if docker.IsDockerContainer() {
 		agent.addService(dockerwatch.New(agent.controller))
