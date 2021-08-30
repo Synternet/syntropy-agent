@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/SyntropyNet/syntropy-agent-go/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 

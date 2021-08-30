@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/SyntropyNet/syntropy-agent-go/docker"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
