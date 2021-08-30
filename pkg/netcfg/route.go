@@ -1,14 +1,15 @@
-package router
+package netcfg
 
 import (
 	"fmt"
 	"net"
 
+	// TODO: this helper package should not use logger
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/vishvananda/netlink"
 )
 
-const pkgName = "RouteWatcher. "
+const pkgName = "NetCfg. "
 
 func RouteAdd(ifname string, gw string, ips ...string) error {
 	iface, err := netlink.LinkByName(ifname)

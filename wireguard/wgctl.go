@@ -8,7 +8,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
-	"github.com/SyntropyNet/syntropy-agent-go/router"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -132,11 +132,11 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
-	err = setInterfaceUp(ii.IfName)
+	err = netcfg.InterfaceUp(ii.IfName)
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
 	}
-	err = setInterfaceIP(ii.IfName, ii.IP)
+	err = netcfg.InterfaceIPAdd(ii.IfName, ii.IP)
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
@@ -192,7 +192,7 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	}
 
 	// TODO: check and cleanup old obsolete rules
-	err = router.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
+	err = netcfg.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
 	}
@@ -226,7 +226,7 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
-	err = router.RouteDel(pi.IfName, pi.AllowedIPs...)
+	err = netcfg.RouteDel(pi.IfName, pi.AllowedIPs...)
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
 	}
