@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"golang.zx2c4.com/wireguard/wgctrl"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 const pkgName = "Wireguard. "
@@ -9,7 +10,7 @@ const pkgName = "Wireguard. "
 // TODO: I'm trying to embed anonymous entry in my wireguard implementation/wrapper
 // Hope I will get a good mic of stock wgctl and my extentions.
 type Wireguard struct {
-	*wgctrl.Client
+	wgc *wgctrl.Client
 }
 
 // TODO: review and redesign Wireguard implementation.
@@ -20,7 +21,17 @@ func New() (*Wireguard, error) {
 		return nil, err
 	}
 
-	wg := Wireguard{wgc}
+	wg := Wireguard{
+		wgc: wgc,
+	}
 
 	return &wg, nil
+}
+
+func (wg *Wireguard) Devices() ([]*wgtypes.Device, error) {
+	return wg.wgc.Devices()
+}
+
+func (wg *Wireguard) Close() error {
+	return wg.wgc.Close()
 }

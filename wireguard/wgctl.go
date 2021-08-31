@@ -86,7 +86,7 @@ func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
 }
 
 func (wg *Wireguard) InterfaceExist(ifname string) bool {
-	wgdevs, err := wg.Devices()
+	wgdevs, err := wg.wgc.Devices()
 	if err != nil {
 		logger.Error().Println(pkgName, "Failed listing wireguard devices: ", err)
 		return false
@@ -127,7 +127,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		PrivateKey: &privKey,
 		ListenPort: &ii.Port,
 	}
-	err = wg.ConfigureDevice(ii.IfName, wgconf)
+	err = wg.wgc.ConfigureDevice(ii.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
@@ -145,7 +145,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("netfilter forward enable error: %s", err.Error())
 	}
 
-	dev, err := wg.Device(ii.IfName)
+	dev, err := wg.wgc.Device(ii.IfName)
 	if err != nil {
 		return fmt.Errorf("reading wg device info error: %s", err.Error())
 	}
@@ -186,7 +186,7 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	}
 	wgconf.Peers = append(wgconf.Peers, *pcfg)
 
-	err = wg.ConfigureDevice(pi.IfName, wgconf)
+	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
@@ -221,7 +221,7 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	pcfg.Remove = true
 	wgconf.Peers = append(wgconf.Peers, *pcfg)
 
-	err = wg.ConfigureDevice(pi.IfName, wgconf)
+	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
