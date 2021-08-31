@@ -34,6 +34,11 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 
 		if len(r.routes[ip]) == 1 {
 			logger.Info().Println(pkgName, "Route add ", ip, " via ", gw)
+			if netcfg.RouteExists(ip) {
+				logger.Warning().Println(pkgName, "skip existing route to ", ip)
+				continue
+			}
+
 			err := netcfg.RouteAdd(ifname, gw, ip)
 			if err != nil {
 				logger.Error().Println(pkgName, "route add error", err)
@@ -43,7 +48,7 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 		}
 
 	}
-	return netcfg.RouteAdd(ifname, gw, ips...)
+	return nil
 }
 
 func (r *Router) RouteDel(ifname string, ips ...string) error {
