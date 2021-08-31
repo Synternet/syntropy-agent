@@ -4,12 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	// TODO: this helper package should not use logger
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/vishvananda/netlink"
 )
-
-const pkgName = "NetCfg. "
 
 func RouteAdd(ifname string, gw string, ips ...string) error {
 	iface, err := netlink.LinkByName(ifname)
@@ -19,7 +15,6 @@ func RouteAdd(ifname string, gw string, ips ...string) error {
 	gateway := net.ParseIP(gw)
 
 	for _, ip := range ips {
-		// TODO: Add IP network overlapping check for all syntropy interfaces
 		route := netlink.Route{
 			LinkIndex: iface.Attrs().Index,
 			Gw:        gateway,
@@ -28,25 +23,9 @@ func RouteAdd(ifname string, gw string, ips ...string) error {
 		if err != nil {
 			return fmt.Errorf("%s while parsing %s", err.Error(), ip)
 		}
-		routes, err := netlink.RouteList(nil, 0)
+		err = netlink.RouteAdd(&route)
 		if err != nil {
-			return err
-		}
-		dupp := false
-		for _, r := range routes {
-			if r.Dst != nil && r.Dst.String() == ip {
-				logger.Debug().Printf("%s Skipping already existing route: %s %s via %s\n",
-					pkgName, ifname, ip, gw)
-				dupp = true
-				break
-			}
-		}
-		if !dupp {
-			err = netlink.RouteAdd(&route)
-			logger.Info().Println(pkgName, "Route add ", ip, " via ", gw)
-			if err != nil {
-				return err
-			}
+			return fmt.Errorf("route %s via %s: %s", ip, gw, err.Error())
 		}
 	}
 	return nil
@@ -66,9 +45,8 @@ func RouteDel(ifname string, ips ...string) error {
 		for _, r := range routes {
 			if r.Dst != nil && r.Dst.String() == ip {
 				err = netlink.RouteDel(&r)
-				logger.Info().Println(pkgName, "Route del ", ip)
 				if err != nil {
-					return err
+					return fmt.Errorf("route %s del: %s", ip, err.Error())
 				}
 			}
 		}
@@ -94,9 +72,22 @@ func RouteReplace(ifname string, gw string, ips ...string) error {
 		}
 		err = netlink.RouteAdd(&route)
 		if err != nil {
-			return err
+			return fmt.Errorf("route replace %s via %s: %s", ip, gw, err.Error())
 		}
-		logger.Info().Println("Route replace ", ip, gw)
 	}
 	return nil
+}
+
+func RouteExists(ip string) bool {
+	routes, err := netlink.RouteList(nil, 0)
+	if err != nil {
+		// Cannot list routes. Should be quite a problem on the system.
+		return false
+	}
+	for _, r := range routes {
+		if r.Dst != nil && r.Dst.String() == ip {
+			return true
+		}
+	}
+	return false
 }
