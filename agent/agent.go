@@ -18,6 +18,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/router"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
@@ -65,7 +66,7 @@ func NewAgent(contype int) (*Agent, error) {
 	// logger.SetControllerWriter(agent.controller)
 	logger.Setup(config.GetDebugLevel(), os.Stdout)
 
-	agent.wg, err = wireguard.New()
+	agent.wg, err = wireguard.New(router.New())
 	if err != nil {
 		return nil, err
 	}

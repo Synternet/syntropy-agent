@@ -192,7 +192,7 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	}
 
 	// TODO: check and cleanup old obsolete rules
-	err = netcfg.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
+	err = wg.router.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
 	}
