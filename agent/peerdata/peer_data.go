@@ -58,7 +58,7 @@ func New(writer io.Writer, wgctl *wireguard.Wireguard) common.Service {
 	}
 }
 
-func (ie *ifaceBwEntry) ProcessPingResults(pr []multiping.PingResult) {
+func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 	for _, pingres := range pr {
 		entry := peerDataEntry{
 			IP:      pingres.IP,

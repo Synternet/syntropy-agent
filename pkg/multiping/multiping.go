@@ -13,15 +13,15 @@ type PingResult struct {
 	Loss    float32 `json:"packet_loss"`
 }
 
-type PingResultProcessor interface {
-	ProcessPingResults(pr []PingResult)
+type PingClient interface {
+	PingProcess(pr []PingResult)
 }
 
 type MultiPing struct {
 	sync.RWMutex
 	stop       chan bool
 	running    bool
-	prp        PingResultProcessor
+	prp        PingClient
 	hosts      []string
 	Count      int
 	Timeout    time.Duration
@@ -29,7 +29,7 @@ type MultiPing struct {
 	LimitCount int
 }
 
-func New(p PingResultProcessor) *MultiPing {
+func New(p PingClient) *MultiPing {
 	return &MultiPing{
 		prp:        p,
 		Period:     0,
@@ -130,7 +130,7 @@ func (p *MultiPing) Ping() {
 			count--
 		}
 		close(c)
-		p.prp.ProcessPingResults(result)
+		p.prp.PingProcess(result)
 	}()
 
 	// Spawn all host pinging to goroutines

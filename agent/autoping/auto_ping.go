@@ -69,7 +69,7 @@ func (obj *autoPing) Exec(raw []byte) error {
 	return nil
 }
 
-func (obj *autoPing) ProcessPingResults(pr []multiping.PingResult) {
+func (obj *autoPing) PingProcess(pr []multiping.PingResult) {
 	var resp autoPingResponce
 	resp.Data.Pings = pr
 	resp.MsgType = cmd
