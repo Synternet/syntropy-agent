@@ -1,16 +1,23 @@
 package sdn
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
+
+const pkgName = "SdnMonitor. "
 
 type SdnNode struct {
 	Endpoint string
 	Gateway  string
 	Latency  int
 	Loss     float32
+}
+
+func (node *SdnNode) String() string {
+	return fmt.Sprintf("%s via %s loss: %f latency %d", node.Endpoint, node.Gateway, node.Loss, node.Latency)
 }
 
 type SdnMonitor struct {
@@ -72,10 +79,10 @@ func (sdn *SdnMonitor) BestPath() string {
 	}
 
 	bestIdx := 0
-	for i := bestIdx; i < len(sdn.list); i++ {
+	for i := bestIdx + 1; i < len(sdn.list); i++ {
 		if sdn.list[i].Loss < sdn.list[bestIdx].Loss {
 			bestIdx = i
-		} else if sdn.list[i].Latency < sdn.list[bestIdx].Latency {
+		} else if sdn.list[i].Latency > 0 && sdn.list[i].Latency < sdn.list[bestIdx].Latency {
 			bestIdx = i
 		}
 	}
