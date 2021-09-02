@@ -8,7 +8,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
@@ -41,20 +40,7 @@ func (obj *dynamicRouter) Name() string {
 }
 
 func (obj *dynamicRouter) execute() {
-	log.Println(pkgName, "execute")
-	wgdevs, err := obj.wg.Devices()
-	if err != nil {
-		logger.Error().Println(pkgName, "wg.Devices", err)
-		return
-	}
-
-	if len(wgdevs) == 0 {
-		return
-	}
-
-	//	for _, _ := range wgdevs {
-	// TODO: implement dynamic routing
-	//	}
+	log.Println(pkgName, "best route: ", obj.wg.Sdn().BestPath())
 }
 
 func (obj *dynamicRouter) Start() error {
