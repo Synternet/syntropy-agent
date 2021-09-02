@@ -20,3 +20,4 @@
 sag
 # All testing scripts
 test*
+*.env
