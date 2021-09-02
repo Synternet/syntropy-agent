@@ -7,6 +7,15 @@ import (
 
 const pkgName = "Router. "
 
+/**
+ * Hugh.... I'm a little in doubt here...
+ * I do not like GOs standard `net` package IP structs and interfaces
+ * vishvananda's netlink package is either too low level or tries reusing net packages interfaces
+ * An option could be to use tailscale's inet.af/netaddr, but this needs more investigation
+ * what benefits tradeoffs we will get
+ * So for now lets stick to plain strings (TODO)
+ **/
+
 type route struct {
 	gw    string
 	iface string
@@ -52,5 +61,6 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 }
 
 func (r *Router) RouteDel(ifname string, ips ...string) error {
+	// TODO cleanup routes tree
 	return netcfg.RouteDel(ifname, ips...)
 }
