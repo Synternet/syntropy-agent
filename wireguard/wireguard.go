@@ -3,6 +3,7 @@
 package wireguard
 
 import (
+	"github.com/SyntropyNet/syntropy-agent-go/internal/router"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -21,7 +22,7 @@ type Wireguard struct {
 
 // TODO: review and redesign Wireguard implementation.
 // Maybe it should be an object, containing WG interface data and separate objects per interface ?
-func New(r common.Router) (*Wireguard, error) {
+func New() (*Wireguard, error) {
 	wgc, err := wgctrl.New()
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func New(r common.Router) (*Wireguard, error) {
 	wg := Wireguard{
 		wgc:    wgc,
 		sdn:    &sdn.SdnMonitor{},
-		router: r,
+		router: router.New(),
 	}
 
 	return &wg, nil
