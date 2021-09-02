@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
@@ -184,6 +185,8 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	if err != nil {
 		return err
 	}
+	peerKeepAliveDuration := 15 * time.Second
+	pcfg.PersistentKeepaliveInterval = &peerKeepAliveDuration
 	wgconf.Peers = append(wgconf.Peers, *pcfg)
 
 	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
