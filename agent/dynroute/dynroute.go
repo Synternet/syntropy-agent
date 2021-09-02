@@ -5,9 +5,9 @@ package dynroute
 import (
 	"fmt"
 	"io"
-	"log"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
@@ -18,6 +18,16 @@ const (
 	pkgName     = "DynamicRouter. "
 	checkPeriod = time.Second
 )
+
+type peerActiveDataEntry struct {
+	ConnectionID int    `json:"connection_id"`
+	Timestamp    string `json:"timestamp"`
+}
+
+type peersActiveDataMessage struct {
+	common.MessageHeader
+	Data []peerActiveDataEntry `json:"data"`
+}
 
 type dynamicRouter struct {
 	slock.AtomicServiceLock
@@ -40,7 +50,7 @@ func (obj *dynamicRouter) Name() string {
 }
 
 func (obj *dynamicRouter) execute() {
-	log.Println(pkgName, "best route: ", obj.wg.Sdn().BestPath())
+	logger.Debug().Println(pkgName, "best route: ", obj.wg.Sdn().BestPath())
 }
 
 func (obj *dynamicRouter) Start() error {
