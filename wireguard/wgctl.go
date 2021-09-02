@@ -192,8 +192,11 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	}
 
 	// TODO: check and cleanup old obsolete rules
-	if len(pi.AllowedIPs) > 0 {
-		wg.sdn.AddNode(pi.Gateway, pi.AllowedIPs[0])
+	if len(pcfg.AllowedIPs) > 0 {
+		// NOTE: pi and pcfg actually are same data, but different format.
+		// I am using IP from pcfg, since pi has CIDR notation,
+		// and pcfg already parsed the data
+		wg.sdn.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
 	}
 
 	err = wg.router.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
