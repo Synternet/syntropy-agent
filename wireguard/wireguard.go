@@ -3,6 +3,7 @@
 package wireguard
 
 import (
+	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -14,6 +15,7 @@ const pkgName = "Wireguard. "
 // Hope I will get a good mic of stock wgctl and my extentions.
 type Wireguard struct {
 	wgc    *wgctrl.Client
+	sdn    *sdn.SdnMonitor
 	router common.Router
 }
 
@@ -27,10 +29,15 @@ func New(r common.Router) (*Wireguard, error) {
 
 	wg := Wireguard{
 		wgc:    wgc,
+		sdn:    &sdn.SdnMonitor{},
 		router: r,
 	}
 
 	return &wg, nil
+}
+
+func (wg *Wireguard) Sdn() *sdn.SdnMonitor {
+	return wg.sdn
 }
 
 func (wg *Wireguard) Devices() ([]*wgtypes.Device, error) {
