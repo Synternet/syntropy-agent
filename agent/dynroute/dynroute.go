@@ -7,7 +7,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
@@ -16,7 +15,7 @@ import (
 const (
 	cmd         = "IFACES_PEERS_ACTIVE_DATA"
 	pkgName     = "DynamicRouter. "
-	checkPeriod = time.Second
+	checkPeriod = time.Second * 3
 )
 
 type peerActiveDataEntry struct {
@@ -50,7 +49,7 @@ func (obj *dynamicRouter) Name() string {
 }
 
 func (obj *dynamicRouter) execute() {
-	logger.Debug().Println(pkgName, "best route: ", obj.wg.Sdn().BestPath())
+	obj.wg.Router().Reroute(obj.wg.Sdn().BestPath())
 }
 
 func (obj *dynamicRouter) Start() error {
