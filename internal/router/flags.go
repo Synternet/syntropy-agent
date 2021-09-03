@@ -7,14 +7,14 @@ const (
 	active                  // active show that this route is curretly enabled
 )
 
-func (flags bits) set(b bits) {
-	flags |= b
+func (flags *bits) set(b bits) {
+	*flags |= b
 }
 
-func (flags bits) clear(b bits) {
-	flags &= ^b
+func (flags *bits) clear(b bits) {
+	*flags &= ^b
 }
 
-func (flags bits) has(b bits) bool {
-	return flags&b == b
+func (flags *bits) has(b bits) bool {
+	return *flags&b == b
 }
