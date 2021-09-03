@@ -18,6 +18,8 @@ import (
  **/
 
 func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
+	errIPs := []string{}
+
 	for _, ip := range ips {
 		newroute := &routeEntry{
 			gw:    gw,
@@ -40,6 +42,7 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 
 		if netcfg.RouteExists(ip) {
 			logger.Warning().Println(pkgName, "skip existing route to ", ip)
+			errIPs = append(errIPs, ip)
 			continue
 		}
 
@@ -47,9 +50,15 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 		err := netcfg.RouteAdd(ifname, gw, ip)
 		if err != nil {
 			logger.Error().Println(pkgName, "route add error", err)
+			errIPs = append(errIPs, ip)
 		}
 
 	}
+
+	if len(errIPs) > 0 {
+		return fmt.Errorf("could not add routes to %s", strings.Join(errIPs, ","))
+	}
+
 	return nil
 }
 
@@ -75,6 +84,8 @@ func (r *Router) RouteDel(ifname string, ips ...string) error {
 }
 
 func (r *Router) Reroute(newgw string) error {
+	errIPs := []string{}
+
 	for dest, routes := range r.routes {
 		if routes.Count() <= 1 {
 			// cannot do smart routing on only one route list
@@ -86,14 +97,20 @@ func (r *Router) Reroute(newgw string) error {
 				if idx == routes.active {
 					break
 				}
-				logger.Info().Println(pkgName, "new route", dest, newgw)
+				logger.Info().Println(pkgName, "change route to", dest, newgw)
 				routes.active = idx
 				err := netcfg.RouteReplace(route.iface, newgw, dest)
 				if err != nil {
-					logger.Error().Println(pkgName, "route replace error", err)
+					logger.Error().Println(pkgName, err)
+					errIPs = append(errIPs, dest)
 				}
 			}
 		}
 	}
+
+	if len(errIPs) > 0 {
+		return fmt.Errorf("could not change routes to %s via %s", strings.Join(errIPs, ","), newgw)
+	}
+
 	return nil
 }
