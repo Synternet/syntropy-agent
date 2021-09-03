@@ -8,9 +8,9 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/dockerwatch"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/dynroute"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
@@ -18,6 +18,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
@@ -34,7 +35,9 @@ type Agent struct {
 	state.StateMachine
 	controller common.Controller
 
-	wg *wireguard.Wireguard
+	wg     *wireguard.Wireguard
+	sdn    *sdn.SdnMonitor
+	router *router.Router
 
 	commands map[string]common.Command
 	services []common.Service
@@ -65,7 +68,9 @@ func NewAgent(contype int) (*Agent, error) {
 	// logger.SetControllerWriter(agent.controller)
 	logger.Setup(config.GetDebugLevel(), os.Stdout)
 
-	agent.wg, err = wireguard.New()
+	agent.sdn = &sdn.SdnMonitor{}
+	agent.router = router.New(agent.controller, agent.sdn)
+	agent.wg, err = wireguard.New(agent.router, agent.sdn)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +85,7 @@ func NewAgent(contype int) (*Agent, error) {
 	agent.addService(autoping)
 
 	agent.addService(peerdata.New(agent.controller, agent.wg))
-	agent.addService(dynroute.New(agent.controller, agent.wg))
+	agent.addService(agent.router)
 
 	if docker.IsDockerContainer() {
 		agent.addService(dockerwatch.New(agent.controller))

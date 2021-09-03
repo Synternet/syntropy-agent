@@ -22,11 +22,12 @@ const (
 )
 
 type peerDataEntry struct {
-	IP      string  `json:"internal_ip"`
-	Latency int     `json:"latency_ms"`
-	Loss    float32 `json:"packet_loss"`
-	Status  string  `json:"status"`
-	Reason  string  `json:"status_reason,omitempty"`
+	PublicKey string  `json:"public_key"`
+	IP        string  `json:"internal_ip"`
+	Latency   int     `json:"latency_ms"`
+	Loss      float32 `json:"packet_loss"`
+	Status    string  `json:"status"`
+	Reason    string  `json:"status_reason,omitempty"`
 }
 
 type ifaceBwEntry struct {

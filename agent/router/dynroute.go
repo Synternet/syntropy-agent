@@ -1,21 +1,22 @@
-// dynroute package actively monitores direct and sdn wireguard peers
+// router package is used to setup routes
+// also actively monitores direct and sdn wireguard peers
 // and setups best routing path
-package dynroute
+package router
 
 import (
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
-	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
 const (
 	cmd         = "IFACES_PEERS_ACTIVE_DATA"
-	pkgName     = "DynamicRouter. "
 	checkPeriod = time.Second * 3
+	pkgName     = "Router. "
 )
 
 type peerActiveDataEntry struct {
@@ -28,31 +29,34 @@ type peersActiveDataMessage struct {
 	Data []peerActiveDataEntry `json:"data"`
 }
 
-type dynamicRouter struct {
+type Router struct {
 	slock.AtomicServiceLock
 	writer io.Writer
-	wg     *wireguard.Wireguard
+	sdn    *sdn.SdnMonitor
 	ticker *time.Ticker
 	stop   chan bool
+
+	routes map[string]*routeList
 }
 
-func New(w io.Writer, wg *wireguard.Wireguard) common.Service {
-	return &dynamicRouter{
+func New(w io.Writer, s *sdn.SdnMonitor) *Router {
+	return &Router{
 		writer: w,
-		wg:     wg,
+		sdn:    s,
 		stop:   make(chan bool),
+		routes: make(map[string]*routeList),
 	}
 }
 
-func (obj *dynamicRouter) Name() string {
+func (obj *Router) Name() string {
 	return cmd
 }
 
-func (obj *dynamicRouter) execute() {
-	obj.wg.Router().Reroute(obj.wg.Sdn().BestPath())
+func (obj *Router) execute() {
+	obj.Reroute(obj.sdn.BestPath())
 }
 
-func (obj *dynamicRouter) Start() error {
+func (obj *Router) Start() error {
 	if !obj.TryLock() {
 		return fmt.Errorf("dynamic routing already running")
 	}
@@ -73,7 +77,7 @@ func (obj *dynamicRouter) Start() error {
 	return nil
 }
 
-func (obj *dynamicRouter) Stop() error {
+func (obj *Router) Stop() error {
 	if !obj.TryUnlock() {
 		return fmt.Errorf("dynamic routing is not running")
 	}

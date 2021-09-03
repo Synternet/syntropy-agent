@@ -5,8 +5,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
-const pkgName = "Router. "
-
 /**
  * Hugh.... I'm a little in doubt here...
  * I do not like GOs standard `net` package IP structs and interfaces
@@ -16,33 +14,19 @@ const pkgName = "Router. "
  * So for now lets stick to plain strings (TODO)
  **/
 
-type route struct {
-	gw    string
-	iface string
-	flags bits
-}
-
-type Router struct {
-	routes map[string][]*route
-}
-
-func New() *Router {
-	r := Router{}
-	r.routes = make(map[string][]*route)
-
-	return &r
-}
-
 func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 	for _, ip := range ips {
-		newroute := &route{
+		newroute := &routeEntry{
 			gw:    gw,
 			iface: ifname,
 			flags: agent,
 		}
-		r.routes[ip] = append(r.routes[ip], newroute)
+		if r.routes[ip] == nil {
+			r.routes[ip] = new(routeList)
+		}
+		r.routes[ip].Add(newroute)
 
-		if len(r.routes[ip]) > 1 {
+		if r.routes[ip].Count() > 1 {
 			logger.Debug().Println(pkgName, "skip existing SDN route to", ip)
 			continue
 		}
@@ -70,25 +54,22 @@ func (r *Router) RouteDel(ifname string, ips ...string) error {
 
 func (r *Router) Reroute(newgw string) error {
 	for dest, routes := range r.routes {
-		if len(routes) <= 1 {
+		if routes.Count() <= 1 {
 			// cannot do smart routing on only one route list
 			continue
 		}
 
-		for _, route := range routes {
+		for idx, route := range routes.list {
 			if newgw == route.gw {
-				if route.flags.has(active) {
+				if idx == routes.active {
 					break
 				}
 				logger.Info().Println(pkgName, "new route", dest, newgw)
-				route.flags.set(active)
+				routes.active = idx
 				err := netcfg.RouteReplace(route.iface, newgw, dest)
 				if err != nil {
-					route.flags.clear(active)
 					logger.Error().Println(pkgName, "route replace error", err)
 				}
-			} else {
-				route.flags.clear(active)
 			}
 		}
 	}
