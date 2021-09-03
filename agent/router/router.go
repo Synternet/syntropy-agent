@@ -19,14 +19,18 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 		newroute := &routeEntry{
 			gw:    gw,
 			iface: ifname,
-			flags: agent,
 		}
 		if r.routes[ip] == nil {
-			r.routes[ip] = new(routeList)
+			r.routes[ip] = &routeList{
+				// when adding new destination - always start with the first route active
+				// Yes, I know this is zero by default, but I wanted it to be explicitely clear
+				active: 0,
+			}
 		}
 		r.routes[ip].Add(newroute)
 
 		if r.routes[ip].Count() > 1 {
+			// TODO: I think I should inform controller about route errors
 			logger.Debug().Println(pkgName, "skip existing SDN route to", ip)
 			continue
 		}
@@ -36,10 +40,9 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 			continue
 		}
 
-		newroute.flags.set(active)
+		logger.Info().Println(pkgName, "Route add ", ip, " via ", gw)
 		err := netcfg.RouteAdd(ifname, gw, ip)
 		if err != nil {
-			newroute.flags.clear(active)
 			logger.Error().Println(pkgName, "route add error", err)
 		}
 
