@@ -1,6 +1,9 @@
 package router
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
@@ -51,8 +54,24 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 }
 
 func (r *Router) RouteDel(ifname string, ips ...string) error {
-	// TODO cleanup routes tree
-	return netcfg.RouteDel(ifname, ips...)
+	errIPs := []string{}
+	for _, ip := range ips {
+		if r.routes[ip] != nil {
+			delete(r.routes, ip)
+			err := netcfg.RouteDel(ifname, ip)
+			if err != nil {
+				errIPs = append(errIPs, ip)
+				logger.Error().Println(pkgName, ip, "route delete error", err)
+			}
+
+		}
+	}
+
+	if len(errIPs) > 0 {
+		return fmt.Errorf("could not delete routes to %s", strings.Join(errIPs, ","))
+	}
+
+	return nil
 }
 
 func (r *Router) Reroute(newgw string) error {
