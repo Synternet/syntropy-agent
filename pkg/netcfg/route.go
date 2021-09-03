@@ -19,6 +19,8 @@ func RouteAdd(ifname string, gw string, ips ...string) error {
 			LinkIndex: iface.Attrs().Index,
 			Gw:        gateway,
 		}
+
+		// I need only network address here, no need to "patch" parseCidr's result
 		_, route.Dst, err = net.ParseCIDR(ip)
 		if err != nil {
 			return fmt.Errorf("%s while parsing %s", err.Error(), ip)
@@ -66,6 +68,8 @@ func RouteReplace(ifname string, gw string, ips ...string) error {
 			LinkIndex: iface.Attrs().Index,
 			Gw:        gateway,
 		}
+
+		// I need only network address here, no need to "patch" parseCidr's result
 		_, route.Dst, err = net.ParseCIDR(ip)
 		if err != nil {
 			return fmt.Errorf("%s while parsing %s", err.Error(), ip)

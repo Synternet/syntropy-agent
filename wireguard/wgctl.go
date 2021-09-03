@@ -45,6 +45,7 @@ func (pi *PeerInfo) AsPeerConfig() (*wgtypes.PeerConfig, error) {
 	}
 
 	for _, e := range pi.AllowedIPs {
+		// I need only network address here, no need to "patch" parseCidr's result
 		_, netip, err := net.ParseCIDR(e)
 		if err == nil && netip != nil {
 			pcfg.AllowedIPs = append(pcfg.AllowedIPs, *netip)

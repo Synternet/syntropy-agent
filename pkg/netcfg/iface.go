@@ -29,14 +29,19 @@ func setInterfaceIP(ifname, ip string, add bool) error {
 	}
 
 	addr := netlink.Addr{}
+	var ipaddr net.IP
 	// I think it would be better to have it in CIDR notation
-	_, addr.IPNet, _ = net.ParseCIDR(ip)
+	ipaddr, addr.IPNet, _ = net.ParseCIDR(ip)
 	if addr.IPNet == nil {
 		// But it is plain IP address (with /32 mask in mind)
 		addr.IPNet = &net.IPNet{
 			IP:   net.ParseIP(ip),
 			Mask: net.CIDRMask(32, 32), // TODO: IPv6 support
 		}
+	} else {
+		// parseCIDR sets only network address (masked) into IPNet
+		// Thus I need to restore correct (full) IP adress in IPNet struct
+		addr.IPNet.IP = ipaddr
 	}
 	if addr.IPNet == nil || addr.IPNet.IP == nil {
 		return fmt.Errorf("error parsing IP address %s", ip)
