@@ -5,7 +5,6 @@ package wireguard
 import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/router"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -17,7 +16,7 @@ const pkgName = "Wireguard. "
 type Wireguard struct {
 	wgc    *wgctrl.Client
 	sdn    *sdn.SdnMonitor
-	router common.Router
+	router *router.Router
 }
 
 // TODO: review and redesign Wireguard implementation.
@@ -39,6 +38,10 @@ func New() (*Wireguard, error) {
 
 func (wg *Wireguard) Sdn() *sdn.SdnMonitor {
 	return wg.sdn
+}
+
+func (wg *Wireguard) Router() *router.Router {
+	return wg.router
 }
 
 func (wg *Wireguard) Devices() ([]*wgtypes.Device, error) {
