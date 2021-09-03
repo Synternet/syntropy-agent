@@ -12,6 +12,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
@@ -22,7 +23,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
-	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
 const pkgName = "SyntropyAgent. "

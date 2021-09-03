@@ -6,11 +6,11 @@ import (
 	"io"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
-	"github.com/SyntropyNet/syntropy-agent-go/wireguard"
 )
 
 const cmd = "IFACE_PEERS_BW_DATA"
