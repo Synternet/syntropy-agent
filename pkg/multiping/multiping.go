@@ -9,7 +9,7 @@ import (
 
 type PingResult struct {
 	IP      string  `json:"ip"`
-	Latency int     `json:"latency_ms"`
+	Latency int     `json:"latency_ms,omitempty"`
 	Loss    float32 `json:"packet_loss"`
 }
 
@@ -85,7 +85,7 @@ func (p *MultiPing) pingHost(h string, c chan PingResult) {
 	pinger, err := ping.NewPinger(h)
 	res := PingResult{
 		IP:      h,
-		Latency: -1,
+		Latency: 0,
 		Loss:    1,
 	}
 	defer func() { c <- res }()
@@ -106,7 +106,7 @@ func (p *MultiPing) pingHost(h string, c chan PingResult) {
 	res.IP = stats.Addr
 	res.Loss = float32(stats.PacketLoss) / 100
 	if res.Loss == 1 {
-		res.Latency = -1
+		res.Latency = 0
 	} else {
 		res.Latency = int(stats.AvgRtt.Milliseconds())
 	}
