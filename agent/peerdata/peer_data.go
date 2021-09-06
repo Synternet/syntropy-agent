@@ -13,7 +13,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
 
-const cmd = "IFACE_PEERS_BW_DATA"
+const cmd = "IFACES_PEERS_BW_DATA"
 const pkgName = "Peer_Data. "
 
 const (
@@ -33,7 +33,7 @@ type peerDataEntry struct {
 type ifaceBwEntry struct {
 	IfName    string             `json:"iface"`
 	PublicKey string             `json:"iface_public_key"`
-	Peers     []peerDataEntry    `json:"peers"`
+	Peers     []*peerDataEntry   `json:"peers"`
 	channel   chan *ifaceBwEntry `json:"-"`
 	sdn       *sdn.SdnMonitor
 }
@@ -64,14 +64,24 @@ func New(writer io.Writer, wgctl *wireguard.Wireguard) common.Service {
 func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 	// SDN also needs to process these ping result
 	ie.sdn.PingProcess(pr)
+	var entry *peerDataEntry
 
 	// format results for controler
 	for _, pingres := range pr {
-		entry := peerDataEntry{
-			IP:      pingres.IP,
-			Latency: pingres.Latency,
-			Loss:    pingres.Loss,
+		entry = nil
+		for _, e := range ie.Peers {
+			if e.IP == pingres.IP {
+				entry = e
+				break
+			}
 		}
+
+		if entry == nil {
+			continue
+		}
+
+		entry.Latency = pingres.Latency
+		entry.Loss = pingres.Loss
 
 		switch {
 		case entry.Loss >= 1:
@@ -86,8 +96,6 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 		default:
 			entry.Status = "CONNECTED"
 		}
-
-		ie.Peers = append(ie.Peers, entry)
 	}
 	ie.channel <- ie
 }
@@ -126,7 +134,7 @@ func (obj *wgPeerWatcher) execute() error {
 		ifaceData := ifaceBwEntry{
 			IfName:    wgdev.Name,
 			PublicKey: wgdev.PublicKey.String(),
-			Peers:     []peerDataEntry{},
+			Peers:     []*peerDataEntry{},
 			channel:   c,
 			sdn:       wg.Sdn(),
 		}
@@ -138,6 +146,11 @@ func (obj *wgPeerWatcher) execute() error {
 			}
 			ip := p.AllowedIPs[0]
 			ping.AddHost(ip.IP.String())
+			ifaceData.Peers = append(ifaceData.Peers,
+				&peerDataEntry{
+					PublicKey: p.PublicKey.String(),
+					IP:        ip.IP.String(),
+				})
 		}
 
 		ping.Ping()
