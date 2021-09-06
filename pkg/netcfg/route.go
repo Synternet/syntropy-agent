@@ -74,7 +74,7 @@ func RouteReplace(ifname string, gw string, ips ...string) error {
 		if err != nil {
 			return fmt.Errorf("%s while parsing %s", err.Error(), ip)
 		}
-		err = netlink.RouteAdd(&route)
+		err = netlink.RouteReplace(&route)
 		if err != nil {
 			return fmt.Errorf("route replace %s via %s: %s", ip, gw, err.Error())
 		}
