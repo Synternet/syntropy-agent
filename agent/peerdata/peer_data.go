@@ -25,7 +25,7 @@ const (
 type peerDataEntry struct {
 	PublicKey  string  `json:"public_key"`
 	IP         string  `json:"internal_ip"`
-	Handshake  string  `json:"last_handshake"`
+	Handshake  string  `json:"last_handshake,omitempty"`
 	KeepAllive int     `json:"keep_alive_interval"`
 	Latency    int     `json:"latency_ms,omitempty"`
 	Loss       float32 `json:"packet_loss"`
@@ -90,6 +90,7 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 		case entry.Loss >= 1:
 			entry.Status = "OFFLINE"
 			entry.Reason = "Packet loss 100%"
+			entry.Handshake = ""
 		case entry.Loss >= 0.01 && entry.Loss < 1:
 			entry.Status = "WARNING"
 			entry.Reason = "Packet loss higher than 1%"
