@@ -1,7 +1,13 @@
 // Env packet describes all settings, common to whole application
 package env
 
+import "time"
+
 const (
-	TimeFormat          = "2006-01-02T15:04:05-07:00"
+	// Controller is expecting ISO8601 time format
+	// Technically ISO 8601 and RFC3339 are not technically the same thing.
+	// But  RFC3339 is a stricter version of ISO8601. So it should be safe to use the RFC3339.
+	TimeFormat = time.RFC3339
+	// Prefix of all agent configured interfaces.
 	InterfaceNamePrefix = "SYNTROPY_"
 )
