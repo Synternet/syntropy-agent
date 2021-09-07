@@ -90,7 +90,6 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 		case entry.Loss >= 1:
 			entry.Status = "OFFLINE"
 			entry.Reason = "Packet loss 100%"
-			entry.Handshake = ""
 		case entry.Loss >= 0.01 && entry.Loss < 1:
 			entry.Status = "WARNING"
 			entry.Reason = "Packet loss higher than 1%"
@@ -150,11 +149,17 @@ func (obj *wgPeerWatcher) execute() error {
 			}
 			ip := p.AllowedIPs[0]
 			ping.AddHost(ip.IP.String())
+
+			var lastHandshake string
+			if !p.LastHandshakeTime.IsZero() {
+				lastHandshake = p.LastHandshakeTime.Format(env.TimeFormat)
+			}
+
 			ifaceData.Peers = append(ifaceData.Peers,
 				&peerDataEntry{
 					PublicKey:  p.PublicKey.String(),
 					IP:         ip.IP.String(),
-					Handshake:  p.LastHandshakeTime.Format(env.TimeFormat),
+					Handshake:  lastHandshake,
 					KeepAllive: int(p.PersistentKeepaliveInterval.Seconds()),
 				})
 		}
