@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
@@ -22,12 +23,14 @@ const (
 )
 
 type peerDataEntry struct {
-	PublicKey string  `json:"public_key"`
-	IP        string  `json:"internal_ip"`
-	Latency   int     `json:"latency_ms,omitempty"`
-	Loss      float32 `json:"packet_loss"`
-	Status    string  `json:"status"`
-	Reason    string  `json:"status_reason,omitempty"`
+	PublicKey  string  `json:"public_key"`
+	IP         string  `json:"internal_ip"`
+	Handshake  string  `json:"last_handshake"`
+	KeepAllive int     `json:"keep_alive_interval"`
+	Latency    int     `json:"latency_ms,omitempty"`
+	Loss       float32 `json:"packet_loss"`
+	Status     string  `json:"status"`
+	Reason     string  `json:"status_reason,omitempty"`
 }
 
 type ifaceBwEntry struct {
@@ -148,8 +151,10 @@ func (obj *wgPeerWatcher) execute() error {
 			ping.AddHost(ip.IP.String())
 			ifaceData.Peers = append(ifaceData.Peers,
 				&peerDataEntry{
-					PublicKey: p.PublicKey.String(),
-					IP:        ip.IP.String(),
+					PublicKey:  p.PublicKey.String(),
+					IP:         ip.IP.String(),
+					Handshake:  p.LastHandshakeTime.Format(env.TimeFormat),
+					KeepAllive: int(p.PersistentKeepaliveInterval.Seconds()),
 				})
 		}
 
