@@ -16,12 +16,12 @@ const pkgName = "Wireguard. "
 type Wireguard struct {
 	wgc    *wgctrl.Client
 	sdn    *sdn.SdnMonitor
-	router common.Router
+	router common.SdnRouter
 }
 
 // TODO: review and redesign Wireguard implementation.
 // Maybe it should be an object, containing WG interface data and separate objects per interface ?
-func New(r common.Router, s *sdn.SdnMonitor) (*Wireguard, error) {
+func New(r common.SdnRouter, s *sdn.SdnMonitor) (*Wireguard, error) {
 	wgc, err := wgctrl.New()
 	if err != nil {
 		return nil, err
@@ -36,13 +36,13 @@ func New(r common.Router, s *sdn.SdnMonitor) (*Wireguard, error) {
 	return &wg, nil
 }
 
-func (wg *Wireguard) Sdn() *sdn.SdnMonitor {
-	return wg.sdn
-}
+//func (wg *Wireguard) Sdn() *sdn.SdnMonitor {
+//	return wg.sdn
+//}
 
-func (wg *Wireguard) Router() common.Router {
-	return wg.router
-}
+//func (wg *Wireguard) Router() common.Router {
+//	return wg.router
+//}
 
 func (wg *Wireguard) Devices() ([]*wgtypes.Device, error) {
 	return wg.wgc.Devices()

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
@@ -17,13 +18,14 @@ import (
  * So for now lets stick to plain strings (TODO)
  **/
 
-func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
+func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error {
 	errIPs := []string{}
 
-	for _, ip := range ips {
+	for _, ip := range dest {
 		newroute := &routeEntry{
-			gw:    gw,
-			iface: ifname,
+			ifname:  netpath.Ifname,
+			gateway: netpath.Gateway,
+			id:      netpath.ID,
 		}
 		if r.routes[ip] == nil {
 			r.routes[ip] = &routeList{
@@ -46,8 +48,8 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 			continue
 		}
 
-		logger.Info().Println(pkgName, "Route add ", ip, " via ", gw)
-		err := netcfg.RouteAdd(ifname, gw, ip)
+		logger.Info().Println(pkgName, "Route add ", ip, " via ", netpath.Gateway)
+		err := netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, ip)
 		if err != nil {
 			logger.Error().Println(pkgName, "route add error", err)
 			errIPs = append(errIPs, ip)
@@ -62,12 +64,12 @@ func (r *Router) RouteAdd(ifname string, gw string, ips ...string) error {
 	return nil
 }
 
-func (r *Router) RouteDel(ifname string, ips ...string) error {
+func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
 	errIPs := []string{}
 	for _, ip := range ips {
 		if r.routes[ip] != nil {
 			delete(r.routes, ip)
-			err := netcfg.RouteDel(ifname, ip)
+			err := netcfg.RouteDel(netpath.Ifname, ip)
 			if err != nil {
 				errIPs = append(errIPs, ip)
 				logger.Error().Println(pkgName, ip, "route delete error", err)
@@ -93,13 +95,13 @@ func (r *Router) Reroute(newgw string) error {
 		}
 
 		for idx, route := range routes.list {
-			if newgw == route.gw {
+			if newgw == route.gateway {
 				if idx == routes.active {
 					break
 				}
-				logger.Info().Println(pkgName, "change route to", dest, newgw)
+				logger.Info().Printf("%s change route to %s via %s [id:%d]\n", pkgName, dest, newgw, route.id)
 				routes.active = idx
-				err := netcfg.RouteReplace(route.iface, newgw, dest)
+				err := netcfg.RouteReplace(route.ifname, newgw, dest)
 				if err != nil {
 					logger.Error().Println(pkgName, err)
 					errIPs = append(errIPs, dest)

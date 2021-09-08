@@ -7,6 +7,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
+// TODO rename to PeerMonitor.
 const pkgName = "SdnMonitor. "
 
 type SdnNode struct {

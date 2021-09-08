@@ -1,8 +1,10 @@
 package router
 
+// The route entry. Destination will be map key
 type routeEntry struct {
-	gw    string
-	iface string
+	ifname  string
+	gateway string
+	id      int
 }
 
 type routeList struct {

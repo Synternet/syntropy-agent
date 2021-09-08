@@ -9,6 +9,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -205,7 +206,12 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 		wg.sdn.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
 	}
 
-	err = wg.router.RouteAdd(pi.IfName, pi.Gateway, pi.AllowedIPs...)
+	err = wg.router.RouteAdd(
+		&common.SdnNetworkPath{
+			Ifname:  pi.IfName,
+			Gateway: pi.Gateway,
+			ID:      pi.ConnectionID,
+		}, pi.AllowedIPs...)
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
 	}
@@ -239,7 +245,7 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
-	err = netcfg.RouteDel(pi.IfName, pi.AllowedIPs...)
+	err = wg.router.RouteDel(&common.SdnNetworkPath{Ifname: pi.IfName}, pi.AllowedIPs...)
 	if err != nil {
 		return fmt.Errorf("route add failed: %s", err.Error())
 	}
