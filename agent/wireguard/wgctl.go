@@ -16,17 +16,19 @@ import (
 type InterfaceInfo struct {
 	IfName    string
 	PublicKey string
+	NetworkID int // Seems like this ID is obsolete
 	IP        string
 	Port      int
 }
 
 type PeerInfo struct {
-	IfName     string
-	PublicKey  string
-	IP         string
-	Port       int
-	Gateway    string
-	AllowedIPs []string
+	IfName       string
+	PublicKey    string
+	ConnectionID int
+	IP           string
+	Port         int
+	Gateway      string
+	AllowedIPs   []string
 }
 
 func (pi *PeerInfo) AsPeerConfig() (*wgtypes.PeerConfig, error) {

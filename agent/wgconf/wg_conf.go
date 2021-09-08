@@ -64,12 +64,13 @@ func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
 	}
 
 	return &wireguard.PeerInfo{
-		IfName:     ifname,
-		IP:         e.Args.EndpointIPv4,
-		PublicKey:  e.Args.PublicKey,
-		Port:       e.Args.EndpointPort,
-		Gateway:    e.Args.GatewayIPv4,
-		AllowedIPs: e.Args.AllowedIPs,
+		IfName:       ifname,
+		IP:           e.Args.EndpointIPv4,
+		PublicKey:    e.Args.PublicKey,
+		ConnectionID: e.Metadata.ConnectionID,
+		Port:         e.Args.EndpointPort,
+		Gateway:      e.Args.GatewayIPv4,
+		AllowedIPs:   e.Args.AllowedIPs,
 	}
 }
 
@@ -86,6 +87,7 @@ func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 		IP:        e.Args.IP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.Port,
+		NetworkID: e.Metadata.NetworkID,
 	}
 }
 
