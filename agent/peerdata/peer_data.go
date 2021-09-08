@@ -8,7 +8,6 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
@@ -34,11 +33,11 @@ type peerDataEntry struct {
 }
 
 type ifaceBwEntry struct {
-	IfName    string             `json:"iface"`
-	PublicKey string             `json:"iface_public_key"`
-	Peers     []*peerDataEntry   `json:"peers"`
-	channel   chan *ifaceBwEntry `json:"-"`
-	sdn       *sdn.SdnMonitor
+	IfName     string             `json:"iface"`
+	PublicKey  string             `json:"iface_public_key"`
+	Peers      []*peerDataEntry   `json:"peers"`
+	channel    chan *ifaceBwEntry `json:"-"`
+	pingClient multiping.PingClient
 }
 
 type peerBwData struct {
@@ -65,8 +64,9 @@ func New(writer io.Writer, wgctl *wireguard.Wireguard) common.Service {
 }
 
 func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
-	// SDN also needs to process these ping result
-	ie.sdn.PingProcess(pr)
+	// PeerMonitor (as PingClient interface) also needs to process these ping result
+	ie.pingClient.PingProcess(pr)
+
 	var entry *peerDataEntry
 
 	// format results for controler
@@ -135,11 +135,11 @@ func (obj *wgPeerWatcher) execute() error {
 
 	for _, wgdev := range wgdevs {
 		ifaceData := ifaceBwEntry{
-			IfName:    wgdev.Name,
-			PublicKey: wgdev.PublicKey.String(),
-			Peers:     []*peerDataEntry{},
-			channel:   c,
-			sdn:       wg.Sdn(),
+			IfName:     wgdev.Name,
+			PublicKey:  wgdev.PublicKey.String(),
+			Peers:      []*peerDataEntry{},
+			channel:    c,
+			pingClient: wg.PeersMonitor(),
 		}
 		ping := multiping.New(&ifaceData)
 

@@ -5,6 +5,7 @@ package wireguard
 import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -36,9 +37,9 @@ func New(r common.SdnRouter, s *sdn.SdnMonitor) (*Wireguard, error) {
 	return &wg, nil
 }
 
-//func (wg *Wireguard) Sdn() *sdn.SdnMonitor {
-//	return wg.sdn
-//}
+func (wg *Wireguard) PeersMonitor() multiping.PingClient {
+	return wg.sdn
+}
 
 //func (wg *Wireguard) Router() common.Router {
 //	return wg.router
