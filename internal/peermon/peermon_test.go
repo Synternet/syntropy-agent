@@ -1,22 +1,21 @@
-package sdn_test
+package peermon_test
 
 import (
 	"testing"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
-func TestSDN(t *testing.T) {
-	sdn := &sdn.SdnMonitor{}
+func Testpm(t *testing.T) {
+	pm := &peermon.pmMonitor{}
 
-	sdn.AddNode("1.1.1.1", "1.1.1.9")
-	sdn.AddNode("1.1.1.1", "1.1.1.9") // dupplicate peers should be handled and skipped internally
-	sdn.AddNode("2.2.2.1", "2.2.2.9")
-	sdn.AddNode("3.3.3.1", "3.3.3.9")
-	sdn.AddNode("4.4.4.1", "4.4.4.9")
+	pm.AddNode("1.1.1.1", "1.1.1.9")
+	pm.AddNode("1.1.1.1", "1.1.1.9") // dupplicate peers should be handled and skipped internally
+	pm.AddNode("2.2.2.1", "2.2.2.9")
+	pm.AddNode("3.3.3.1", "3.3.3.9")
+	pm.AddNode("4.4.4.1", "4.4.4.9")
 
-	peers := sdn.Peers()
+	peers := pm.Peers()
 
 	// validate peers count
 	if len(peers) != 4 {
@@ -40,7 +39,7 @@ func TestSDN(t *testing.T) {
 	}
 
 	// simulate ping results
-	sdn.PingProcess([]multiping.PingResult{
+	pm.PingProcess([]multiping.PingResult{
 		{IP: "1.1.1.9", Loss: 0, Latency: 10}, // Medium result
 		{IP: "2.2.2.9", Loss: 1, Latency: 0},  // Lowest Latency, but packet Loss
 		{IP: "3.3.3.9", Loss: 0, Latency: 3},  // Expected best
@@ -48,7 +47,7 @@ func TestSDN(t *testing.T) {
 	})
 
 	// NOTE: best gateway is not best peer ;-)
-	best := sdn.BestPath()
+	best := pm.BestPath()
 	if best != "3.3.3.1" {
 		t.Errorf("best path calculation problem: %s vs %s (expected)", best, "3.3.3.1")
 	}

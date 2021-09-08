@@ -1,5 +1,5 @@
 // router package is used to setup routes
-// also actively monitores direct and sdn wireguard peers
+// also actively monitores direct and (sdn) wireguard peers
 // and setups best routing path
 package router
 
@@ -8,7 +8,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
@@ -31,20 +31,20 @@ type peersActiveDataMessage struct {
 
 type Router struct {
 	slock.AtomicServiceLock
-	writer io.Writer
-	sdn    *sdn.SdnMonitor
-	ticker *time.Ticker
-	stop   chan bool
+	writer      io.Writer
+	peerMonitor *peermon.PeerMonitor
+	ticker      *time.Ticker
+	stop        chan bool
 
 	routes map[string]*routeList
 }
 
-func New(w io.Writer, s *sdn.SdnMonitor) *Router {
+func New(w io.Writer, pm *peermon.PeerMonitor) *Router {
 	return &Router{
-		writer: w,
-		sdn:    s,
-		stop:   make(chan bool),
-		routes: make(map[string]*routeList),
+		writer:      w,
+		peerMonitor: pm,
+		stop:        make(chan bool),
+		routes:      make(map[string]*routeList),
 	}
 }
 
@@ -53,7 +53,7 @@ func (obj *Router) Name() string {
 }
 
 func (obj *Router) execute() {
-	obj.Reroute(obj.sdn.BestPath())
+	obj.Reroute(obj.peerMonitor.BestPath())
 }
 
 func (obj *Router) Start() error {

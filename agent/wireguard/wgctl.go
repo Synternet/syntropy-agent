@@ -203,7 +203,7 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 		// NOTE: pi and pcfg actually are same data, but different format.
 		// I am using IP from pcfg, since pi has CIDR notation,
 		// and pcfg already parsed the data
-		wg.sdn.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
+		wg.peerMonitor.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
 	}
 
 	err = wg.router.RouteAdd(

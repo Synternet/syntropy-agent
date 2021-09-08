@@ -19,7 +19,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/sdn"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
@@ -36,7 +36,7 @@ type Agent struct {
 	controller common.Controller
 
 	wg     *wireguard.Wireguard
-	sdn    *sdn.SdnMonitor
+	pm     *peermon.PeerMonitor
 	router *router.Router
 
 	commands map[string]common.Command
@@ -68,9 +68,9 @@ func NewAgent(contype int) (*Agent, error) {
 	// logger.SetControllerWriter(agent.controller)
 	logger.Setup(config.GetDebugLevel(), os.Stdout)
 
-	agent.sdn = &sdn.SdnMonitor{}
-	agent.router = router.New(agent.controller, agent.sdn)
-	agent.wg, err = wireguard.New(agent.router, agent.sdn)
+	agent.pm = &peermon.PeerMonitor{}
+	agent.router = router.New(agent.controller, agent.pm)
+	agent.wg, err = wireguard.New(agent.router, agent.pm)
 	if err != nil {
 		return nil, err
 	}

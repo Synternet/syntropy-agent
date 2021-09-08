@@ -1,4 +1,6 @@
-package sdn
+package peermon
+
+// TODO: think about merging this with router.Router and using some interfaces
 
 import (
 	"fmt"
@@ -20,16 +22,16 @@ func (node *peerInfo) String() string {
 	return fmt.Sprintf("%s via %s loss: %f latency %d", node.endpoint, node.gateway, node.loss, node.latency)
 }
 
-type SdnMonitor struct {
+type PeerMonitor struct {
 	sync.RWMutex
 	list []*peerInfo
 }
 
-func (sdn *SdnMonitor) AddNode(gw, peer string) {
-	sdn.Lock()
-	defer sdn.Unlock()
+func (pm *PeerMonitor) AddNode(gw, peer string) {
+	pm.Lock()
+	defer pm.Unlock()
 
-	for _, n := range sdn.list {
+	for _, n := range pm.list {
 		if n.endpoint == peer {
 			return
 		}
@@ -39,27 +41,27 @@ func (sdn *SdnMonitor) AddNode(gw, peer string) {
 		gateway:  gw,
 		endpoint: peer,
 	}
-	sdn.list = append(sdn.list, &e)
+	pm.list = append(pm.list, &e)
 }
 
-func (sdn *SdnMonitor) Peers() []string {
-	sdn.RLock()
-	defer sdn.RUnlock()
+func (pm *PeerMonitor) Peers() []string {
+	pm.RLock()
+	defer pm.RUnlock()
 
 	rv := []string{}
 
-	for _, e := range sdn.list {
+	for _, e := range pm.list {
 		rv = append(rv, e.endpoint)
 	}
 	return rv
 }
 
-func (sdn *SdnMonitor) PingProcess(pr []multiping.PingResult) {
-	sdn.Lock()
-	defer sdn.Unlock()
+func (pm *PeerMonitor) PingProcess(pr []multiping.PingResult) {
+	pm.Lock()
+	defer pm.Unlock()
 
 	for _, res := range pr {
-		for _, peer := range sdn.list {
+		for _, peer := range pm.list {
 			if peer.endpoint == res.IP {
 				peer.latency = res.Latency
 				peer.loss = res.Loss
@@ -70,22 +72,22 @@ func (sdn *SdnMonitor) PingProcess(pr []multiping.PingResult) {
 
 }
 
-func (sdn *SdnMonitor) BestPath() string {
-	sdn.RLock()
-	defer sdn.RUnlock()
+func (pm *PeerMonitor) BestPath() string {
+	pm.RLock()
+	defer pm.RUnlock()
 
-	if len(sdn.list) == 0 {
+	if len(pm.list) == 0 {
 		return ""
 	}
 
 	bestIdx := 0
-	for i := bestIdx + 1; i < len(sdn.list); i++ {
-		if sdn.list[i].loss < sdn.list[bestIdx].loss {
+	for i := bestIdx + 1; i < len(pm.list); i++ {
+		if pm.list[i].loss < pm.list[bestIdx].loss {
 			bestIdx = i
-		} else if sdn.list[i].latency > 0 && sdn.list[i].latency < sdn.list[bestIdx].latency {
+		} else if pm.list[i].latency > 0 && pm.list[i].latency < pm.list[bestIdx].latency {
 			bestIdx = i
 		}
 	}
 
-	return sdn.list[bestIdx].gateway
+	return pm.list[bestIdx].gateway
 }
