@@ -7,23 +7,22 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
-// TODO rename to PeerMonitor.
-const pkgName = "SdnMonitor. "
+const pkgName = "PeerMonitor. "
 
-type SdnNode struct {
-	Endpoint string
-	Gateway  string
-	Latency  int
-	Loss     float32
+type peerInfo struct {
+	endpoint string
+	gateway  string
+	latency  int
+	loss     float32
 }
 
-func (node *SdnNode) String() string {
-	return fmt.Sprintf("%s via %s loss: %f latency %d", node.Endpoint, node.Gateway, node.Loss, node.Latency)
+func (node *peerInfo) String() string {
+	return fmt.Sprintf("%s via %s loss: %f latency %d", node.endpoint, node.gateway, node.loss, node.latency)
 }
 
 type SdnMonitor struct {
 	sync.RWMutex
-	list []*SdnNode
+	list []*peerInfo
 }
 
 func (sdn *SdnMonitor) AddNode(gw, peer string) {
@@ -31,14 +30,14 @@ func (sdn *SdnMonitor) AddNode(gw, peer string) {
 	defer sdn.Unlock()
 
 	for _, n := range sdn.list {
-		if n.Endpoint == peer {
+		if n.endpoint == peer {
 			return
 		}
 	}
 
-	e := SdnNode{
-		Gateway:  gw,
-		Endpoint: peer,
+	e := peerInfo{
+		gateway:  gw,
+		endpoint: peer,
 	}
 	sdn.list = append(sdn.list, &e)
 }
@@ -50,7 +49,7 @@ func (sdn *SdnMonitor) Peers() []string {
 	rv := []string{}
 
 	for _, e := range sdn.list {
-		rv = append(rv, e.Endpoint)
+		rv = append(rv, e.endpoint)
 	}
 	return rv
 }
@@ -61,9 +60,9 @@ func (sdn *SdnMonitor) PingProcess(pr []multiping.PingResult) {
 
 	for _, res := range pr {
 		for _, peer := range sdn.list {
-			if peer.Endpoint == res.IP {
-				peer.Latency = res.Latency
-				peer.Loss = res.Loss
+			if peer.endpoint == res.IP {
+				peer.latency = res.Latency
+				peer.loss = res.Loss
 				break // break internal loop, continue on external
 			}
 		}
@@ -81,12 +80,12 @@ func (sdn *SdnMonitor) BestPath() string {
 
 	bestIdx := 0
 	for i := bestIdx + 1; i < len(sdn.list); i++ {
-		if sdn.list[i].Loss < sdn.list[bestIdx].Loss {
+		if sdn.list[i].loss < sdn.list[bestIdx].loss {
 			bestIdx = i
-		} else if sdn.list[i].Latency > 0 && sdn.list[i].Latency < sdn.list[bestIdx].Latency {
+		} else if sdn.list[i].latency > 0 && sdn.list[i].latency < sdn.list[bestIdx].latency {
 			bestIdx = i
 		}
 	}
 
-	return sdn.list[bestIdx].Gateway
+	return sdn.list[bestIdx].gateway
 }
