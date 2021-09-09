@@ -3,6 +3,8 @@ package logger
 import (
 	"encoding/json"
 	"io"
+
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 )
 
 const cmd = "LOGGER"
@@ -24,7 +26,7 @@ type controllerLogger struct {
 
 func (l *controllerLogger) Write(b []byte) (n int, err error) {
 	msg := loggerMessage{
-		ID:      "-",
+		ID:      env.MessageDefaultID,
 		MsgType: cmd,
 	}
 

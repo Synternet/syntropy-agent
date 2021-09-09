@@ -106,7 +106,7 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 func (obj *wgPeerWatcher) execute() error {
 	wg := obj.wg
 	resp := peerBwData{}
-	resp.ID = "-"
+	resp.ID = env.MessageDefaultID
 	resp.MsgType = cmd
 
 	wgdevs, err := wg.Devices()

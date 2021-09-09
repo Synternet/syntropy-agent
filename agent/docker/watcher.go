@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/docker/docker/api/types"
@@ -66,7 +67,7 @@ func (obj *DockerWatcher) run() {
 					resp := networkInfoMessage{
 						Data: obj.NetworkInfo(),
 					}
-					resp.ID = "-"
+					resp.ID = env.MessageDefaultID
 					resp.MsgType = cmdNetwork
 					resp.Now()
 					raw, err := json.Marshal(resp)
@@ -83,7 +84,7 @@ func (obj *DockerWatcher) run() {
 					resp := containerInfoMessage{
 						Data: obj.ContainerInfo(),
 					}
-					resp.ID = "-"
+					resp.ID = env.MessageDefaultID
 					resp.MsgType = cmdContainer
 					resp.Now()
 					raw, err := json.Marshal(resp)
