@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
@@ -27,6 +28,15 @@ type peerActiveDataEntry struct {
 type peersActiveDataMessage struct {
 	common.MessageHeader
 	Data []peerActiveDataEntry `json:"data"`
+}
+
+func newRespMsg() *peersActiveDataMessage {
+	resp := peersActiveDataMessage{
+		Data: []peerActiveDataEntry{},
+	}
+	resp.ID = env.MessageDefaultID
+	resp.MsgType = cmd
+	return &resp
 }
 
 type Router struct {

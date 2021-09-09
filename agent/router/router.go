@@ -1,9 +1,13 @@
 package router
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
@@ -87,6 +91,7 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
 
 func (r *Router) Reroute(newgw string) error {
 	errIPs := []string{}
+	resp := newRespMsg()
 
 	for dest, routes := range r.routes {
 		if routes.Count() <= 1 {
@@ -100,14 +105,33 @@ func (r *Router) Reroute(newgw string) error {
 					break
 				}
 				logger.Info().Printf("%s change route to %s via %s [id:%d]\n", pkgName, dest, newgw, route.id)
+				logger.Info().Println(pkgName, idx, routes.active)
+				log.Println(routes)
 				routes.active = idx
 				err := netcfg.RouteReplace(route.ifname, newgw, dest)
-				if err != nil {
+				if err == nil {
+					resp.Data = append(resp.Data,
+						peerActiveDataEntry{
+							ConnectionID: route.id,
+							Timestamp:    time.Now().Format(env.TimeFormat),
+						})
+				} else {
 					logger.Error().Println(pkgName, err)
 					errIPs = append(errIPs, dest)
 				}
 			}
 		}
+	}
+
+	// TODO thing about sending errors to controller
+	if len(resp.Data) > 0 {
+		resp.Now()
+		raw, err := json.Marshal(resp)
+		if err != nil {
+			return err
+		}
+
+		r.writer.Write(raw)
 	}
 
 	if len(errIPs) > 0 {
