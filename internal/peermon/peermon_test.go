@@ -3,11 +3,12 @@ package peermon_test
 import (
 	"testing"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
-func Testpm(t *testing.T) {
-	pm := &peermon.pmMonitor{}
+func TestPeerMonitor(t *testing.T) {
+	pm := &peermon.PeerMonitor{}
 
 	pm.AddNode("1.1.1.1", "1.1.1.9")
 	pm.AddNode("1.1.1.1", "1.1.1.9") // dupplicate peers should be handled and skipped internally
