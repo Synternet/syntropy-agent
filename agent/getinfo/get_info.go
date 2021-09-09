@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
@@ -32,12 +32,14 @@ type getInfoResponce struct {
 }
 
 type getInfo struct {
-	w io.Writer
+	w      io.Writer
+	docker docker.DockerHelper
 }
 
-func New(w io.Writer) common.Command {
+func New(w io.Writer, d docker.DockerHelper) common.Command {
 	return &getInfo{
-		w: w,
+		w:      w,
+		docker: d,
 	}
 }
 
@@ -62,8 +64,8 @@ func (obj *getInfo) Exec(raw []byte) error {
 	resp.Data.ExternalIP = config.GetPublicIp()
 	resp.Data.LocationLatitude = config.GetLocationLatitude()
 	resp.Data.LocationLongitude = config.GetLocationLongitude()
-	resp.Data.NetworkInfo = docker.NetworkInfo()
-	resp.Data.ContainerInfo = docker.ContainerInfo()
+	resp.Data.NetworkInfo = obj.docker.NetworkInfo()
+	resp.Data.ContainerInfo = obj.docker.ContainerInfo()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {

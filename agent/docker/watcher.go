@@ -1,4 +1,4 @@
-package dockerwatch
+package docker
 
 import (
 	"context"
@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
@@ -16,12 +14,12 @@ import (
 )
 
 const (
-	pkgName      = "DockerWatcher. "
+	pkgName      = "Docker. "
 	cmdNetwork   = "NETWORK_INFO"
 	cmdContainer = "CONTAINER_INFO"
 )
 
-type dockerWatcher struct {
+type DockerWatcher struct {
 	slock.AtomicServiceLock
 	writer io.Writer
 	cli    *client.Client
@@ -29,27 +27,24 @@ type dockerWatcher struct {
 	cancel context.CancelFunc
 }
 
-type networkInfoMessage struct {
-	common.MessageHeader
-	Data []docker.DockerNetworkInfoEntry `json:"data"`
-}
-
-type containerInfoMessage struct {
-	common.MessageHeader
-	Data []docker.DockerContainerInfoEntry `json:"data"`
-}
-
-func New(w io.Writer) common.Service {
-	dw := dockerWatcher{writer: w}
+func New(w io.Writer) *DockerWatcher {
+	var err error
+	dw := DockerWatcher{writer: w}
+	dw.cli, err = client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		// TODO: If docker is not running at startup - add period check if docker service has started
+		logger.Error().Println(pkgName, "Docker client: ", err)
+		dw.cli = nil // Just to make sure
+	}
 
 	return &dw
 }
 
-func (obj *dockerWatcher) Name() string {
+func (obj *DockerWatcher) Name() string {
 	return cmdNetwork + " / " + cmdContainer
 }
 
-func (obj *dockerWatcher) run() {
+func (obj *DockerWatcher) run() {
 	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
 
 	for {
@@ -69,7 +64,7 @@ func (obj *dockerWatcher) run() {
 
 				if msg.Action == "create" || msg.Action == "destroy" {
 					resp := networkInfoMessage{
-						Data: docker.NetworkInfo(),
+						Data: obj.NetworkInfo(),
 					}
 					resp.ID = "-"
 					resp.MsgType = cmdNetwork
@@ -86,7 +81,7 @@ func (obj *dockerWatcher) run() {
 				if msg.Action == "create" || msg.Action == "destroy" ||
 					msg.Action == "start" || msg.Action == "stop" {
 					resp := containerInfoMessage{
-						Data: docker.ContainerInfo(),
+						Data: obj.ContainerInfo(),
 					}
 					resp.ID = "-"
 					resp.MsgType = cmdContainer
@@ -106,17 +101,11 @@ func (obj *dockerWatcher) run() {
 	}
 }
 
-func (obj *dockerWatcher) Start() (err error) {
+func (obj *DockerWatcher) Start() (err error) {
 	if !obj.TryLock() {
 		return fmt.Errorf("docker watcher already running")
 	}
 
-	obj.cli, err = client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		// TODO: If docker is not running at startup - add period check if docker service has started
-		logger.Error().Println(pkgName, "Docker client: ", err)
-		return err
-	}
 	obj.ctx, obj.cancel = context.WithCancel(context.Background())
 
 	go obj.run()
@@ -124,7 +113,7 @@ func (obj *dockerWatcher) Start() (err error) {
 	return nil
 }
 
-func (obj *dockerWatcher) Stop() error {
+func (obj *DockerWatcher) Stop() error {
 	if !obj.TryUnlock() {
 		return fmt.Errorf("docker watcher is not running")
 	}

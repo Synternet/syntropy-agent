@@ -7,7 +7,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/dockerwatch"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
@@ -17,7 +17,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
@@ -76,7 +75,6 @@ func NewAgent(contype int) (*Agent, error) {
 	}
 
 	agent.commands = make(map[string]common.Command)
-	agent.addCommand(getinfo.New(agent.controller))
 	agent.addCommand(configinfo.New(agent.controller, agent.wg))
 	agent.addCommand(wgconf.New(agent.controller, agent.wg))
 
@@ -87,9 +85,15 @@ func NewAgent(contype int) (*Agent, error) {
 	agent.addService(peerdata.New(agent.controller, agent.wg))
 	agent.addService(agent.router)
 
-	if docker.IsDockerContainer() {
-		agent.addService(dockerwatch.New(agent.controller))
+	var dockerHelper docker.DockerHelper
+	if config.GetContainerType() == config.ContainerTypeDocker {
+		dockerWatch := docker.New(agent.controller)
+		agent.addService(dockerWatch)
+		dockerHelper = dockerWatch
+	} else {
+		dockerHelper = &docker.DockerNull{}
 	}
+	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 
 	netfilter.CreateChain()
 

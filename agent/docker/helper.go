@@ -4,56 +4,25 @@ import (
 	"context"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
 )
 
-const (
-	pkgName = "DockerHelper. "
-)
-
-type DockerNetworkInfoEntry struct {
-	ID      string   `json:"agent_network_id"`
-	Name    string   `json:"agent_network_name"`
-	Subnets []string `json:"agent_network_subnets"`
+type DockerHelper interface {
+	NetworkInfo() []DockerNetworkInfoEntry
+	ContainerInfo() []DockerContainerInfoEntry
 }
 
-type DockerContainerInfoEntry struct {
-	ID       string   `json:"agent_container_id"`
-	Name     string   `json:"agent_container_name"`
-	State    string   `json:"agent_container_state"`
-	Uptime   string   `json:"agent_container_uptime"`
-	Networks []string `json:"agent_container_networks"`
-	IPs      []string `json:"agent_container_ips"`
-	Ports    struct {
-		TCP []int `json:"tcp"`
-		UDP []int `json:"udp"`
-	} `json:"agent_container_ports"`
-}
-
-func IsDockerContainer() bool {
-	return config.GetContainerType() == "docker"
-}
-
-func NetworkInfo() (networkInfo []DockerNetworkInfoEntry) {
-	networkInfo = []DockerNetworkInfoEntry{}
-	if !IsDockerContainer() {
-		return
+func (obj *DockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
+	networkInfo := []DockerNetworkInfoEntry{}
+	if obj.cli == nil {
+		return networkInfo
 	}
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	networks, err := obj.cli.NetworkList(context.Background(), types.NetworkListOptions{})
 	if err != nil {
-		logger.Warning().Println(pkgName, "Docker client: ", err)
-		return
-	}
-	defer cli.Close()
-
-	networks, err := cli.NetworkList(context.Background(), types.NetworkListOptions{})
-	if err != nil {
-		logger.Warning().Println(pkgName, "Docker Network List: ", err)
-		return
+		logger.Warning().Println(pkgName, "Network List: ", err)
+		return networkInfo
 	}
 
 	for _, n := range networks {
@@ -89,27 +58,20 @@ func addPort(arr *[]int, port uint16) {
 	*arr = append(*arr, int(port))
 }
 
-func ContainerInfo() (containerInfo []DockerContainerInfoEntry) {
-	containerInfo = []DockerContainerInfoEntry{}
-	if !IsDockerContainer() {
-		return
+func (obj *DockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
+	containerInfo := []DockerContainerInfoEntry{}
+	if obj.cli == nil {
+		return containerInfo
 	}
 
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	containers, err := obj.cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
-		logger.Warning().Println(pkgName, "Docker client: ", err)
-		return
-	}
-	defer cli.Close()
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		logger.Warning().Println(pkgName, "Docker Container List: ", err)
-		return
+		logger.Warning().Println(pkgName, "Container List: ", err)
+		return containerInfo
 	}
 
 	for _, c := range containers {
-		jsoncfg, err := cli.ContainerInspect(context.Background(), c.ID)
+		jsoncfg, err := obj.cli.ContainerInspect(context.Background(), c.ID)
 		if err != nil {
 			logger.Error().Println(pkgName, "Inspect container ", c.ID, err)
 		}

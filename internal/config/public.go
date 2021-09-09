@@ -9,6 +9,10 @@ const (
 	ControllerUnknown
 )
 
+const (
+	ContainerTypeDocker = "docker"
+)
+
 func GetControllerType() int {
 	return cache.controllerType
 }
