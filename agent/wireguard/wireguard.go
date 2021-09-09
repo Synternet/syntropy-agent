@@ -12,8 +12,6 @@ import (
 
 const pkgName = "Wireguard. "
 
-// TODO: I'm trying to embed anonymous entry in my wireguard implementation/wrapper
-// Hope I will get a good mic of stock wgctl and my extentions.
 type Wireguard struct {
 	wgc         *wgctrl.Client
 	peerMonitor *peermon.PeerMonitor

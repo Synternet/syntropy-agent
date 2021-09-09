@@ -36,7 +36,7 @@ func setInterfaceIP(ifname, ip string, add bool) error {
 		// But it is plain IP address (with /32 mask in mind)
 		addr.IPNet = &net.IPNet{
 			IP:   net.ParseIP(ip),
-			Mask: net.CIDRMask(32, 32), // TODO: IPv6 support
+			Mask: net.CIDRMask(32, 32), // TODO: IPv6 support ?
 		}
 	} else {
 		// parseCIDR sets only network address (masked) into IPNet

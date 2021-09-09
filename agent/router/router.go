@@ -41,12 +41,12 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 		r.routes[ip].Add(newroute)
 
 		if r.routes[ip].Count() > 1 {
-			// TODO: I think I should inform controller about route errors
 			logger.Debug().Println(pkgName, "skip existing SDN route to", ip)
 			continue
 		}
 
 		if netcfg.RouteExists(ip) {
+			// TODO: I think I should inform controller about route errors
 			logger.Warning().Println(pkgName, "skip existing route to ", ip)
 			errIPs = append(errIPs, ip)
 			continue
