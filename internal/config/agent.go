@@ -100,3 +100,7 @@ func initControllerType() {
 		cache.controllerType = ControllerSaas
 	}
 }
+
+func initCleanupOnExit() {
+	cache.cleanupOnExit, _ = strconv.ParseBool(os.Getenv("SYNTROPY_CLEANUP_ON_EXIT"))
+}

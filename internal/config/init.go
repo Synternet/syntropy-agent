@@ -29,6 +29,7 @@ func Init() {
 
 	initLocation()
 	initContainer()
+	initCleanupOnExit()
 }
 
 func Close() {

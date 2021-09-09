@@ -38,6 +38,7 @@ type configCache struct {
 	debugLevel    int
 	location      Location
 	containerType string
+	cleanupOnExit bool
 }
 
 var cache configCache

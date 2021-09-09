@@ -84,3 +84,7 @@ func GetLocationLatitude() float32 {
 func GetLocationLongitude() float32 {
 	return cache.location.Longitude
 }
+
+func CleanupOnExit() bool {
+	return cache.cleanupOnExit
+}
