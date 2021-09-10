@@ -26,7 +26,7 @@ type peerDataEntry struct {
 	IP         string  `json:"internal_ip"`
 	Handshake  string  `json:"last_handshake,omitempty"`
 	KeepAllive int     `json:"keep_alive_interval"`
-	Latency    int     `json:"latency_ms,omitempty"`
+	Latency    float32 `json:"latency_ms,omitempty"`
 	Loss       float32 `json:"packet_loss"`
 	Status     string  `json:"status"`
 	Reason     string  `json:"status_reason,omitempty"`

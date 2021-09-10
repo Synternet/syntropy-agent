@@ -14,12 +14,12 @@ const pkgName = "PeerMonitor. "
 type peerInfo struct {
 	endpoint string
 	gateway  string
-	latency  int
+	latency  float32
 	loss     float32
 }
 
 func (node *peerInfo) String() string {
-	return fmt.Sprintf("%s via %s loss: %f latency %d", node.endpoint, node.gateway, node.loss, node.latency)
+	return fmt.Sprintf("%s via %s loss: %f latency %f", node.endpoint, node.gateway, node.loss, node.latency)
 }
 
 type PeerMonitor struct {

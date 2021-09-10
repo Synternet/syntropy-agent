@@ -9,7 +9,7 @@ import (
 
 type PingResult struct {
 	IP      string  `json:"ip"`
-	Latency int     `json:"latency_ms,omitempty"`
+	Latency float32 `json:"latency_ms,omitempty"`
 	Loss    float32 `json:"packet_loss"`
 }
 
@@ -108,7 +108,7 @@ func (p *MultiPing) pingHost(h string, c chan PingResult) {
 	if res.Loss == 1 {
 		res.Latency = 0
 	} else {
-		res.Latency = int(stats.AvgRtt.Milliseconds())
+		res.Latency = float32(stats.AvgRtt.Microseconds()) / 1000
 	}
 	// `res` added to channel from defer
 }
