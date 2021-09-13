@@ -3,6 +3,9 @@
 package wireguard
 
 import (
+	"strings"
+
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
@@ -44,7 +47,17 @@ func (wg *Wireguard) PeersMonitor() multiping.PingClient {
 //}
 
 func (wg *Wireguard) Devices() ([]*wgtypes.Device, error) {
-	return wg.wgc.Devices()
+	rv := []*wgtypes.Device{}
+	devs, err := wg.wgc.Devices()
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devs {
+		if strings.HasPrefix(d.Name, env.InterfaceNamePrefix) {
+			rv = append(rv, d)
+		}
+	}
+	return rv, nil
 }
 
 func (wg *Wireguard) Close() error {
