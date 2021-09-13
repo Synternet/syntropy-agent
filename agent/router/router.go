@@ -3,7 +3,6 @@ package router
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -23,6 +22,9 @@ import (
  **/
 
 func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error {
+	r.Lock()
+	defer r.Unlock()
+
 	errIPs := []string{}
 
 	for _, ip := range dest {
@@ -69,6 +71,9 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 }
 
 func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
+	r.Lock()
+	defer r.Unlock()
+
 	errIPs := []string{}
 	for _, ip := range ips {
 		if r.routes[ip] != nil {
@@ -93,6 +98,8 @@ func (r *Router) Reroute(newgw string) error {
 	errIPs := []string{}
 	resp := newRespMsg()
 
+	r.Lock()
+
 	for dest, routes := range r.routes {
 		if routes.Count() <= 1 {
 			// cannot do smart routing on only one route list
@@ -106,7 +113,7 @@ func (r *Router) Reroute(newgw string) error {
 				}
 				logger.Info().Printf("%s change route to %s via %s [id:%d]\n", pkgName, dest, newgw, route.id)
 				logger.Info().Println(pkgName, idx, routes.active)
-				log.Println(routes)
+				routes.Print()
 				routes.active = idx
 				err := netcfg.RouteReplace(route.ifname, newgw, dest)
 				if err == nil {
@@ -122,6 +129,8 @@ func (r *Router) Reroute(newgw string) error {
 			}
 		}
 	}
+
+	r.Unlock()
 
 	// TODO thing about sending errors to controller
 	if len(resp.Data) > 0 {

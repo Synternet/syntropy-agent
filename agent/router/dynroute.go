@@ -6,6 +6,7 @@ package router
 import (
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
@@ -40,6 +41,7 @@ func newRespMsg() *peersActiveDataMessage {
 }
 
 type Router struct {
+	sync.Mutex
 	slock.AtomicServiceLock
 	writer      io.Writer
 	peerMonitor *peermon.PeerMonitor
