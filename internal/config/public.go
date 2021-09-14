@@ -10,7 +10,9 @@ const (
 )
 
 const (
-	ContainerTypeDocker = "docker"
+	ContainerTypeDocker     = "docker"
+	ContainerTypeKubernetes = "kubernetes"
+	ContainerTypeHost       = "host"
 )
 
 func GetControllerType() int {
