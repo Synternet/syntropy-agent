@@ -7,6 +7,9 @@ SUBVERSION := ""
 else
 SUBVERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f2-4)
 endif
+ifeq ($(VERSION), "")
+VERSION := "0.0.0"
+endif
 
 all: agent-go
 
