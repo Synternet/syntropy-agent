@@ -9,6 +9,8 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/hostnetsrv"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/kubernet"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
@@ -86,13 +88,30 @@ func NewAgent(contype int) (*Agent, error) {
 	agent.addService(agent.router)
 
 	var dockerHelper docker.DockerHelper
-	if config.GetContainerType() == config.ContainerTypeDocker {
+
+	switch config.GetContainerType() {
+	case config.ContainerTypeDocker:
 		dockerWatch := docker.New(agent.controller)
 		agent.addService(dockerWatch)
 		dockerHelper = dockerWatch
-	} else {
+
+	case config.ContainerTypeKubernetes:
+		agent.addService(kubernet.New(agent.controller))
 		dockerHelper = &docker.DockerNull{}
+
+	case config.ContainerTypeHost:
+		agent.addService(hostnetsrv.New(agent.controller))
+		dockerHelper = &docker.DockerNull{}
+
+	default:
+		logger.Warning().Println(pkgName, "unknown container type: ", config.GetContainerType())
 	}
+
+	if config.GetContainerType() != config.ContainerTypeDocker {
+		dockerHelper = &docker.DockerNull{}
+		netfilter.Disable()
+	}
+
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 
 	netfilter.CreateChain()
