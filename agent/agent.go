@@ -97,11 +97,9 @@ func NewAgent(contype int) (*Agent, error) {
 
 	case config.ContainerTypeKubernetes:
 		agent.addService(kubernet.New(agent.controller))
-		dockerHelper = &docker.DockerNull{}
 
 	case config.ContainerTypeHost:
 		agent.addService(hostnetsrv.New(agent.controller))
-		dockerHelper = &docker.DockerNull{}
 
 	default:
 		logger.Warning().Println(pkgName, "unknown container type: ", config.GetContainerType())
