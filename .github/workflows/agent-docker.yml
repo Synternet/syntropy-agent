@@ -37,6 +37,8 @@ jobs:
           tags: |
             syntropynet/agent:go-sandbox
           platforms: linux/amd64
+          build-args: |
+             GIT_REF=${{ github.ref }}
       -
         name: DEVEL Build and push
         if: contains(github.ref, 'refs/tags/')
