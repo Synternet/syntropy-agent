@@ -3,8 +3,7 @@ RUN apk update && apk add --no-cache --update git build-base
 WORKDIR /app
 COPY . ./
 ARG AGENT_VERSION
-ENV AGENT_VERSION=$AGENT_VERSION
-RUN AGENT_VERSION=$AGENT_VERSION make
+RUN make
 
 FROM alpine
 
