@@ -1,15 +1,25 @@
 # SyntropyAgent-GO build script
 
-FULL_VERSION = $(shell git describe --tags --dirty --candidates=1)
-VERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f1)
-ifeq ($(FULL_VERSION), $(VERSION))
+# Get git discribe. Github actions will pass this variable.
+# If it is missing - then this is a local build and get it from git.
+ifeq ($(AGENT_VERSION), "")
+AGENT_VERSION = $(shell git describe --tags --dirty --candidates=1)
+endif
+# Split git describe into version and subversion
+# 1.0.4-14-g2414721 ==> version = 1.0.4, subversion = 14-g2414721
+# NOTE: do not include `v` in versioning
+VERSION = $(shell echo $(AGENT_VERSION) | cut -d "-" -f1)
+ifeq ($(AGENT_VERSION), $(VERSION))
 SUBVERSION := ""
 else
-SUBVERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f2-4)
+SUBVERSION = $(shell echo $(AGENT_VERSION) | cut -d "-" -f2-4)
 endif
+
+# Sanity fallback (should not happen in normal environment)
 ifeq ($(VERSION), "")
 VERSION := "0.0.0"
 endif
+
 
 all: agent-go
 
