@@ -2,24 +2,23 @@
 
 # Get git discribe. Github actions will pass this variable.
 # If it is missing - then this is a local build and get it from git.
-ifneq ($(AGENT_VERSION), ${EMPTY:Q})
+# AGENT_VERSION is set by Docker build
 FULL_VERSION := $(AGENT_VERSION)
-else 
+ifeq ($(FULL_VERSION), ${EMPTY:Q})
 FULL_VERSION := $(shell git describe --tags --dirty --candidates=1)
 endif
 # Split git describe into version and subversion
 # 1.0.4-14-g2414721 ==> version = 1.0.4, subversion = 14-g2414721
 # NOTE: do not include `v` in versioning
 VERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f1)
-ifeq ($(FULL_VERSION), $(VERSION))
-SUBVERSION := ""
-else
 SUBVERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f2-4)
+ifeq ($(FULL_VERSION), $(VERSION))
+SUBVERSION:=
 endif
 
 # Sanity fallback (should not happen in normal environment)
 ifeq ($(VERSION), ${EMPTY:Q})
-VERSION := "0.0.0"
+VERSION:=0.0.0
 endif
 
 
