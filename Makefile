@@ -13,8 +13,8 @@ all: agent-go
 agent-go:
 	@echo Building $`sag$`  $(VERSION) - $(SUBVERSION)
 	go build -o sag -ldflags \
-		"-X github.com/SyntropyNet/syntropy-agent-go/config.version=$(VERSION) \
-		-X github.com/SyntropyNet/syntropy-agent-go/config.subversion=$(SUBVERSION) -s -w" \
+		"-X github.com/SyntropyNet/syntropy-agent-go/internal/config.version=$(VERSION) \
+		-X github.com/SyntropyNet/syntropy-agent-go/internal/config.subversion=$(SUBVERSION) -s -w" \
 		./cmd/main.go
 
 test:
