@@ -2,8 +2,8 @@ FROM golang:alpine as builder
 RUN apk update && apk add --no-cache --update git build-base
 WORKDIR /app
 COPY . ./
-ARG GIT_REF
-RUN echo $GIT_REF
+ARG AGENT_VERSION
+RUN echo $AGENT_VERSION
 RUN make
 
 FROM alpine
