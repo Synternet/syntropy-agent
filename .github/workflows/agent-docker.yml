@@ -41,7 +41,7 @@ jobs:
             syntropynet/agent:go-sandbox
           platforms: linux/amd64
           build-args: |
-             AGENT_VERSION=${{ steps.ghd.outputs.tag }}"
+             AGENT_VERSION=${{ steps.ghd.outputs.tag }}
       -
         name: DEVEL Build and push
         if: contains(github.ref, 'refs/tags/')
