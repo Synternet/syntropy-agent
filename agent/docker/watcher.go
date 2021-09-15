@@ -20,7 +20,7 @@ const (
 	cmdContainer = "CONTAINER_INFO"
 )
 
-type DockerWatcher struct {
+type dockerWatcher struct {
 	slock.AtomicServiceLock
 	writer io.Writer
 	cli    *client.Client
@@ -28,24 +28,28 @@ type DockerWatcher struct {
 	cancel context.CancelFunc
 }
 
-func New(w io.Writer) *DockerWatcher {
+func New(w io.Writer) DockerService {
 	var err error
-	dw := DockerWatcher{writer: w}
+	dw := dockerWatcher{writer: w}
+	dw.ctx, dw.cancel = context.WithCancel(context.Background())
 	dw.cli, err = client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		// TODO: If docker is not running at startup - add period check if docker service has started
+	if err == nil {
+		dw.cli.NegotiateAPIVersion(dw.ctx)
+		logger.Info().Println(pkgName, "negotiated API version", dw.cli.ClientVersion())
+	} else {
 		logger.Error().Println(pkgName, "Docker client: ", err)
-		dw.cli = nil // Just to make sure
+		logger.Warning().Println(pkgName, "fallback to null Docker client")
+		return &DockerNull{}
 	}
 
 	return &dw
 }
 
-func (obj *DockerWatcher) Name() string {
+func (obj *dockerWatcher) Name() string {
 	return cmdNetwork + " / " + cmdContainer
 }
 
-func (obj *DockerWatcher) run() {
+func (obj *dockerWatcher) run() {
 	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
 
 	for {
@@ -102,26 +106,22 @@ func (obj *DockerWatcher) run() {
 	}
 }
 
-func (obj *DockerWatcher) Start() (err error) {
+func (obj *dockerWatcher) Start() (err error) {
 	if !obj.TryLock() {
 		return fmt.Errorf("docker watcher already running")
 	}
-
-	obj.ctx, obj.cancel = context.WithCancel(context.Background())
 
 	go obj.run()
 
 	return nil
 }
 
-func (obj *DockerWatcher) Stop() error {
+func (obj *dockerWatcher) Stop() error {
 	if !obj.TryUnlock() {
 		return fmt.Errorf("docker watcher is not running")
 	}
 
 	obj.cancel()
-
-	obj.cli = nil
 
 	return nil
 }

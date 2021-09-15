@@ -8,16 +8,8 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
-type DockerHelper interface {
-	NetworkInfo() []DockerNetworkInfoEntry
-	ContainerInfo() []DockerContainerInfoEntry
-}
-
-func (obj *DockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
+func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 	networkInfo := []DockerNetworkInfoEntry{}
-	if obj.cli == nil {
-		return networkInfo
-	}
 
 	networks, err := obj.cli.NetworkList(context.Background(), types.NetworkListOptions{})
 	if err != nil {
@@ -58,11 +50,8 @@ func addPort(arr *[]int, port uint16) {
 	*arr = append(*arr, int(port))
 }
 
-func (obj *DockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
+func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 	containerInfo := []DockerContainerInfoEntry{}
-	if obj.cli == nil {
-		return containerInfo
-	}
 
 	containers, err := obj.cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
