@@ -1,4 +1,4 @@
-package kubernet
+package kubernetes
 
 import "github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 
@@ -14,6 +14,6 @@ type kubernetesServiceEntry struct {
 }
 
 type ports struct {
-	TCP []int `json:"tcp"`
-	UDP []int `json:"udp"`
+	TCP []int32 `json:"tcp"`
+	UDP []int32 `json:"udp"`
 }

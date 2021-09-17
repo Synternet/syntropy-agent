@@ -10,7 +10,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/hostnetsrv"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/kubernet"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
@@ -96,7 +96,7 @@ func NewAgent(contype int) (*Agent, error) {
 		dockerHelper = dockerWatch
 
 	case config.ContainerTypeKubernetes:
-		agent.addService(kubernet.New(agent.controller))
+		agent.addService(kubernetes.New(agent.controller))
 
 	case config.ContainerTypeHost:
 		agent.addService(hostnetsrv.New(agent.controller))
