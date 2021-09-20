@@ -14,6 +14,6 @@ type hostServiceEntry struct {
 }
 
 type ports struct {
-	TCP []int `json:"tcp"`
-	UDP []int `json:"udp"`
+	TCP []int32 `json:"tcp"`
+	UDP []int32 `json:"udp"`
 }
