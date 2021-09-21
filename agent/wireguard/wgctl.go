@@ -147,7 +147,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	}
 	err = netfilter.ForwardEnable(ii.IfName)
 	if err != nil {
-		return fmt.Errorf("netfilter forward enable error: %s", err.Error())
+		logger.Error().Println(pkgName, "netfilter forward enable", ii.IfName, err)
 	}
 
 	dev, err := wg.wgc.Device(ii.IfName)
@@ -213,11 +213,11 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 			ID:      pi.ConnectionID,
 		}, pi.AllowedIPs...)
 	if err != nil {
-		return fmt.Errorf("route add failed: %s", err.Error())
+		logger.Error().Println(pkgName, "route add", err)
 	}
 	err = netfilter.RulesAdd(pi.AllowedIPs...)
 	if err != nil {
-		return fmt.Errorf("iptables rules add failed: %s", err.Error())
+		logger.Error().Println(pkgName, "iptables rules add", err)
 	}
 
 	return nil
@@ -247,11 +247,11 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 
 	err = wg.router.RouteDel(&common.SdnNetworkPath{Ifname: pi.IfName}, pi.AllowedIPs...)
 	if err != nil {
-		return fmt.Errorf("route add failed: %s", err.Error())
+		logger.Error().Println(pkgName, "route del", err)
 	}
 	err = netfilter.RulesDel(pi.AllowedIPs...)
 	if err != nil {
-		return fmt.Errorf("iptables rules del failed: %s", err.Error())
+		logger.Error().Println(pkgName, "iptables rules del", err)
 	}
 
 	return nil
