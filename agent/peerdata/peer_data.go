@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
@@ -48,13 +48,13 @@ type peerBwData struct {
 type wgPeerWatcher struct {
 	slock.AtomicServiceLock
 	writer  io.Writer
-	wg      *wireguard.Wireguard
+	wg      *swireguard.Wireguard
 	ticker  *time.Ticker
 	timeout time.Duration
 	stop    chan bool
 }
 
-func New(writer io.Writer, wgctl *wireguard.Wireguard) common.Service {
+func New(writer io.Writer, wgctl *swireguard.Wireguard) common.Service {
 	return &wgPeerWatcher{
 		wg:      wgctl,
 		writer:  writer,

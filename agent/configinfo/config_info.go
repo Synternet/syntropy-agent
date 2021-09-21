@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
@@ -22,7 +22,7 @@ const (
 
 type configInfo struct {
 	writer io.Writer
-	wg     *wireguard.Wireguard
+	wg     *swireguard.Wireguard
 }
 
 type configInfoNetworkEntry struct {
@@ -31,7 +31,7 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port"`
 }
 
-func New(w io.Writer, wg *wireguard.Wireguard) common.Command {
+func New(w io.Writer, wg *swireguard.Wireguard) common.Command {
 	return &configInfo{
 		writer: w,
 		wg:     wg,
@@ -42,14 +42,14 @@ func (obj *configInfo) Name() string {
 	return cmd
 }
 
-func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) *wireguard.InterfaceInfo {
+func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) *swireguard.InterfaceInfo {
 	var ifname string
 	if strings.HasPrefix(ifaceName, env.InterfaceNamePrefix) {
 		ifname = ifaceName
 	} else {
 		ifname = env.InterfaceNamePrefix + ifaceName
 	}
-	return &wireguard.InterfaceInfo{
+	return &swireguard.InterfaceInfo{
 		IfName:    ifname,
 		IP:        e.IP,
 		PublicKey: e.PublicKey,
@@ -57,14 +57,14 @@ func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) *wireguard.In
 	}
 }
 
-func (e *configInfoVpnEntry) asPeerInfo() *wireguard.PeerInfo {
+func (e *configInfoVpnEntry) asPeerInfo() *swireguard.PeerInfo {
 	var ifname string
 	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
 		ifname = e.Args.IfName
 	} else {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
-	return &wireguard.PeerInfo{
+	return &swireguard.PeerInfo{
 		IfName:       ifname,
 		IP:           e.Args.EndpointIPv4,
 		PublicKey:    e.Args.PublicKey,
@@ -75,14 +75,14 @@ func (e *configInfoVpnEntry) asPeerInfo() *wireguard.PeerInfo {
 	}
 }
 
-func (e *configInfoVpnEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
+func (e *configInfoVpnEntry) asInterfaceInfo() *swireguard.InterfaceInfo {
 	var ifname string
 	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
 		ifname = e.Args.IfName
 	} else {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
-	return &wireguard.InterfaceInfo{
+	return &swireguard.InterfaceInfo{
 		IfName:    ifname,
 		IP:        e.Args.InternalIP,
 		PublicKey: e.Args.PublicKey,
@@ -147,7 +147,7 @@ type updateAgentConfigMsg struct {
 	Data []updateAgentConfigEntry `json:"data"`
 }
 
-func (msg *updateAgentConfigMsg) AddInterface(data *wireguard.InterfaceInfo) {
+func (msg *updateAgentConfigMsg) AddInterface(data *swireguard.InterfaceInfo) {
 	e := updateAgentConfigEntry{Function: "create_interface"}
 	e.Data.IfName = data.IfName
 	e.Data.IP = data.IP
@@ -157,7 +157,7 @@ func (msg *updateAgentConfigMsg) AddInterface(data *wireguard.InterfaceInfo) {
 	msg.Data = append(msg.Data, e)
 }
 
-func (msg *updateAgentConfigMsg) AddPeer(data *wireguard.PeerInfo) {
+func (msg *updateAgentConfigMsg) AddPeer(data *swireguard.PeerInfo) {
 	e := updateAgentConfigEntry{Function: "add_peer"}
 	e.Data.IfName = data.IfName
 	e.Data.IP = data.IP

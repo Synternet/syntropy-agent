@@ -1,6 +1,11 @@
-// wireguard package is a helper for agent to configure
-// (kernel or userspace) wireguard tunnels
-package wireguard
+/**
+swireguard package is wireguard on steroids
+super-wireguard, smart-wireguar, Syntropy-wireguard
+This package is a helper for agent to configure
+(kernel or userspace) wireguard tunnels
+It also collects peer status, monitores latency, and other releated work
+**/
+package swireguard
 
 import (
 	"strings"

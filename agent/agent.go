@@ -13,8 +13,8 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
@@ -36,7 +36,7 @@ type Agent struct {
 	state.StateMachine
 	controller common.Controller
 
-	wg     *wireguard.Wireguard
+	wg     *swireguard.Wireguard
 	pm     *peermon.PeerMonitor
 	router *router.Router
 
@@ -71,7 +71,7 @@ func NewAgent(contype int) (*Agent, error) {
 
 	agent.pm = &peermon.PeerMonitor{}
 	agent.router = router.New(agent.controller, agent.pm)
-	agent.wg, err = wireguard.New(agent.router, agent.pm)
+	agent.wg, err = swireguard.New(agent.router, agent.pm)
 	if err != nil {
 		return nil, err
 	}
@@ -189,5 +189,5 @@ func (agent *Agent) Stop() {
 	// (e.g. app crash or agent upgrades should keep the network working)
 	// But is a good practice to cleanup after yourself.
 	// Also makes devel&debug stage easier
-	wireguard.DestroyAllInterfaces()
+	swireguard.DestroyAllInterfaces()
 }

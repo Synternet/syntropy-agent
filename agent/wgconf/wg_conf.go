@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/wireguard"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
@@ -19,7 +19,7 @@ const (
 
 type wgConf struct {
 	writer io.Writer
-	wg     *wireguard.Wireguard
+	wg     *swireguard.Wireguard
 }
 
 type allowedIPsInfoEntry struct {
@@ -55,7 +55,7 @@ type wgConfEntry struct {
 	}
 }
 
-func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
+func (e *wgConfEntry) asPeerInfo() *swireguard.PeerInfo {
 	var ifname string
 	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
 		ifname = e.Args.IfName
@@ -63,7 +63,7 @@ func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 
-	return &wireguard.PeerInfo{
+	return &swireguard.PeerInfo{
 		IfName:       ifname,
 		IP:           e.Args.EndpointIPv4,
 		PublicKey:    e.Args.PublicKey,
@@ -74,7 +74,7 @@ func (e *wgConfEntry) asPeerInfo() *wireguard.PeerInfo {
 	}
 }
 
-func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
+func (e *wgConfEntry) asInterfaceInfo() *swireguard.InterfaceInfo {
 	var ifname string
 	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
 		ifname = e.Args.IfName
@@ -82,7 +82,7 @@ func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 
-	return &wireguard.InterfaceInfo{
+	return &swireguard.InterfaceInfo{
 		IfName:    ifname,
 		IP:        e.Args.IP,
 		PublicKey: e.Args.PublicKey,
@@ -95,7 +95,7 @@ type wgConfMsg struct {
 	Data []wgConfEntry `json:"data"`
 }
 
-func (msg *wgConfMsg) AddPeerCmd(cmd string, pi *wireguard.PeerInfo) {
+func (msg *wgConfMsg) AddPeerCmd(cmd string, pi *swireguard.PeerInfo) {
 	e := wgConfEntry{
 		Function: cmd,
 	}
@@ -109,7 +109,7 @@ func (msg *wgConfMsg) AddPeerCmd(cmd string, pi *wireguard.PeerInfo) {
 	msg.Data = append(msg.Data, e)
 }
 
-func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *wireguard.InterfaceInfo) {
+func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *swireguard.InterfaceInfo) {
 	e := wgConfEntry{
 		Function: cmd,
 	}
@@ -121,7 +121,7 @@ func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *wireguard.InterfaceInfo) {
 	msg.Data = append(msg.Data, e)
 }
 
-func New(w io.Writer, wg *wireguard.Wireguard) common.Command {
+func New(w io.Writer, wg *swireguard.Wireguard) common.Command {
 	return &wgConf{
 		writer: w,
 		wg:     wg,
