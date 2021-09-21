@@ -3,13 +3,10 @@ package wireguard
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
-	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
@@ -22,42 +19,7 @@ type InterfaceInfo struct {
 	Port      int
 }
 
-type PeerInfo struct {
-	IfName       string
-	PublicKey    string
-	ConnectionID int
-	IP           string
-	Port         int
-	Gateway      string
-	AllowedIPs   []string
-}
-
-func (pi *PeerInfo) AsPeerConfig() (*wgtypes.PeerConfig, error) {
-	var err error
-	pcfg := &wgtypes.PeerConfig{}
-
-	pcfg.PublicKey, err = wgtypes.ParseKey(pi.PublicKey)
-	if err != nil {
-		return nil, err
-	}
-	if pi.IP != "" && pi.Port > 0 {
-		pcfg.Endpoint = &net.UDPAddr{
-			IP:   net.ParseIP(pi.IP),
-			Port: pi.Port,
-		}
-	}
-
-	for _, e := range pi.AllowedIPs {
-		// I need only network address here, no need to "patch" parseCidr's result
-		_, netip, err := net.ParseCIDR(e)
-		if err == nil && netip != nil {
-			pcfg.AllowedIPs = append(pcfg.AllowedIPs, *netip)
-		}
-	}
-
-	return pcfg, nil
-}
-
+// TODO this helper function should be removed in future
 func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
 	privateFileName := config.AgentConfigDir + "/privatekey-" + ifname
 
@@ -90,7 +52,7 @@ func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
 	return key, nil
 }
 
-func (wg *Wireguard) InterfaceExist(ifname string) bool {
+func (wg *Wireguard) interfaceExist(ifname string) bool {
 	wgdevs, err := wg.wgc.Devices()
 	if err != nil {
 		logger.Error().Println(pkgName, "Failed listing wireguard devices: ", err)
@@ -109,7 +71,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("invalid parameters to CreateInterface")
 	}
 
-	if wg.InterfaceExist(ii.IfName) {
+	if wg.interfaceExist(ii.IfName) {
 		logger.Debug().Println(pkgName, "Do not (re)creating existing interface ", ii.IfName)
 		return nil
 	}
@@ -167,92 +129,10 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("invalid parameters to RemoveInterface")
 	}
 
-	if !wg.InterfaceExist(ii.IfName) {
+	if !wg.interfaceExist(ii.IfName) {
 		logger.Warning().Println(pkgName, "Cannot remove non-existing interface ", ii.IfName)
 		return nil
 	}
 
 	return deleteInterface(ii.IfName)
-}
-
-func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
-	if pi == nil {
-		return fmt.Errorf("invalid parameters to AddPeer")
-	}
-
-	if !wg.InterfaceExist(pi.IfName) {
-		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
-	}
-
-	wgconf := wgtypes.Config{}
-	pcfg, err := pi.AsPeerConfig()
-	if err != nil {
-		return err
-	}
-	peerKeepAliveDuration := 15 * time.Second
-	pcfg.PersistentKeepaliveInterval = &peerKeepAliveDuration
-	wgconf.Peers = append(wgconf.Peers, *pcfg)
-
-	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
-	if err != nil {
-		return fmt.Errorf("configure interface failed: %s", err.Error())
-	}
-
-	// TODO: check and cleanup old obsolete rules
-	if len(pcfg.AllowedIPs) > 0 {
-		// NOTE: pi and pcfg actually are same data, but different format.
-		// I am using IP from pcfg, since pi has CIDR notation,
-		// and pcfg already parsed the data
-		wg.peerMonitor.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
-	}
-
-	err = wg.router.RouteAdd(
-		&common.SdnNetworkPath{
-			Ifname:  pi.IfName,
-			Gateway: pi.Gateway,
-			ID:      pi.ConnectionID,
-		}, pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "route add", err)
-	}
-	err = netfilter.RulesAdd(pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "iptables rules add", err)
-	}
-
-	return nil
-}
-
-func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
-	if pi == nil {
-		return fmt.Errorf("invalid parameters to RemovePeer")
-	}
-
-	if !wg.InterfaceExist(pi.IfName) {
-		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
-	}
-
-	wgconf := wgtypes.Config{}
-	pcfg, err := pi.AsPeerConfig()
-	if err != nil {
-		return err
-	}
-	pcfg.Remove = true
-	wgconf.Peers = append(wgconf.Peers, *pcfg)
-
-	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
-	if err != nil {
-		return fmt.Errorf("configure interface failed: %s", err.Error())
-	}
-
-	err = wg.router.RouteDel(&common.SdnNetworkPath{Ifname: pi.IfName}, pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "route del", err)
-	}
-	err = netfilter.RulesDel(pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "iptables rules del", err)
-	}
-
-	return nil
 }
