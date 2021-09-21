@@ -2,9 +2,7 @@ package wireguard
 
 import (
 	"fmt"
-	"io/ioutil"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
@@ -12,58 +10,22 @@ import (
 )
 
 type InterfaceInfo struct {
-	IfName    string
-	PublicKey string
-	NetworkID int // Seems like this ID is obsolete
-	IP        string
-	Port      int
+	IfName     string
+	PublicKey  string
+	privateKey string
+	IP         string
+	Port       int
+	peers      []*PeerInfo
 }
 
-// TODO this helper function should be removed in future
-func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
-	privateFileName := config.AgentConfigDir + "/privatekey-" + ifname
-
-	// at first try to read cached key
-	strKey, err := ioutil.ReadFile(privateFileName)
-	if err == nil {
-		key, err = wgtypes.ParseKey(string(strKey))
-		if err != nil {
-			// Could not parse key. Most probably cache file is corrupted.
-			// Do not exit and create a new key
-			// (continue to new key generation fallback)
-			logger.Warning().Println(pkgName, "cached key error: ", err)
-		}
-	}
-
-	// Fallback to new key generation
-	if err != nil {
-		key, err = wgtypes.GeneratePrivateKey()
-		if err != nil {
-			return key, fmt.Errorf("generate private key error: %s", err.Error())
-		}
-
-		// cache for future reuse
-		err = ioutil.WriteFile(privateFileName, []byte(key.String()), 0600)
-		if err != nil {
-			logger.Debug().Println(pkgName, "Caching private key error: ", err)
-		}
-	}
-
-	return key, nil
+func (wg *Wireguard) Device(ifname string) *InterfaceInfo {
+	wg.RLock()
+	defer wg.RUnlock()
+	return wg.deviceUnlocked(ifname)
 }
 
 func (wg *Wireguard) interfaceExist(ifname string) bool {
-	wgdevs, err := wg.wgc.Devices()
-	if err != nil {
-		logger.Error().Println(pkgName, "Failed listing wireguard devices: ", err)
-		return false
-	}
-	for _, w := range wgdevs {
-		if ifname == w.Name {
-			return true
-		}
-	}
-	return false
+	return wg.Device(ifname) != nil
 }
 
 func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
@@ -71,7 +33,8 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("invalid parameters to CreateInterface")
 	}
 
-	if wg.interfaceExist(ii.IfName) {
+	if dev := wg.Device(ii.IfName); dev != nil {
+		// TODO add checking, if cached info matches required (compare PublicKeys)
 		logger.Debug().Println(pkgName, "Do not (re)creating existing interface ", ii.IfName)
 		return nil
 	}
@@ -117,6 +80,15 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("reading wg device info error: %s", err.Error())
 	}
 
+	// Add current configuration to cache
+	wg.interfaceCacheAdd(&InterfaceInfo{
+		IfName:     ii.IfName,
+		PublicKey:  dev.PublicKey.String(),
+		privateKey: dev.PrivateKey.String(),
+		Port:       dev.ListenPort,
+		IP:         ii.IP,
+	})
+
 	// Overwrite fields, that might have changed
 	ii.Port = dev.ListenPort
 	ii.PublicKey = dev.PublicKey.String()
@@ -129,10 +101,14 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("invalid parameters to RemoveInterface")
 	}
 
-	if !wg.interfaceExist(ii.IfName) {
+	dev := wg.Device(ii.IfName)
+	if dev == nil {
 		logger.Warning().Println(pkgName, "Cannot remove non-existing interface ", ii.IfName)
 		return nil
 	}
 
+	// Delete from cache
+	wg.interfaceCacheDel(dev)
+	// delete from OS
 	return deleteInterface(ii.IfName)
 }

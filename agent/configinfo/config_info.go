@@ -54,7 +54,6 @@ func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) *wireguard.In
 		IP:        e.IP,
 		PublicKey: e.PublicKey,
 		Port:      e.Port,
-		NetworkID: 0, // There is no NetworkID in configInfoNetworkEntry
 	}
 }
 
@@ -88,7 +87,6 @@ func (e *configInfoVpnEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 		IP:        e.Args.InternalIP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.ListenPort,
-		NetworkID: e.Metadata.NetworkID,
 	}
 }
 

@@ -63,12 +63,17 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	}
 	peerKeepAliveDuration := 15 * time.Second
 	pcfg.PersistentKeepaliveInterval = &peerKeepAliveDuration
+	pcfg.ReplaceAllowedIPs = true
+
 	wgconf.Peers = append(wgconf.Peers, *pcfg)
 
 	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
+
+	// Add peer to cache
+	wg.peerCacheAdd(pi)
 
 	// TODO: check and cleanup old obsolete rules
 	if len(pcfg.AllowedIPs) > 0 {
@@ -103,6 +108,9 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	if !wg.interfaceExist(pi.IfName) {
 		return fmt.Errorf("cannot configure non-existing interface %s", pi.IfName)
 	}
+
+	// Add peer to cache
+	wg.peerCacheDel(pi)
 
 	wgconf := wgtypes.Config{}
 	pcfg, err := pi.asPeerConfig()

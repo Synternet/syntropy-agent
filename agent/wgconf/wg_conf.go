@@ -87,7 +87,6 @@ func (e *wgConfEntry) asInterfaceInfo() *wireguard.InterfaceInfo {
 		IP:        e.Args.IP,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.Port,
-		NetworkID: e.Metadata.NetworkID,
 	}
 }
 

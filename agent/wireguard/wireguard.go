@@ -4,6 +4,7 @@ package wireguard
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
@@ -16,9 +17,14 @@ import (
 const pkgName = "Wireguard. "
 
 type Wireguard struct {
+	sync.RWMutex
 	wgc         *wgctrl.Client
 	peerMonitor *peermon.PeerMonitor
 	router      common.SdnRouter
+	// NOTE: caching wireguard setup may sound like an overhead at first.
+	// But in future we may need to add checking/syncing/recreating delete interfaces
+	// TODO: thing about using sync.Map here and get rid of mutex
+	devices []*InterfaceInfo
 }
 
 // TODO: review and redesign Wireguard implementation.
