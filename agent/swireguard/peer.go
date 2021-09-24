@@ -17,6 +17,8 @@ type PeerInfo struct {
 	IfName       string
 	PublicKey    string
 	ConnectionID int
+	GroupID      int
+	AgentID      int
 	IP           string
 	Port         int
 	Gateway      string
@@ -88,9 +90,10 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 
 	err = wg.router.RouteAdd(
 		&common.SdnNetworkPath{
-			Ifname:  pi.IfName,
-			Gateway: pi.Gateway,
-			ID:      pi.ConnectionID,
+			Ifname:       pi.IfName,
+			Gateway:      pi.Gateway,
+			ConnectionID: pi.ConnectionID,
+			GroupID:      pi.GroupID,
 		}, pi.AllowedIPs...)
 	if err != nil {
 		logger.Error().Println(pkgName, "route add", err)

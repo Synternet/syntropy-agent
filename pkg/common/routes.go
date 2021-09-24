@@ -3,16 +3,15 @@ package common
 import "fmt"
 
 type SdnNetworkPath struct {
-	// Interface, on which setup route
-	Ifname string
-	// Gateway, via which access destination
-	Gateway string
-	// connection/tunnel ID
-	ID int
+	Ifname       string // Interface, on which setup route
+	Gateway      string // Gateway, via which access destination
+	ConnectionID int
+	GroupID      int
 }
 
 func (sr *SdnNetworkPath) String() string {
-	return fmt.Sprintf(" via %s on %s [%d]", sr.Gateway, sr.Ifname, sr.ID)
+	return fmt.Sprintf(" via %s on %s [%d : %d]", sr.Gateway, sr.Ifname,
+		sr.ConnectionID, sr.GroupID)
 }
 
 type SdnRouter interface {

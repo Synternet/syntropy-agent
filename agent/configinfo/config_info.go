@@ -69,6 +69,8 @@ func (e *configInfoVpnEntry) asPeerInfo() *swireguard.PeerInfo {
 		IP:           e.Args.EndpointIPv4,
 		PublicKey:    e.Args.PublicKey,
 		ConnectionID: e.Metadata.ConnectionID,
+		GroupID:      e.Metadata.GroupID,
+		AgentID:      e.Metadata.AgentID,
 		Port:         e.Args.EndpointPort,
 		Gateway:      e.Args.GatewayIPv4,
 		AllowedIPs:   e.Args.AllowedIPs,
@@ -115,6 +117,8 @@ type configInfoVpnEntry struct {
 		DeviceName       string `json:"device_name,omitempty"`
 		DevicePublicIPv4 string `json:"device_public_ipv4,omitempty"`
 		ConnectionID     int    `json:"connection_id,omitempty"`
+		GroupID          int    `json:"connection_group_id,omitempty"`
+		AgentID          int    `json:"agent_id,omitempty"`
 	} `json:"metadata,omitempty"`
 }
 

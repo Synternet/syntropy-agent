@@ -4,9 +4,10 @@ import "github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 
 // The route entry. Destination will be map key
 type routeEntry struct {
-	ifname  string
-	gateway string
-	id      int
+	ifname       string
+	gateway      string
+	connectionID int
+	groupID      int
 }
 
 type routeList struct {
@@ -20,8 +21,8 @@ func (rl *routeList) Print() {
 		if i == rl.active {
 			mark = "*"
 		}
-		logger.Debug().Printf("%s [%d] %s %s (%d)\n",
-			mark, i, r.gateway, r.ifname, r.id)
+		logger.Debug().Printf("%s [%d] %s %s (%d / %d)\n",
+			mark, i, r.gateway, r.ifname, r.connectionID, r.groupID)
 	}
 }
 

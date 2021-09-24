@@ -29,9 +29,10 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 
 	for _, ip := range dest {
 		newroute := &routeEntry{
-			ifname:  netpath.Ifname,
-			gateway: netpath.Gateway,
-			id:      netpath.ID,
+			ifname:       netpath.Ifname,
+			gateway:      netpath.Gateway,
+			connectionID: netpath.ConnectionID,
+			groupID:      netpath.GroupID,
 		}
 		if r.routes[ip] == nil {
 			r.routes[ip] = &routeList{
@@ -111,7 +112,8 @@ func (r *Router) Reroute(newgw string) error {
 				if idx == routes.active {
 					break
 				}
-				logger.Info().Printf("%s change route to %s via %s [id:%d]\n", pkgName, dest, newgw, route.id)
+				logger.Info().Printf("%s change route to %s via %s [id:%d]\n",
+					pkgName, dest, newgw, route.groupID)
 				logger.Info().Println(pkgName, idx, routes.active)
 				routes.Print()
 				routes.active = idx
@@ -119,7 +121,8 @@ func (r *Router) Reroute(newgw string) error {
 				if err == nil {
 					resp.Data = append(resp.Data,
 						peerActiveDataEntry{
-							ConnectionID: route.id,
+							ConnectionID: route.connectionID,
+							GroupID:      route.groupID,
 							Timestamp:    time.Now().Format(env.TimeFormat),
 						})
 				} else {
