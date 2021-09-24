@@ -8,6 +8,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
@@ -30,6 +31,10 @@ type peerDataEntry struct {
 	Loss       float32 `json:"packet_loss"`
 	Status     string  `json:"status"`
 	Reason     string  `json:"status_reason,omitempty"`
+	RxBytes    int64   `json:"rx_bytes"`
+	TxBytes    int64   `json:"tx_bytes"`
+	RxSpeed    float32 `json:"rx_speed_mbps"`
+	TxSpeed    float32 `json:"tx_speed_mbps"`
 }
 
 type ifaceBwEntry struct {
@@ -105,14 +110,18 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 
 func (obj *wgPeerWatcher) execute() error {
 	wg := obj.wg
+	logger.Info().Println(pkgName, "execute")
+
+	// Update swireguard cached peers statistics
+	wg.PeerStatsUpdate()
+
+	logger.Info().Println(pkgName, "peers stats updated")
+
 	resp := peerBwData{}
 	resp.ID = env.MessageDefaultID
 	resp.MsgType = cmd
 
-	wgdevs, err := wg.Devices()
-	if err != nil {
-		return err
-	}
+	wgdevs := wg.Devices()
 
 	count := len(wgdevs)
 
@@ -135,37 +144,43 @@ func (obj *wgPeerWatcher) execute() error {
 
 	for _, wgdev := range wgdevs {
 		ifaceData := ifaceBwEntry{
-			IfName:     wgdev.Name,
-			PublicKey:  wgdev.PublicKey.String(),
+			IfName:     wgdev.IfName,
+			PublicKey:  wgdev.PublicKey,
 			Peers:      []*peerDataEntry{},
 			channel:    c,
 			pingClient: wg.PeersMonitor(),
 		}
 		ping := multiping.New(&ifaceData)
 
-		for _, p := range wgdev.Peers {
+		for _, p := range wgdev.Peers() {
 			if len(p.AllowedIPs) == 0 {
 				continue
 			}
 			ip := p.AllowedIPs[0]
-			ping.AddHost(ip.IP.String())
+			ping.AddHost(ip)
 
 			var lastHandshake string
-			if !p.LastHandshakeTime.IsZero() {
-				lastHandshake = p.LastHandshakeTime.Format(env.TimeFormat)
+			if !p.Stats.LastHandshake.IsZero() {
+				lastHandshake = p.Stats.LastHandshake.Format(env.TimeFormat)
 			}
 
 			ifaceData.Peers = append(ifaceData.Peers,
 				&peerDataEntry{
-					PublicKey:  p.PublicKey.String(),
-					IP:         ip.IP.String(),
+					PublicKey:  p.PublicKey,
+					IP:         ip,
 					Handshake:  lastHandshake,
-					KeepAllive: int(p.PersistentKeepaliveInterval.Seconds()),
+					KeepAllive: int(swireguard.KeepAlliveDuration.Seconds()),
+					RxBytes:    p.Stats.RxBytes,
+					TxBytes:    p.Stats.TxBytes,
+					RxSpeed:    p.Stats.RxSpeedMbps,
+					TxSpeed:    p.Stats.TxSpeedMbps,
 				})
 		}
 
 		ping.Ping()
 	}
+
+	logger.Info().Println(pkgName, "wait for pingcomplete")
 
 	for count > 0 {
 		entry := <-c
@@ -176,14 +191,22 @@ func (obj *wgPeerWatcher) execute() error {
 	}
 	close(c)
 
+	logger.Info().Println(pkgName, "count", len(resp.Data))
+
 	if len(resp.Data) > 0 {
+		logger.Info().Println(pkgName, "resp.Now")
+
 		resp.Now()
 		raw, err := json.Marshal(resp)
 		if err != nil {
+			logger.Error().Println(pkgName, "json", err)
 			return err
 		}
+		logger.Info().Println(pkgName, "obj.Write")
+
 		obj.writer.Write(raw)
 	}
+	logger.Info().Println(pkgName, "done")
 
 	return nil
 }

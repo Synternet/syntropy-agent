@@ -18,6 +18,12 @@ type InterfaceInfo struct {
 	peers      []*PeerInfo
 }
 
+func (ii *InterfaceInfo) Peers() []*PeerInfo {
+	rv := []*PeerInfo{}
+	rv = append(rv, ii.peers...)
+	return rv
+}
+
 func (wg *Wireguard) Device(ifname string) *InterfaceInfo {
 	wg.RLock()
 	defer wg.RUnlock()

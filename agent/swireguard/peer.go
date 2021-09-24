@@ -11,6 +11,8 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+const KeepAlliveDuration = 15 * time.Second
+
 type PeerInfo struct {
 	IfName       string
 	PublicKey    string
@@ -19,6 +21,7 @@ type PeerInfo struct {
 	Port         int
 	Gateway      string
 	AllowedIPs   []string
+	Stats        PeerStats
 }
 
 func (pi *PeerInfo) asPeerConfig() (*wgtypes.PeerConfig, error) {
@@ -61,7 +64,7 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	if err != nil {
 		return err
 	}
-	peerKeepAliveDuration := 15 * time.Second
+	peerKeepAliveDuration := KeepAlliveDuration
 	pcfg.PersistentKeepaliveInterval = &peerKeepAliveDuration
 	pcfg.ReplaceAllowedIPs = true
 

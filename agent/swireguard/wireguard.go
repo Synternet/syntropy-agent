@@ -8,15 +8,12 @@ It also collects peer status, monitores latency, and other releated work
 package swireguard
 
 import (
-	"strings"
 	"sync"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 const pkgName = "Wireguard. "
@@ -57,18 +54,12 @@ func (wg *Wireguard) PeersMonitor() multiping.PingClient {
 //	return wg.router
 //}
 
-func (wg *Wireguard) Devices() ([]*wgtypes.Device, error) {
-	rv := []*wgtypes.Device{}
-	devs, err := wg.wgc.Devices()
-	if err != nil {
-		return nil, err
-	}
-	for _, d := range devs {
-		if strings.HasPrefix(d.Name, env.InterfaceNamePrefix) {
-			rv = append(rv, d)
-		}
-	}
-	return rv, nil
+func (wg *Wireguard) Devices() []*InterfaceInfo {
+	rv := []*InterfaceInfo{}
+
+	rv = append(rv, wg.devices...)
+
+	return rv
 }
 
 func (wg *Wireguard) Close() error {
