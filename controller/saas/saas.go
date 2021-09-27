@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 
@@ -26,6 +27,7 @@ const (
 type CloudController struct {
 	sync.Mutex // this lock makes Write thread safe
 	state.StateMachine
+	log     *logger.Logger
 	ws      *websocket.Conn
 	url     string
 	token   string
@@ -42,6 +44,16 @@ func NewController() (common.Controller, error) {
 		version: config.GetVersion(),
 	}
 	cc.SetState(stopped)
+	// This part is a bit tricky
+	// Now logger is setup to log only locally.
+	// When controller will be created - controller logger will also be added to loggers list
+	// If I use logger from controller package -
+	// it will result in recursive logging and will deadlock on Write function
+	// Thus I make a local copy of loggers, without controller Writer
+	// And I can log controller errors locally
+	// (if controller errors happen - then most probably I may not log them back to controller,
+	//  so at least have some errors logged locally)
+	cc.log = logger.New(config.GetDebugLevel(), os.Stdout)
 
 	err := cc.connect()
 	if err != nil {
@@ -73,11 +85,11 @@ func (cc *CloudController) connect() (err error) {
 			if resp != nil {
 				httpCode = resp.StatusCode
 			}
-			logger.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
+			cc.log.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
 			// Add some randomised sleep, so if controller was down
 			// the reconnecting agents could DDOS the controller
 			delay := time.Duration(rand.Int31n(10000)) * time.Millisecond
-			logger.Warning().Println(pkgName, "Reconnecting in ", delay)
+			cc.log.Warning().Println(pkgName, "Reconnecting in ", delay)
 			time.Sleep(delay)
 			continue
 		}
@@ -103,14 +115,14 @@ func (cc *CloudController) Recv() ([]byte, error) {
 		case err == nil:
 			// successfully received message
 			if msgtype != websocket.TextMessage {
-				logger.Warning().Println(pkgName, "Received unexpected message type ", msgtype)
+				cc.log.Warning().Println(pkgName, "Received unexpected message type ", msgtype)
 			}
-			logger.Debug().Println(pkgName, "Received: ", string(msg))
+			cc.log.Debug().Println(pkgName, "Received: ", string(msg))
 			return msg, nil
 
 		case cc.GetState() == stopped:
 			// The connection is closed - simulate EOF
-			logger.Debug().Println(pkgName, "EOF")
+			cc.log.Debug().Println(pkgName, "EOF")
 			return nil, io.EOF
 		}
 
@@ -122,7 +134,7 @@ func (cc *CloudController) Recv() ([]byte, error) {
 
 func (cc *CloudController) Write(b []byte) (n int, err error) {
 	if controllerState := cc.GetState(); controllerState != running {
-		logger.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
+		cc.log.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
 		return 0, fmt.Errorf("controller is not running (%d)", controllerState)
 	}
 
@@ -134,10 +146,10 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 	cc.Lock()
 	defer cc.Unlock()
 
-	logger.Debug().Println(pkgName, "Sending: ", string(b))
+	cc.log.Debug().Println(pkgName, "Sending: ", string(b))
 	err = cc.ws.WriteMessage(websocket.TextMessage, b)
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		cc.log.Error().Println(pkgName, "Send error: ", err)
 	} else {
 		n = len(b)
 	}
@@ -156,7 +168,7 @@ func (cc *CloudController) Close() error {
 	// waiting (with timeout) for the server to close the connection.
 	err := cc.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	if err != nil {
-		logger.Error().Println(pkgName, "connection close error: ", err)
+		cc.log.Error().Println(pkgName, "connection close error: ", err)
 	}
 
 	cc.ws.Close()

@@ -3,7 +3,6 @@ package logger
 import (
 	"io"
 	"log"
-	"os"
 )
 
 const (
@@ -14,12 +13,8 @@ const (
 	logLevelsCount // actually not a real log level, but simplifies some code
 )
 
-var loggers [logLevelsCount]*log.Logger
-var controllerWriter io.Writer
-
-func init() {
-	// Start with error+warning level to stderr
-	Setup(WarningLevel, os.Stderr)
+type Logger struct {
+	loggers [logLevelsCount]*log.Logger
 }
 
 func logLevelString(level int) string {
@@ -52,14 +47,26 @@ func logLevelPrefix(level int) string {
 	}
 }
 
-func SetControllerWriter(w io.Writer) {
-	controllerWriter = w
-}
+func New(level int, writers ...io.Writer) *Logger {
+	var controllerWriter io.Writer
+	w := []io.Writer{}
+	for _, onewriter := range writers {
+		// Controller logger is a special case, because the logger itself must know its log level
+		// So here I am doing a smart logger type setection and sorting them
+		// to generic loggers slice and a controller logger (should be only one instance in variadic parameters)
+		switch typewr := onewriter.(type) {
+		case *controllerLogger:
+			controllerWriter = typewr
+		default:
+			w = append(w, typewr)
+		}
+	}
 
-func Setup(level int, w ...io.Writer) {
 	nullWriter := &nullWritter{}
+	lgr := Logger{}
 
 	makeWriters := func(wrs ...io.Writer) io.Writer {
+
 		var writers io.Writer
 
 		switch {
@@ -78,30 +85,31 @@ func Setup(level int, w ...io.Writer) {
 	for i := 0; i < logLevelsCount; i++ {
 		if i >= level {
 			if controllerWriter != nil {
-				loggers[i] = log.New(makeWriters(append(w,
+				lgr.loggers[i] = log.New(makeWriters(append(w,
 					&controllerLogger{wr: controllerWriter, level: logLevelString(i)})...),
 					logLevelPrefix(i), log.Ldate|log.Ltime)
 			} else {
-				loggers[i] = log.New(makeWriters(w...), logLevelPrefix(i), log.Ldate|log.Ltime)
+				lgr.loggers[i] = log.New(makeWriters(w...), logLevelPrefix(i), log.Ldate|log.Ltime)
 			}
 		} else {
-			loggers[i] = log.New(nullWriter, "", log.Ldate|log.Ltime)
+			lgr.loggers[i] = log.New(nullWriter, "", log.Ldate|log.Ltime)
 		}
 	}
+	return &lgr
 }
 
-func Debug() *log.Logger {
-	return loggers[DebugLevel]
+func (lgr *Logger) Debug() *log.Logger {
+	return lgr.loggers[DebugLevel]
 }
 
-func Info() *log.Logger {
-	return loggers[InfoLevel]
+func (lgr *Logger) Info() *log.Logger {
+	return lgr.loggers[InfoLevel]
 }
 
-func Warning() *log.Logger {
-	return loggers[WarningLevel]
+func (lgr *Logger) Warning() *log.Logger {
+	return lgr.loggers[WarningLevel]
 }
 
-func Error() *log.Logger {
-	return loggers[ErrorLevel]
+func (lgr *Logger) Error() *log.Logger {
+	return lgr.loggers[ErrorLevel]
 }
