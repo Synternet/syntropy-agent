@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
@@ -23,6 +24,7 @@ const (
 type configInfo struct {
 	writer io.Writer
 	wg     *swireguard.Wireguard
+	router common.SdnRouter
 }
 
 type configInfoNetworkEntry struct {
@@ -31,10 +33,11 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port"`
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard) common.Command {
+func New(w io.Writer, wg *swireguard.Wireguard, r common.SdnRouter) common.Command {
 	return &configInfo{
 		writer: w,
 		wg:     wg,
+		router: r,
 	}
 }
 
@@ -185,6 +188,8 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 	resp.MsgType = cmdResp
 
+	routeStatus := routestatus.NewMsg()
+
 	// Dump pretty idented json to temp file
 	// TODO: Do I need this file ??
 	prettyJson, err := json.MarshalIndent(req, "", "    ")
@@ -243,6 +248,17 @@ func (obj *configInfo) Exec(raw []byte) error {
 		switch cmd.Function {
 		case "add_peer":
 			err = obj.wg.AddPeer(cmd.asPeerInfo())
+			if err == nil {
+				res := obj.router.RouteAdd(
+					&common.SdnNetworkPath{
+						Ifname:       cmd.Args.IfName,
+						Gateway:      cmd.Args.GatewayIPv4,
+						ConnectionID: cmd.Metadata.ConnectionID,
+						GroupID:      cmd.Metadata.GroupID,
+					}, cmd.Args.AllowedIPs...)
+				routeStatus.Add(res)
+			}
+			
 		case "create_interface":
 			wgi = cmd.asInterfaceInfo()
 			err = obj.wg.CreateInterface(wgi)
@@ -282,6 +298,8 @@ func (obj *configInfo) Exec(raw []byte) error {
 		return err
 	}
 	obj.writer.Write(arr)
+
+	routeStatus.Send(obj.writer)
 
 	return nil
 }

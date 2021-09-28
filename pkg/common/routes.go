@@ -14,7 +14,12 @@ func (sr *SdnNetworkPath) String() string {
 		sr.ConnectionID, sr.GroupID)
 }
 
+type RouteResult struct {
+	IP    string
+	Error error
+}
+
 type SdnRouter interface {
-	RouteAdd(route *SdnNetworkPath, dest ...string) error
-	RouteDel(route *SdnNetworkPath, dest ...string) error
+	RouteAdd(route *SdnNetworkPath, dest ...string) []RouteResult
+	RouteDel(route *SdnNetworkPath, dest ...string) []RouteResult
 }

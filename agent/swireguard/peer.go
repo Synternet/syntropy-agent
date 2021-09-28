@@ -7,7 +7,6 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -88,16 +87,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 		wg.peerMonitor.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
 	}
 
-	err = wg.router.RouteAdd(
-		&common.SdnNetworkPath{
-			Ifname:       pi.IfName,
-			Gateway:      pi.Gateway,
-			ConnectionID: pi.ConnectionID,
-			GroupID:      pi.GroupID,
-		}, pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "route add", err)
-	}
 	err = netfilter.RulesAdd(pi.AllowedIPs...)
 	if err != nil {
 		logger.Error().Println(pkgName, "iptables rules add", err)
@@ -131,10 +120,6 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
-	err = wg.router.RouteDel(&common.SdnNetworkPath{Ifname: pi.IfName}, pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "route del", err)
-	}
 	err = netfilter.RulesDel(pi.AllowedIPs...)
 	if err != nil {
 		logger.Error().Println(pkgName, "iptables rules del", err)

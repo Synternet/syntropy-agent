@@ -69,14 +69,14 @@ func NewAgent(contype int) (*Agent, error) {
 
 	agent.pm = &peermon.PeerMonitor{}
 	agent.router = router.New(agent.controller, agent.pm)
-	agent.wg, err = swireguard.New(agent.router, agent.pm)
+	agent.wg, err = swireguard.New(agent.pm)
 	if err != nil {
 		return nil, err
 	}
 
 	agent.commands = make(map[string]common.Command)
-	agent.addCommand(configinfo.New(agent.controller, agent.wg))
-	agent.addCommand(wgconf.New(agent.controller, agent.wg))
+	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router))
+	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
 
 	autoping := autoping.New(agent.controller)
 	agent.addCommand(autoping)

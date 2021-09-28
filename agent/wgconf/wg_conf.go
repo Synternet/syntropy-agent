@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
@@ -20,6 +21,7 @@ const (
 type wgConf struct {
 	writer io.Writer
 	wg     *swireguard.Wireguard
+	router common.SdnRouter
 }
 
 type allowedIPsInfoEntry struct {
@@ -125,10 +127,11 @@ func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *swireguard.InterfaceInfo) 
 	msg.Data = append(msg.Data, e)
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard) common.Command {
+func New(w io.Writer, wg *swireguard.Wireguard, r common.SdnRouter) common.Command {
 	return &wgConf{
 		writer: w,
 		wg:     wg,
+		router: r,
 	}
 }
 
@@ -144,6 +147,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return err
 	}
 
+	routeStatus := routestatus.NewMsg()
 	resp := wgConfMsg{
 		MessageHeader: req.MessageHeader,
 		Data:          []wgConfEntry{},
@@ -154,8 +158,24 @@ func (obj *wgConf) Exec(raw []byte) error {
 			wgp := cmd.asPeerInfo()
 			err = obj.wg.AddPeer(wgp)
 			resp.AddPeerCmd(cmd.Function, wgp)
+			if err == nil {
+				res := obj.router.RouteAdd(
+					&common.SdnNetworkPath{
+						Ifname:       cmd.Args.IfName,
+						Gateway:      cmd.Args.GatewayIPv4,
+						ConnectionID: cmd.Metadata.ConnectionID,
+						GroupID:      cmd.Metadata.GroupID,
+					}, cmd.Args.AllowedIPs...)
+				routeStatus.Add(res)
+			}
 
 		case "remove_peer":
+			// Nobody is interested in RouteDel results
+			obj.router.RouteDel(
+				&common.SdnNetworkPath{
+					Ifname: cmd.Args.IfName,
+				}, cmd.Args.AllowedIPs...)
+
 			wgp := cmd.asPeerInfo()
 			err = obj.wg.RemovePeer(wgp)
 			resp.AddPeerCmd(cmd.Function, wgp)
@@ -201,5 +221,8 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return err
 	}
 	obj.writer.Write(arr)
+
+	routeStatus.Send(obj.writer)
+
 	return nil
 }
