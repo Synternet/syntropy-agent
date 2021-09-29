@@ -110,12 +110,9 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 
 func (obj *wgPeerWatcher) execute() error {
 	wg := obj.wg
-	logger.Info().Println(pkgName, "execute")
 
 	// Update swireguard cached peers statistics
 	wg.PeerStatsUpdate()
-
-	logger.Info().Println(pkgName, "peers stats updated")
 
 	resp := peerBwData{}
 	resp.ID = env.MessageDefaultID
@@ -180,8 +177,6 @@ func (obj *wgPeerWatcher) execute() error {
 		ping.Ping()
 	}
 
-	logger.Info().Println(pkgName, "wait for pingcomplete")
-
 	for count > 0 {
 		entry := <-c
 		if len(entry.Peers) > 0 {
@@ -191,22 +186,17 @@ func (obj *wgPeerWatcher) execute() error {
 	}
 	close(c)
 
-	logger.Info().Println(pkgName, "count", len(resp.Data))
-
 	if len(resp.Data) > 0 {
-		logger.Info().Println(pkgName, "resp.Now")
-
 		resp.Now()
 		raw, err := json.Marshal(resp)
 		if err != nil {
 			logger.Error().Println(pkgName, "json", err)
 			return err
 		}
-		logger.Info().Println(pkgName, "obj.Write")
 
+		logger.Debug().Println(pkgName, "Sending: ", string(raw))
 		obj.writer.Write(raw)
 	}
-	logger.Info().Println(pkgName, "done")
 
 	return nil
 }

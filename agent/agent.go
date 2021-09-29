@@ -129,7 +129,7 @@ func (agent *Agent) messageHandler() {
 
 		if err == io.EOF {
 			// Stop runner if the reader is done
-			logger.Info().Println(pkgName, "EOF. Closing message handler.")
+			logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
 			return
 		} else if err != nil {
 			// Simple errors are handled inside controller. This should be only fatal errors

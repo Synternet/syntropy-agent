@@ -46,6 +46,8 @@ func NewController() (common.Controller, error) {
 	cc.SetState(stopped)
 
 	// Create new local logger for controller events
+	// I am using configured DebugLevel here, but actually
+	// only Errors and Warnings should be logged on this logger.
 	cc.log = logger.New(nil, config.GetDebugLevel(), os.Stdout)
 
 	err := cc.connect()
@@ -110,12 +112,10 @@ func (cc *CloudController) Recv() ([]byte, error) {
 			if msgtype != websocket.TextMessage {
 				cc.log.Warning().Println(pkgName, "Received unexpected message type ", msgtype)
 			}
-			cc.log.Debug().Println(pkgName, "Received: ", string(msg))
 			return msg, nil
 
 		case cc.GetState() == stopped:
 			// The connection is closed - simulate EOF
-			cc.log.Debug().Println(pkgName, "EOF")
 			return nil, io.EOF
 		}
 
@@ -139,7 +139,6 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 	cc.Lock()
 	defer cc.Unlock()
 
-	cc.log.Debug().Println(pkgName, "Sending: ", string(b))
 	err = cc.ws.WriteMessage(websocket.TextMessage, b)
 	if err != nil {
 		cc.log.Error().Println(pkgName, "Send error: ", err)

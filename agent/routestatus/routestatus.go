@@ -55,6 +55,7 @@ func (msg *wgRouteStatusMsg) Send(w io.Writer) error {
 		return err
 	}
 
+	logger.Debug().Println(pkgName, "Sending: ", string(raw))
 	_, err = w.Write(raw)
 	return err
 }

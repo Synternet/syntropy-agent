@@ -288,6 +288,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		}
 		// Tricky here: I have errors, and I send them back to controller
 		// But they are not internal application errors
+		logger.Debug().Println(pkgName, "Sending: ", string(arr))
 		obj.writer.Write(arr)
 		return nil
 	}
@@ -297,6 +298,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	if err != nil {
 		return err
 	}
+	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.writer.Write(arr)
 
 	routeStatus.Send(obj.writer)

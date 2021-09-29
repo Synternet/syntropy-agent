@@ -83,6 +83,7 @@ func (obj *autoPing) PingProcess(pr []multiping.PingResult) {
 			return
 		}
 
+		logger.Debug().Println(pkgName, "Sending: ", string(arr))
 		obj.writer.Write(arr)
 	}
 }
