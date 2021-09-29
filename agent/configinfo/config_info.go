@@ -256,9 +256,9 @@ func (obj *configInfo) Exec(raw []byte) error {
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
 					}, cmd.Args.AllowedIPs...)
-				routeStatus.Add(res)
+				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, res)
 			}
-			
+
 		case "create_interface":
 			wgi = cmd.asInterfaceInfo()
 			err = obj.wg.CreateInterface(wgi)

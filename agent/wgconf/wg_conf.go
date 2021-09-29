@@ -166,7 +166,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
 					}, cmd.Args.AllowedIPs...)
-				routeStatus.Add(res)
+				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, res)
 			}
 
 		case "remove_peer":

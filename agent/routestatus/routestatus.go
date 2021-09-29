@@ -22,14 +22,20 @@ type wgRouteEntry struct {
 	Message string `json:"msg,omitempty"`
 }
 
-type wgRouteMsg struct {
-	common.MessageHeader
-	Data []wgRouteEntry `json:"data"`
+type wgConnectionEntry struct {
+	ConnectionID int            `json:"connection_id,omitempty"`
+	GroupID      int            `json:"connection_group_id,omitempty"`
+	RouteStatus  []wgRouteEntry `json:"statuses"`
 }
 
-func NewMsg() *wgRouteMsg {
-	msg := wgRouteMsg{
-		Data: []wgRouteEntry{},
+type wgRouteStatusMsg struct {
+	common.MessageHeader
+	Data []wgConnectionEntry `json:"data"`
+}
+
+func NewMsg() *wgRouteStatusMsg {
+	msg := wgRouteStatusMsg{
+		Data: []wgConnectionEntry{},
 	}
 	msg.MsgType = cmd
 	msg.ID = env.MessageDefaultID
@@ -37,7 +43,7 @@ func NewMsg() *wgRouteMsg {
 	return &msg
 }
 
-func (msg *wgRouteMsg) Send(w io.Writer) error {
+func (msg *wgRouteStatusMsg) Send(w io.Writer) error {
 	if len(msg.Data) == 0 {
 		return nil
 	}
@@ -53,7 +59,13 @@ func (msg *wgRouteMsg) Send(w io.Writer) error {
 	return err
 }
 
-func (msg *wgRouteMsg) Add(rrs []common.RouteResult) error {
+func (msg *wgRouteStatusMsg) Add(connID, grID int, rrs []common.RouteResult) error {
+	ce := wgConnectionEntry{
+		ConnectionID: connID,
+		GroupID:      grID,
+		RouteStatus:  []wgRouteEntry{},
+	}
+
 	for _, rres := range rrs {
 		re := wgRouteEntry{
 			IP: rres.IP,
@@ -64,8 +76,9 @@ func (msg *wgRouteMsg) Add(rrs []common.RouteResult) error {
 			re.Status = statusError
 			re.Message = rres.Error.Error()
 		}
-		msg.Data = append(msg.Data, re)
+		ce.RouteStatus = append(ce.RouteStatus, re)
 	}
+	msg.Data = append(msg.Data, ce)
 
 	return nil
 }
