@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
@@ -73,7 +73,7 @@ func (obj *autoPing) PingProcess(pr []multiping.PingResult) {
 	var resp autoPingResponce
 	resp.Data.Pings = pr
 	resp.MsgType = cmd
-	resp.ID = "ID." + strconv.FormatInt(time.Now().Unix(), 10)
+	resp.ID = env.MessageDefaultID
 	resp.Now()
 
 	if len(resp.Data.Pings) > 0 {
