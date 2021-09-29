@@ -83,7 +83,6 @@ func (obj *autoPing) PingProcess(pr []multiping.PingResult) {
 			return
 		}
 
-		logger.Debug().Println(pkgName, "Sending: ", string(arr))
 		obj.writer.Write(arr)
 	}
 }
@@ -98,7 +97,7 @@ func (obj *autoPing) Start() error {
 
 func (obj *autoPing) Stop() error {
 	if !obj.TryUnlock() {
-		return fmt.Errorf("%s is not runnint", pkgName)
+		return fmt.Errorf("%s is not running", pkgName)
 	}
 
 	obj.ping.Stop()
