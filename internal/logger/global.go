@@ -10,11 +10,11 @@ var global *Logger
 
 func init() {
 	// Start with error+warning level to stderr
-	SetupGlobalLoger(WarningLevel, os.Stderr)
+	SetupGlobalLoger(nil, WarningLevel, os.Stderr)
 }
 
-func SetupGlobalLoger(level int, writers ...io.Writer) {
-	global = New(level, writers...)
+func SetupGlobalLoger(controller io.Writer, level int, writers ...io.Writer) {
+	global = New(controller, level, writers...)
 }
 
 func Debug() *log.Logger {

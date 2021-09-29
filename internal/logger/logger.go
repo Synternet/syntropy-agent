@@ -1,3 +1,21 @@
+// logger - log level and controller logging package.
+
+// This part is a bit tricky
+// Actually in application there will be 2 loggers:
+//  * a Full-featured global loger
+//  * a controller logger.
+// Global logger logs to stdout (can be configured log to file easily)
+// Global logger sends log to remote controller as well.
+// And here is why I need a separate controller logger:
+// If I use global logger from controller package -
+// it may result in recursive logging - a logging from controller package would also
+// be sent to remote controller logging.
+// And we get a recursion here, which  will deadlock on Write function
+// Thus I will create a separate local logger instance, without remote controller Writer.
+// And I can log controller package errors locally
+// (if controller package errors happen - then most probably I may not log them back to
+// remote controller, so at least have some errors logged locally).
+
 package logger
 
 import (
@@ -47,21 +65,13 @@ func logLevelPrefix(level int) string {
 	}
 }
 
-func New(level int, writers ...io.Writer) *Logger {
-	var controllerWriter io.Writer
-	w := []io.Writer{}
-	for _, onewriter := range writers {
-		// Controller logger is a special case, because the logger itself must know its log level
-		// So here I am doing a smart logger type setection and sorting them
-		// to generic loggers slice and a controller logger (should be only one instance in variadic parameters)
-		switch typewr := onewriter.(type) {
-		case *controllerLogger:
-			controllerWriter = typewr
-		default:
-			w = append(w, typewr)
-		}
-	}
-
+// Yes this API is not perfect.
+// But I made controller Writer the first parameter
+// So this way compiler will catch parameter errors at compile time.
+// In a perfect world it would be best to detect controllerWriter inside
+// But this leads to circular dependencies.
+// Hope to find a more pretty solution one day.
+func New(controller io.Writer, level int, w ...io.Writer) *Logger {
 	nullWriter := &nullWritter{}
 	lgr := Logger{}
 
@@ -84,9 +94,9 @@ func New(level int, writers ...io.Writer) *Logger {
 
 	for i := 0; i < logLevelsCount; i++ {
 		if i >= level {
-			if controllerWriter != nil {
+			if controller != nil {
 				lgr.loggers[i] = log.New(makeWriters(append(w,
-					&controllerLogger{wr: controllerWriter, level: logLevelString(i)})...),
+					&controllerLogger{wr: controller, level: logLevelString(i)})...),
 					logLevelPrefix(i), log.Ldate|log.Ltime)
 			} else {
 				lgr.loggers[i] = log.New(makeWriters(w...), logLevelPrefix(i), log.Ldate|log.Ltime)

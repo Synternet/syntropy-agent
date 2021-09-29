@@ -65,7 +65,7 @@ func NewAgent(contype int) (*Agent, error) {
 	}
 
 	// Config loggers early - to get more info logged
-	logger.SetupGlobalLoger(config.GetDebugLevel(), agent.controller, os.Stdout)
+	logger.SetupGlobalLoger(agent.controller, config.GetDebugLevel(), os.Stdout)
 
 	agent.pm = &peermon.PeerMonitor{}
 	agent.router = router.New(agent.controller, agent.pm)

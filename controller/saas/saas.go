@@ -44,16 +44,9 @@ func NewController() (common.Controller, error) {
 		version: config.GetVersion(),
 	}
 	cc.SetState(stopped)
-	// This part is a bit tricky
-	// Now logger is setup to log only locally.
-	// When controller will be created - controller logger will also be added to loggers list
-	// If I use logger from controller package -
-	// it will result in recursive logging and will deadlock on Write function
-	// Thus I make a local copy of loggers, without controller Writer
-	// And I can log controller errors locally
-	// (if controller errors happen - then most probably I may not log them back to controller,
-	//  so at least have some errors logged locally)
-	cc.log = logger.New(config.GetDebugLevel(), os.Stdout)
+
+	// Create new local logger for controller events
+	cc.log = logger.New(nil, config.GetDebugLevel(), os.Stdout)
 
 	err := cc.connect()
 	if err != nil {
