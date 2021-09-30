@@ -8,12 +8,7 @@ type hostNetworkServicesMessage struct {
 }
 
 type hostServiceEntry struct {
-	Name    string   `json:"agent_network_iface"`
-	Subnets []string `json:"agent_network_subnets"`
-	Ports   ports    `json:"agent_network_ports"`
-}
-
-type ports struct {
-	TCP []int32 `json:"tcp"`
-	UDP []int32 `json:"udp"`
+	Name    string       `json:"agent_network_iface"`
+	Subnets []string     `json:"agent_network_subnets"`
+	Ports   common.Ports `json:"agent_network_ports"`
 }

@@ -19,14 +19,11 @@ type DockerNetworkInfoEntry struct {
 }
 
 type DockerContainerInfoEntry struct {
-	ID       string   `json:"agent_container_id"`
-	Name     string   `json:"agent_container_name"`
-	State    string   `json:"agent_container_state"`
-	Uptime   string   `json:"agent_container_uptime"`
-	Networks []string `json:"agent_container_networks"`
-	IPs      []string `json:"agent_container_ips"`
-	Ports    struct {
-		TCP []int `json:"tcp"`
-		UDP []int `json:"udp"`
-	} `json:"agent_container_ports"`
+	ID       string       `json:"agent_container_id"`
+	Name     string       `json:"agent_container_name"`
+	State    string       `json:"agent_container_state"`
+	Uptime   string       `json:"agent_container_uptime"`
+	Networks []string     `json:"agent_container_networks"`
+	IPs      []string     `json:"agent_container_ips"`
+	Ports    common.Ports `json:"agent_container_ports"`
 }

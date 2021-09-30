@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -72,9 +73,9 @@ func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServic
 	for {
 		entry := hostServiceEntry{
 			Subnets: []string{},
-			Ports: ports{
-				TCP: []int32{},
-				UDP: []int32{},
+			Ports: common.Ports{
+				TCP: []uint16{},
+				UDP: []uint16{},
 			},
 		}
 		line, err := rd.ReadString('\n')
@@ -104,9 +105,9 @@ func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServic
 			port = 0
 		}
 		if portTcp {
-			entry.Ports.TCP = append(entry.Ports.TCP, int32(port))
+			entry.Ports.TCP = append(entry.Ports.TCP, uint16(port))
 		} else {
-			entry.Ports.UDP = append(entry.Ports.UDP, int32(port))
+			entry.Ports.UDP = append(entry.Ports.UDP, uint16(port))
 		}
 
 		// TODO: add interface name (is it really an interface name, not a service name?)

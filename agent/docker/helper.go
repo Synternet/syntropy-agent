@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/docker/docker/api/types"
 )
 
@@ -38,16 +39,16 @@ func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 	return networkInfo
 }
 
-func addPort(arr *[]int, port uint16) {
+func addPort(arr *[]uint16, port uint16) {
 	if port == 0 {
 		return
 	}
 	for _, p := range *arr {
-		if p == int(port) {
+		if p == port {
 			return
 		}
 	}
-	*arr = append(*arr, int(port))
+	*arr = append(*arr, port)
 }
 
 func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
@@ -90,9 +91,11 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 			Uptime:   c.Status,
 			Networks: []string{},
 			IPs:      []string{},
+			Ports: common.Ports{
+				TCP: []uint16{},
+				UDP: []uint16{},
+			},
 		}
-		ci.Ports.TCP = []int{}
-		ci.Ports.UDP = []int{}
 
 		for name, net := range c.NetworkSettings.Networks {
 			if net.IPAddress != "" {

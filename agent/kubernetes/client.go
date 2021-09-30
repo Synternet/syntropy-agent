@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -54,9 +55,9 @@ func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 		e := kubernetesServiceEntry{
 			Name:    srv.Name,
 			Subnets: make([]string, len(srv.Spec.ClusterIPs)),
-			Ports: ports{
-				TCP: []int32{},
-				UDP: []int32{},
+			Ports: common.Ports{
+				TCP: []uint16{},
+				UDP: []uint16{},
 			},
 		}
 		copy(e.Subnets, srv.Spec.ClusterIPs)
@@ -64,9 +65,9 @@ func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 		for _, port := range srv.Spec.Ports {
 			switch port.Protocol {
 			case portTCP:
-				e.Ports.TCP = append(e.Ports.TCP, port.Port)
+				e.Ports.TCP = append(e.Ports.TCP, uint16(port.Port))
 			case portUDP:
-				e.Ports.UDP = append(e.Ports.UDP, port.Port)
+				e.Ports.UDP = append(e.Ports.UDP, uint16(port.Port))
 			}
 		}
 		res = append(res, e)
