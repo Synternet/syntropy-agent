@@ -30,7 +30,7 @@ type configInfo struct {
 type configInfoNetworkEntry struct {
 	IP        string `json:"internal_ip"`
 	PublicKey string `json:"public_key,omitempty"`
-	Port      int    `json:"listen_port"`
+	Port      int    `json:"listen_port,omitempty"`
 }
 
 func New(w io.Writer, wg *swireguard.Wireguard, r common.SdnRouter) common.Command {
@@ -144,8 +144,8 @@ type updateAgentConfigEntry struct {
 	Data     struct {
 		IfName    string `json:"ifname"`
 		PublicKey string `json:"public_key"`
-		IP        string `json:"internal_ip,omitempty"`
-		Port      int    `json:"listen_port,omitempty"`
+		IP        string `json:"internal_ip"`
+		Port      int    `json:"listen_port"`
 	} `json:"data"`
 }
 

@@ -19,22 +19,24 @@ const pkgName = "Peer_Data. "
 
 const (
 	periodInit = time.Second
-	periodRun  = time.Minute
+	periodRun  = time.Second * 10
 )
 
 type peerDataEntry struct {
-	PublicKey  string  `json:"public_key"`
-	IP         string  `json:"internal_ip"`
-	Handshake  string  `json:"last_handshake,omitempty"`
-	KeepAllive int     `json:"keep_alive_interval"`
-	Latency    float32 `json:"latency_ms,omitempty"`
-	Loss       float32 `json:"packet_loss"`
-	Status     string  `json:"status"`
-	Reason     string  `json:"status_reason,omitempty"`
-	RxBytes    int64   `json:"rx_bytes"`
-	TxBytes    int64   `json:"tx_bytes"`
-	RxSpeed    float32 `json:"rx_speed_mbps"`
-	TxSpeed    float32 `json:"tx_speed_mbps"`
+	PublicKey    string  `json:"public_key"`
+	IP           string  `json:"internal_ip"`
+	Handshake    string  `json:"last_handshake,omitempty"`
+	KeepAllive   int     `json:"keep_alive_interval"`
+	Latency      float32 `json:"latency_ms,omitempty"`
+	Loss         float32 `json:"packet_loss"`
+	Status       string  `json:"status"`
+	Reason       string  `json:"status_reason,omitempty"`
+	RxBytes      int64   `json:"rx_bytes"`
+	TxBytes      int64   `json:"tx_bytes"`
+	RxSpeed      float32 `json:"rx_speed_mbps"`
+	TxSpeed      float32 `json:"tx_speed_mbps"`
+	ConnectionID int     `json:"connection_id"`
+	GroupID      int     `json:"connection_group_id"`
 }
 
 type ifaceBwEntry struct {
@@ -163,14 +165,16 @@ func (obj *wgPeerWatcher) execute() error {
 
 			ifaceData.Peers = append(ifaceData.Peers,
 				&peerDataEntry{
-					PublicKey:  p.PublicKey,
-					IP:         ip,
-					Handshake:  lastHandshake,
-					KeepAllive: int(swireguard.KeepAlliveDuration.Seconds()),
-					RxBytes:    p.Stats.RxBytes,
-					TxBytes:    p.Stats.TxBytes,
-					RxSpeed:    p.Stats.RxSpeedMbps,
-					TxSpeed:    p.Stats.TxSpeedMbps,
+					ConnectionID: p.ConnectionID,
+					GroupID:      p.GroupID,
+					PublicKey:    p.PublicKey,
+					IP:           ip,
+					Handshake:    lastHandshake,
+					KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
+					RxBytes:      p.Stats.RxBytes,
+					TxBytes:      p.Stats.TxBytes,
+					RxSpeed:      p.Stats.RxSpeedMbps,
+					TxSpeed:      p.Stats.TxSpeedMbps,
 				})
 		}
 

@@ -24,6 +24,8 @@ type wgConf struct {
 	router common.SdnRouter
 }
 
+// This struct is not used in Linux agent
+// Is is intendended only for desktop (MacOS and Windows) application
 type allowedIPsInfoEntry struct {
 	ServiceName string `json:"agent_service_name,omitempty"`
 	TcpPorts    []int  `json:"agent_service_tcp_ports,omitempty"`

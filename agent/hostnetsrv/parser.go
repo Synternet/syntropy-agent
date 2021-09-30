@@ -110,7 +110,7 @@ func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServic
 		}
 
 		// TODO: add interface name (is it really an interface name, not a service name?)
-		entry.IfName = "UnknownIfname"
+		entry.Name = "UnknownIfname"
 
 		*services = append(*services, entry)
 	}

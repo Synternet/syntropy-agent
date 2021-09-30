@@ -8,7 +8,7 @@ type hostNetworkServicesMessage struct {
 }
 
 type hostServiceEntry struct {
-	IfName  string   `json:"agent_network_iface"`
+	Name    string   `json:"agent_network_iface"`
 	Subnets []string `json:"agent_network_subnets"`
 	Ports   ports    `json:"agent_network_ports"`
 }

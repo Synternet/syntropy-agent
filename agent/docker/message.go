@@ -13,9 +13,9 @@ type containerInfoMessage struct {
 }
 
 type DockerNetworkInfoEntry struct {
-	ID      string   `json:"agent_network_id"`
-	Name    string   `json:"agent_network_name"`
-	Subnets []string `json:"agent_network_subnets"`
+	ID      string   `json:"docker_network_id"`
+	Name    string   `json:"docker_network_name"`
+	Subnets []string `json:"docker_network_subnets"`
 }
 
 type DockerContainerInfoEntry struct {
