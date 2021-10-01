@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Git describe
         id: ghd
-        uses: proudust/gh-describe@v1
+        uses: proudust/gh-describe@master
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
