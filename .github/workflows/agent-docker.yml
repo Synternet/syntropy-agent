@@ -14,9 +14,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Git describe
-        id: ghd
-        uses: proudust/gh-describe@master
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 1.0.0
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -41,7 +43,7 @@ jobs:
             syntropynet/agent:go-sandbox
           platforms: linux/amd64
           build-args: |
-             AGENT_VERSION=${{ steps.ghd.outputs.tag }}
+             AGENT_VERSION=${{ previoustag }}
       -
         name: DEVEL Build and push
         if: contains(github.ref, 'refs/tags/')
