@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -110,12 +111,37 @@ func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServic
 			entry.Ports.UDP = append(entry.Ports.UDP, uint16(port))
 		}
 
-		// TODO: add interface name (is it really an interface name, not a service name?)
-		entry.Name = "UnknownIfname"
+		entry.Name = findNameFromInode(arr[inode])
 
 		*services = append(*services, entry)
 	}
 
+}
+
+func findNameFromInode(inode string) string {
+	pidsDir, err := filepath.Glob("/proc/[0-9]*/fd/[0-9]*")
+	if err != nil {
+		logger.Error().Println(pkgName, "parsing /proc dir", err)
+		return "Unknown"
+	}
+
+	for _, procFd := range pidsDir {
+		link, err := os.Readlink(procFd)
+		if err != nil {
+			continue
+		}
+		if strings.Contains(link, inode) {
+			fields := strings.Split(procFd, "/") // eg /proc/2256/fd/9
+			exe, err := os.Readlink("/proc/" + fields[2] + "/exe")
+			if err != nil {
+				continue
+			}
+			return strings.Title(filepath.Base(exe))
+		}
+
+	}
+
+	return "Unknown"
 }
 
 func (obj *hostNetServices) execute() {
