@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
@@ -155,7 +156,13 @@ func (obj *wgPeerWatcher) execute() error {
 			if len(p.AllowedIPs) == 0 {
 				continue
 			}
-			ip := p.AllowedIPs[0]
+
+			// AllowedIPs has cidr notation. I need only the address for pinging.
+			// TODO: research usable IP address struct
+			ip := strings.Split(p.AllowedIPs[0], "/")[0]
+			if len(ip) == 0 {
+				continue
+			}
 			ping.AddHost(ip)
 
 			var lastHandshake string
