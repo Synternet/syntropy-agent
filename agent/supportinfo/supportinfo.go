@@ -19,14 +19,14 @@ type supportInfoRequest struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-type SupportInfoEntry struct {
+type supportInfoEntry struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
 type supportInfoResponse struct {
 	common.MessageHeader
-	Data []*SupportInfoEntry `json:"data"`
+	Data []*supportInfoEntry `json:"data"`
 }
 
 type supportInfo struct {
@@ -43,17 +43,17 @@ func (obj *supportInfo) Name() string {
 	return cmd
 }
 
-func GetSupportInfoEntries() []*SupportInfoEntry {
-	entries := make([]*SupportInfoEntry, 2)
+func getSupportInfoEntries() []*supportInfoEntry {
+	var entries []*supportInfoEntry
 	// wg_info msg
 	entries = append(entries,
-		&SupportInfoEntry{
+		&supportInfoEntry{
 			Key:   "wg_info",
 			Value: fetchCmdExecOutput("wg", "show"),
 		})
 	// routes msg
 	entries = append(entries,
-		&SupportInfoEntry{
+		&supportInfoEntry{
 			Key:   "routes",
 			Value: fetchCmdExecOutput("route", "-n"),
 		})
@@ -70,7 +70,7 @@ func (obj *supportInfo) Exec(raw []byte) error {
 		MessageHeader: req.MessageHeader,
 	}
 	resp.MsgType = cmdResp
-	resp.Data = GetSupportInfoEntries()
+	resp.Data = getSupportInfoEntries()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {
@@ -82,8 +82,8 @@ func (obj *supportInfo) Exec(raw []byte) error {
 	return err
 }
 
-func fetchCmdExecOutput(cmdName string, arg string) string {
-	cmd := exec.Command(cmdName, arg)
+func fetchCmdExecOutput(cmdName string, params ...string) string {
+	cmd := exec.Command(cmdName, params...)
 	var outb, errb bytes.Buffer
 	cmd.Stdout = &outb
 	cmd.Stderr = &errb
