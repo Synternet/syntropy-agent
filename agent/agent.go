@@ -13,6 +13,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
@@ -109,6 +110,7 @@ func NewAgent(contype int) (*Agent, error) {
 	}
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
+	agent.addCommand(supportinfo.New(agent.controller))
 
 	netfilter.CreateChain()
 
