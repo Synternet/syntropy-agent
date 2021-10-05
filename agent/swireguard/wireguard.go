@@ -10,6 +10,8 @@ package swireguard
 import (
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -56,5 +58,15 @@ func (wg *Wireguard) Devices() []*InterfaceInfo {
 }
 
 func (wg *Wireguard) Close() error {
+	// If configured - cleanup created interfaces on exit.
+	if config.CleanupOnExit() {
+		logger.Info().Println(pkgName, "deleting wireguard tunnels.")
+		for _, dev := range wg.devices {
+			wg.RemoveInterface(dev)
+		}
+	} else {
+		logger.Info().Println(pkgName, "keeping wireguard tunnels on exit.")
+	}
+
 	return wg.wgc.Close()
 }

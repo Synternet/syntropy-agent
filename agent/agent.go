@@ -182,12 +182,6 @@ func (agent *Agent) Stop() {
 	// Close controler will also terminate agent loop
 	agent.controller.Close()
 
-	// cleanup
+	// Wireguard cleanup on exit
 	agent.wg.Close()
-	// TODO: add configuration
-	// Usualy wireguard interfaces should not be destroyed
-	// (e.g. app crash or agent upgrades should keep the network working)
-	// But is a good practice to cleanup after yourself.
-	// Also makes devel&debug stage easier
-	swireguard.DestroyAllInterfaces()
 }
