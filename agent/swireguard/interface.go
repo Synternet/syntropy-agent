@@ -59,6 +59,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	if osDev == nil {
 		// create interface, if missing
+		logger.Info().Println(pkgName, "create interface", ii.IfName)
 		err = createInterface(ii.IfName)
 		if err != nil {
 			return fmt.Errorf("create wg interface failed: %s", err.Error())
@@ -69,6 +70,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		}
 	} else {
 		// reuse existing interface configuration
+		logger.Info().Println(pkgName, "reusing existing interface", ii.IfName)
 		privKey = osDev.PrivateKey
 		port = osDev.ListenPort
 	}
