@@ -39,30 +39,47 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("invalid parameters to CreateInterface")
 	}
 
-	if dev := wg.Device(ii.IfName); dev != nil {
-		// TODO add checking, if cached info matches required (compare PublicKeys)
-		// !!!! TODO TODO TODO ASAP TODO !!!!!
-		logger.Debug().Println(pkgName, "Do not (re)creating existing interface ", ii.IfName)
-		return nil
+	var err error
+	var privKey wgtypes.Key
+	port := ii.Port
+
+	myDev := wg.Device(ii.IfName)
+	osDev, _ := wg.wgc.Device(ii.IfName)
+
+	if myDev == nil {
+		// Alloc new cached device and add to cache
+		myDev = &InterfaceInfo{
+			IfName:    ii.IfName,
+			PublicKey: ii.PublicKey,
+			Port:      ii.Port,
+			IP:        ii.IP,
+		}
+		wg.interfaceCacheAdd(myDev)
 	}
 
-	err := createInterface(ii.IfName)
-	if err != nil {
-		return fmt.Errorf("create wg interface failed: %s", err.Error())
+	if osDev == nil {
+		// create interface, if missing
+		err = createInterface(ii.IfName)
+		if err != nil {
+			return fmt.Errorf("create wg interface failed: %s", err.Error())
+		}
+		privKey, err = wgtypes.GeneratePrivateKey()
+		if err != nil {
+			return fmt.Errorf("generate private key error: %s", err.Error())
+		}
+	} else {
+		// reuse existing interface configuration
+		privKey = osDev.PrivateKey
+		port = osDev.ListenPort
 	}
 
-	privKey, err := wg.getPrivateKey(ii.IfName)
-	if err != nil {
-		return fmt.Errorf("private key error: %s", err.Error())
-	}
-
-	if ii.Port == 0 {
-		ii.Port = GetFreePort(ii.IfName)
+	if port == 0 {
+		port = GetFreePort(ii.IfName)
 	}
 
 	wgconf := wgtypes.Config{
 		PrivateKey: &privKey,
-		ListenPort: &ii.Port,
+		ListenPort: &port,
 	}
 	err = wg.wgc.ConfigureDevice(ii.IfName, wgconf)
 	if err != nil {
@@ -82,23 +99,19 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		logger.Error().Println(pkgName, "netfilter forward enable", ii.IfName, err)
 	}
 
-	dev, err := wg.wgc.Device(ii.IfName)
+	// Reread OS configuration and update cache for params, that may have changed
+	osDev, err = wg.wgc.Device(ii.IfName)
 	if err != nil {
 		return fmt.Errorf("reading wg device info error: %s", err.Error())
 	}
 
-	// Add current configuration to cache
-	wg.interfaceCacheAdd(&InterfaceInfo{
-		IfName:     ii.IfName,
-		PublicKey:  dev.PublicKey.String(),
-		privateKey: dev.PrivateKey.String(),
-		Port:       dev.ListenPort,
-		IP:         ii.IP,
-	})
+	// Finally updata params, thay may have changed
+	myDev.Port = osDev.ListenPort
+	myDev.privateKey = osDev.PrivateKey.String()
+	myDev.PublicKey = osDev.PublicKey.String()
 
-	// Overwrite fields, that might have changed
-	ii.Port = dev.ListenPort
-	ii.PublicKey = dev.PublicKey.String()
+	ii.Port = myDev.Port
+	ii.PublicKey = myDev.PublicKey
 
 	return nil
 }
