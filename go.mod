@@ -7,7 +7,6 @@ require (
 	github.com/coreos/go-iptables v0.5.0
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/drael/GOnetstat v0.0.0-20201004132414-bf4a88b0bdab
 	github.com/go-ping/ping v0.0.0-20210506233800-ff8be3320020
 	github.com/google/go-cmp v0.5.5
 	github.com/gorilla/mux v1.8.0 // indirect
