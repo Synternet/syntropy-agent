@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
@@ -189,15 +187,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	resp.MsgType = cmdResp
 
 	routeStatus := routestatus.NewMsg()
-
-	// Dump pretty idented json to temp file
-	// TODO: Do I need this file ??
-	prettyJson, err := json.MarshalIndent(req, "", "    ")
-	if err != nil {
-		logger.Error().Println(pkgName, "json.MarshalIdent: ", err)
-		return err
-	}
-	os.WriteFile(config.AgentTempDir+"/config_dump", prettyJson, 0600)
 
 	// create missing interfaces
 	wgi := req.Data.Network.Public.asInterfaceInfo("PUBLIC")

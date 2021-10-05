@@ -32,17 +32,13 @@ func initAgentDirs() {
 		logger.Error().Printf("%s Config dir %s: %s\n", pkgName, AgentConfigDir, err.Error())
 		os.Exit(-2)
 	}
-	err = os.MkdirAll(AgentTempDir, 0700)
-	if err != nil {
-		logger.Error().Printf("%s Temp dir %s: %s\n", pkgName, AgentTempDir, err.Error())
-		os.Exit(-2)
-	}
 
 	// Cleanup previously cached private & public key files
 	// We no longer rely on them
 	// (maybe some day this code should also be removed?)
 	cleanupObsoleteFiles(AgentConfigDir + "/privatekey-*")
 	cleanupObsoleteFiles(AgentConfigDir + "/publickey-*")
+	cleanupObsoleteFiles(AgentTempDir + "/config_dump")
 }
 
 func initAgentName() {
