@@ -31,6 +31,7 @@ func (l *controllerLogger) Write(b []byte) (n int, err error) {
 	}
 
 	msg.Data.Message = string(b)
+	msg.Data.Level = l.level
 
 	raw, err := json.Marshal(msg)
 	if err != nil {
