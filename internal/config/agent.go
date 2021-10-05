@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -13,6 +14,15 @@ const (
 	AgentConfigFile = AgentConfigDir + "/config.yaml"
 	AgentTempDir    = AgentConfigDir + "/tmp"
 )
+
+func cleanupObsoleteFiles(patern string) {
+	fileNames, err := filepath.Glob(patern)
+	if err == nil {
+		for _, f := range fileNames {
+			os.Remove(f)
+		}
+	}
+}
 
 func initAgentDirs() {
 	// MkdirAll is equivalent of mkdir -p, so it will not recreate existing dirs
@@ -28,6 +38,11 @@ func initAgentDirs() {
 		os.Exit(-2)
 	}
 
+	// Cleanup previously cached private & public key files
+	// We no longer rely on them
+	// (maybe some day this code should also be removed?)
+	cleanupObsoleteFiles(AgentConfigDir + "/privatekey-*")
+	cleanupObsoleteFiles(AgentConfigDir + "/publickey-*")
 }
 
 func initAgentName() {

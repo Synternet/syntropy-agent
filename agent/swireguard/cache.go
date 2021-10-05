@@ -1,46 +1,8 @@
 package swireguard
 
 import (
-	"fmt"
-	"io/ioutil"
-
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
-
-// TODO this helper function should be removed in future
-func (wg *Wireguard) getPrivateKey(ifname string) (key wgtypes.Key, err error) {
-	privateFileName := config.AgentConfigDir + "/privatekey-" + ifname
-
-	// at first try to read cached key
-	strKey, err := ioutil.ReadFile(privateFileName)
-	if err == nil {
-		key, err = wgtypes.ParseKey(string(strKey))
-		if err != nil {
-			// Could not parse key. Most probably cache file is corrupted.
-			// Do not exit and create a new key
-			// (continue to new key generation fallback)
-			logger.Warning().Println(pkgName, "cached key error: ", err)
-		}
-	}
-
-	// Fallback to new key generation
-	if err != nil {
-		key, err = wgtypes.GeneratePrivateKey()
-		if err != nil {
-			return key, fmt.Errorf("generate private key error: %s", err.Error())
-		}
-
-		// cache for future reuse
-		err = ioutil.WriteFile(privateFileName, []byte(key.String()), 0600)
-		if err != nil {
-			logger.Debug().Println(pkgName, "Caching private key error: ", err)
-		}
-	}
-
-	return key, nil
-}
 
 func (wg *Wireguard) deviceUnlocked(ifname string) *InterfaceInfo {
 	for _, dev := range wg.devices {
