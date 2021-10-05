@@ -127,3 +127,21 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 
 	return nil
 }
+
+func (wg *Wireguard) applyPeers(ii *InterfaceInfo) error {
+	wgconf := wgtypes.Config{
+		ReplacePeers: true,
+	}
+
+	for _, pi := range ii.peers {
+		pcfg, err := pi.asPeerConfig()
+		if err != nil {
+			logger.Error().Println(pkgName, ii.IfName, "(re)apply peers", err)
+			continue
+		}
+		wgconf.Peers = append(wgconf.Peers, *pcfg)
+	}
+
+	// TODO: what about monitoring and setting/cleaning netfilter rules ?
+	return wg.wgc.ConfigureDevice(ii.IfName, wgconf)
+}

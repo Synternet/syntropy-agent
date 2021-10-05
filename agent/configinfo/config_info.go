@@ -274,6 +274,14 @@ func (obj *configInfo) Exec(raw []byte) error {
 		}
 	}
 
+	// CONFIG_INFO message sends me full configuration
+	// Now sync and merge everything between controller and OS
+	// (mostly for cleanup residual obsolete configuration)
+	err = obj.wg.Apply()
+	if err != nil {
+		logger.Error().Println(pkgName, "wireguard apply", err)
+	}
+
 	if errorCount > 0 {
 		errResp := common.ErrorResponce{
 			MessageHeader: req.MessageHeader,

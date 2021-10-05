@@ -41,6 +41,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	if dev := wg.Device(ii.IfName); dev != nil {
 		// TODO add checking, if cached info matches required (compare PublicKeys)
+		// !!!! TODO TODO TODO ASAP TODO !!!!!
 		logger.Debug().Println(pkgName, "Do not (re)creating existing interface ", ii.IfName)
 		return nil
 	}

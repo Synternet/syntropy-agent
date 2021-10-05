@@ -8,8 +8,6 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// TODO: shouldn't these functions go to the `netcfg` package ?
-
 func deleteInterface(ifname string) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {

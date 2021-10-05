@@ -8,10 +8,11 @@ It also collects peer status, monitores latency, and other releated work
 package swireguard
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"golang.zx2c4.com/wireguard/wgctrl"
@@ -20,6 +21,9 @@ import (
 const pkgName = "Wireguard. "
 
 type Wireguard struct {
+	// If true - remove resident non-syntropy created tunnels
+	RemoveNonSyntropyInterfaces bool
+
 	sync.RWMutex
 	wgc         *wgctrl.Client
 	peerMonitor *peermon.PeerMonitor
@@ -38,8 +42,9 @@ func New(pm *peermon.PeerMonitor) (*Wireguard, error) {
 	}
 
 	wg := Wireguard{
-		wgc:         wgc,
-		peerMonitor: pm,
+		wgc:                         wgc,
+		peerMonitor:                 pm,
+		RemoveNonSyntropyInterfaces: false,
 	}
 
 	return &wg, nil
@@ -60,13 +65,61 @@ func (wg *Wireguard) Devices() []*InterfaceInfo {
 func (wg *Wireguard) Close() error {
 	// If configured - cleanup created interfaces on exit.
 	if config.CleanupOnExit() {
-		logger.Info().Println(pkgName, "deleting wireguard tunnels.")
 		for _, dev := range wg.devices {
 			wg.RemoveInterface(dev)
 		}
-	} else {
-		logger.Info().Println(pkgName, "keeping wireguard tunnels on exit.")
 	}
 
 	return wg.wgc.Close()
+}
+
+// Apply function setups cached WG configuration,
+// and cleans up resident configuration
+func (wg *Wireguard) Apply() error {
+	osDevs, err := wg.wgc.Devices()
+	if err != nil {
+		return err
+	}
+
+	// remove resident devices (created by already terminated agent)
+	for _, osDev := range osDevs {
+		found := false
+		for _, agentDev := range wg.devices {
+			if osDev.Name == agentDev.IfName {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			if strings.HasPrefix(osDev.Name, env.InterfaceNamePrefix) ||
+				wg.RemoveNonSyntropyInterfaces {
+				wg.RemoveInterface(&InterfaceInfo{
+					IfName: osDev.Name,
+				})
+			}
+		}
+	}
+
+	// reread OS setup - it may has changed
+	osDevs, err = wg.wgc.Devices()
+	if err != nil {
+		return err
+	}
+	// create missing devices
+	for _, agentDev := range wg.devices {
+		found := false
+		for _, osDev := range osDevs {
+			if osDev.Name == agentDev.IfName {
+				found = true
+			}
+		}
+
+		if !found {
+			wg.CreateInterface(agentDev)
+			wg.applyPeers(agentDev)
+		}
+	}
+
+	return nil
 }
