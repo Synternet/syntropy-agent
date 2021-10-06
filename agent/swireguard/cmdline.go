@@ -8,7 +8,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func deleteInterface(ifname string) error {
+func (wg *Wireguard) deleteInterface(ifname string) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return fmt.Errorf("failed to lookup interface %v", ifname)
@@ -18,7 +18,7 @@ func deleteInterface(ifname string) error {
 	return netlink.LinkDel(iface)
 }
 
-func createInterface(ifname string) error {
+func (wg *Wireguard) createInterface(ifname string) error {
 	// XXX vishvananda netlink package is not (yet) capable of creating wireguard interface type
 	err := exec.Command("ip", "link", "add", "dev", ifname, "type", "wireguard").Run()
 	if err != nil {

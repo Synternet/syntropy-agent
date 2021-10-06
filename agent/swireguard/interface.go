@@ -60,7 +60,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	if osDev == nil {
 		// create interface, if missing
 		logger.Info().Println(pkgName, "create interface", ii.IfName)
-		err = createInterface(ii.IfName)
+		err = wg.createInterface(ii.IfName)
 		if err != nil {
 			return fmt.Errorf("create wg interface failed: %s", err.Error())
 		}
@@ -136,5 +136,5 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 	// Delete from cache
 	wg.interfaceCacheDel(dev)
 	// delete from OS
-	return deleteInterface(ii.IfName)
+	return wg.deleteInterface(ii.IfName)
 }

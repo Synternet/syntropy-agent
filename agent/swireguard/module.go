@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func IsKernelModuleLoaded() bool {
+func isKernelModuleLoaded() bool {
 	// parse /proc/module file and search for `wireguard`
 	file, err := os.Open("/proc/modules")
 	if err != nil {
@@ -25,6 +25,10 @@ func IsKernelModuleLoaded() bool {
 	return false
 }
 
-func LoadKernelModule() {
-	exec.Command("modprobe", "wireguard").Run()
+func loadKernelModule() error {
+	if isKernelModuleLoaded() {
+		return nil
+	}
+
+	return exec.Command("modprobe", "wireguard").Run()
 }

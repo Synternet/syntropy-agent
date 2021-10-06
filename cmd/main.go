@@ -27,8 +27,6 @@ func main() {
 	config.Init()
 	defer config.Close()
 
-	// TODO: init Wireguard (see pyroyte2.Wireguard())
-
 	syntropyNetAgent, err := agent.NewAgent(config.GetControllerType())
 	if err != nil {
 		log.Fatal("Could not create ", fullAppName, err)
