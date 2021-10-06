@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/vishvananda/netlink"
+	"github.com/vishvananda/netlink/nl"
 )
 
 func setInterfaceState(ifname string, up bool) error {
@@ -68,4 +69,19 @@ func InterfaceIPAdd(ifname, ip string) error {
 
 func InterfaceIPDel(ifname, ip string) error {
 	return setInterfaceIP(ifname, ip, false)
+}
+
+func InterfaceHasIP(ifname, ip string) bool {
+	iface, err := netlink.LinkByName(ifname)
+	if err != nil {
+		return false
+	}
+
+	ifaceAddrs, _ := netlink.AddrList(iface, nl.FAMILY_ALL)
+	for _, addr := range ifaceAddrs {
+		if addr.IP.String() == ip {
+			return true
+		}
+	}
+	return false
 }
