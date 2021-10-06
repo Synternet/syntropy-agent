@@ -79,7 +79,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	// Add peer to cache
 	wg.peerCacheAdd(pi)
 
-	// TODO: check and cleanup old obsolete rules
 	if len(pcfg.AllowedIPs) > 0 {
 		// NOTE: pi and pcfg actually are same data, but different format.
 		// I am using IP from pcfg, since pi has CIDR notation,

@@ -136,7 +136,6 @@ func (r *Router) Reroute(newgw string) error {
 
 	r.Unlock()
 
-	// TODO thing about sending errors to controller
 	if len(resp.Data) > 0 {
 		resp.Now()
 		raw, err := json.Marshal(resp)
@@ -144,10 +143,12 @@ func (r *Router) Reroute(newgw string) error {
 			return err
 		}
 
+		logger.Debug().Println(pkgName, "Sending: ", string(raw))
 		r.writer.Write(raw)
 	}
 
 	if len(errIPs) > 0 {
+		// TODO sending reroute errors to controller ?
 		return fmt.Errorf("could not change routes to %s via %s", strings.Join(errIPs, ","), newgw)
 	}
 
