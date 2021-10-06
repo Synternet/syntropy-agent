@@ -93,7 +93,6 @@ func initCloudURL() {
 	cache.cloudURL = "controller-prod-platform-agents.syntropystack.com"
 	url := os.Getenv("SYNTROPY_CONTROLLER_URL")
 
-	// TODO maybe add try DNS resove here ?
 	if url != "" {
 		cache.cloudURL = url
 	}

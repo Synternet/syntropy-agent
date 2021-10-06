@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -37,9 +38,16 @@ type CloudController struct {
 // NewController allocates instance of Software-As-A-Service
 // (aka WSS) controller
 func NewController() (common.Controller, error) {
+	// validate URL early. No need to keep busy trying on invalid URLs
+	url := config.GetCloudURL()
+	_, err := net.LookupIP(url)
+	if err != nil {
+		return nil, err
+	}
+
 	// Note: config package returns already validated values and no need to validate them here
 	cc := CloudController{
-		url:     config.GetCloudURL(),
+		url:     url,
 		token:   config.GetAgentToken(),
 		version: config.GetVersion(),
 	}
@@ -50,7 +58,7 @@ func NewController() (common.Controller, error) {
 	// only Errors and Warnings should be logged on this logger.
 	cc.log = logger.New(nil, config.GetDebugLevel(), os.Stdout)
 
-	err := cc.connect()
+	err = cc.connect()
 	if err != nil {
 		return nil, err
 	}
