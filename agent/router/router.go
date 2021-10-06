@@ -148,7 +148,6 @@ func (r *Router) Reroute(newgw string) error {
 	}
 
 	if len(errIPs) > 0 {
-		// TODO sending reroute errors to controller ?
 		return fmt.Errorf("could not change routes to %s via %s", strings.Join(errIPs, ","), newgw)
 	}
 
