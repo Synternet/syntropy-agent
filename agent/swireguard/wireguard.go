@@ -33,8 +33,7 @@ type Wireguard struct {
 	devices []*InterfaceInfo
 }
 
-// TODO: review and redesign Wireguard implementation.
-// Maybe it should be an object, containing WG interface data and separate objects per interface ?
+// New creates new instance of Wireguard configurer and monitor
 func New(pm *peermon.PeerMonitor) (*Wireguard, error) {
 	wgc, err := wgctrl.New()
 	if err != nil {
