@@ -33,10 +33,8 @@ func GetFreePort(ifname string) int {
 		if _, ok := usedPorts[port]; ok {
 			continue
 		}
-
-		// TODO: I'm pretty sure WG uses UDP for its traffic
-		// Improove the free ports check
-		l, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+		// WG uses UDP for its traffic. Try findind a free UDP port
+		l, err := net.ListenPacket("udp", ":"+strconv.Itoa(port))
 		if err != nil {
 			usedPorts[port] = true
 			continue
