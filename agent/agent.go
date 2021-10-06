@@ -74,6 +74,7 @@ func NewAgent(contype int) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+	agent.wg.LogInfo()
 
 	agent.commands = make(map[string]common.Command)
 	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router))
