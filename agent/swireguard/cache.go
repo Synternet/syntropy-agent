@@ -21,8 +21,10 @@ func (wg *Wireguard) deviceUnlocked(ifname string) *InterfaceInfo {
 
 func (wg *Wireguard) interfaceCacheAdd(ii *InterfaceInfo) {
 	if dev := wg.Device(ii.IfName); dev != nil {
-		// Do not add another existing interface
-		// TODO: think and add updating Keys, IP and Port
+		dev.privateKey = ii.privateKey
+		dev.PublicKey = ii.PublicKey
+		dev.IP = ii.IP
+		dev.Port = ii.Port
 		return
 	}
 	wg.Lock()
@@ -44,8 +46,11 @@ func (wg *Wireguard) interfaceCacheDel(ii *InterfaceInfo) {
 		if dev.IfName == ii.IfName {
 			deldev(idx)
 			return
+		} else if len(ii.PublicKey) > 0 && dev.PublicKey == ii.PublicKey ||
+			len(ii.privateKey) > 0 && dev.privateKey == ii.privateKey {
+			deldev(idx)
+			return
 		}
-		// TODO: maybe add elseif and check by private/public key ?
 	}
 }
 
