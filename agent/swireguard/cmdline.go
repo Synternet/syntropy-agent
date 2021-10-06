@@ -14,7 +14,7 @@ func deleteInterface(ifname string) error {
 		return fmt.Errorf("failed to lookup interface %v", ifname)
 	}
 
-	// TODO: add wireguard-go interface delete
+	// ip link del dev <interface> works for both - kernel and userspace WG implementations.
 	return netlink.LinkDel(iface)
 }
 
