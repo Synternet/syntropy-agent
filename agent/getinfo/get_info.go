@@ -6,10 +6,14 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
-const cmd = "GET_INFO"
+const (
+	cmd     = "GET_INFO"
+	pkgName = "GetInfo. "
+)
 
 type getInfoRequest struct {
 	common.MessageHeader
@@ -72,6 +76,7 @@ func (obj *getInfo) Exec(raw []byte) error {
 		return err
 	}
 
+	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.w.Write(arr)
 
 	return err
