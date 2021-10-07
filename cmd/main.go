@@ -33,7 +33,7 @@ func main() {
 	}
 
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
-	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerType())
+	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
 
 	//Start main agent loop (forks to goroutines internally)
 	syntropyNetAgent.Loop()

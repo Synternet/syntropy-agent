@@ -19,6 +19,19 @@ func GetControllerType() int {
 	return cache.controllerType
 }
 
+func GetControllerName(ctype int) string {
+	switch ctype {
+	case ControllerSaas:
+		return "SaaS (cloud)"
+	case ControllerScript:
+		return "Script"
+	case ControllerBlockchain:
+		return "Blockchain"
+	default:
+		return "Unknown"
+	}
+}
+
 func GetDebugLevel() int {
 	return cache.debugLevel
 }
