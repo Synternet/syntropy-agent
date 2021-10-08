@@ -83,6 +83,7 @@ func (p *MultiPing) Flush() {
 
 func (p *MultiPing) pingHost(h string, c chan PingResult) {
 	pinger, err := ping.NewPinger(h)
+	pinger.SetPrivileged(true)
 	res := PingResult{
 		IP:      h,
 		Latency: 0,
