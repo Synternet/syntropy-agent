@@ -56,9 +56,13 @@ func agentUnlock() {
 }
 
 func main() {
+	exitCode := 0
+	defer func() { os.Exit(exitCode) }()
+
 	execName := os.Args[0]
 
 	showVersionAndExit := flag.Bool("version", false, "Show version and exit")
+
 	flag.Parse()
 	if *showVersionAndExit {
 		fmt.Printf("%s (%s):\t%s\n\n", fullAppName, execName, config.GetFullVersion())
@@ -75,8 +79,8 @@ func main() {
 	syntropyNetAgent, err := agent.NewAgent(config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
-		agentUnlock()
-		os.Exit(-12) // errno.h -ENOMEM
+		exitCode = -12 // errno.h -ENOMEM
+		return
 	}
 
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
