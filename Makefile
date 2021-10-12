@@ -1,5 +1,6 @@
 # SyntropyAgent-GO build script
 
+APPNAME:=syntropy_agent
 # Get git discribe. Github actions will pass this variable.
 # If it is missing - then this is a local build and get it from git.
 # AGENT_VERSION is set by Docker build
@@ -25,8 +26,8 @@ endif
 all: agent-go
 
 agent-go:
-	@echo Building $`sag$`  $(VERSION) - $(SUBVERSION)
-	go build -o sag -ldflags \
+	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
+	go build -o $(APPNAME) -ldflags \
 		"-X github.com/SyntropyNet/syntropy-agent-go/internal/config.version=$(VERSION) \
 		-X github.com/SyntropyNet/syntropy-agent-go/internal/config.subversion=$(SUBVERSION) -s -w" \
 		./cmd/main.go
@@ -36,4 +37,4 @@ test:
 
 clean:
 	go clean
-	rm -f sag
+	rm -f $(APPNAME)

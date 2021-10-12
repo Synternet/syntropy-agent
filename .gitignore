@@ -17,7 +17,7 @@
 # Personalised vscode configs and scripts
 .vscode/*
 # Executable binary
-sag
+syntropy_agent
 # All testing scripts
 test*
 *.env
