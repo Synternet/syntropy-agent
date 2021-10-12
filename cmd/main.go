@@ -75,6 +75,7 @@ func main() {
 	syntropyNetAgent, err := agent.NewAgent(config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
+		agentUnlock()
 		os.Exit(-12) // errno.h -ENOMEM
 	}
 

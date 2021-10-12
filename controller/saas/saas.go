@@ -44,6 +44,9 @@ func NewController() (common.Controller, error) {
 	if err != nil {
 		return nil, err
 	}
+	if config.GetAgentToken() == "" {
+		return nil, fmt.Errorf("SYNTROPY_AGENT_TOKEN is not set")
+	}
 
 	// Note: config package returns already validated values and no need to validate them here
 	cc := CloudController{

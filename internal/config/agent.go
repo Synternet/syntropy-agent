@@ -82,11 +82,6 @@ func initAgentTags() {
 
 func initAgentToken() {
 	cache.apiKey = os.Getenv("SYNTROPY_AGENT_TOKEN")
-
-	if cache.apiKey == "" {
-		logger.Error().Println(pkgName, "SYNTROPY_AGENT_TOKEN is not set")
-		os.Exit(-1)
-	}
 }
 
 func initCloudURL() {
