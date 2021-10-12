@@ -8,6 +8,6 @@ RUN make
 FROM alpine
 
 RUN apk update && apk add --no-cache --update iptables
-COPY --from=builder ./app/sag /sag
+COPY --from=builder ./app/syntropy_agent /syntropy_agent
 
 ENTRYPOINT [ "./sag"]
