@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"os/user"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
@@ -22,6 +23,15 @@ func main() {
 	if *showVersionAndExit {
 		fmt.Printf("%s (%s):\t%s\n\n", fullAppName, execName, config.GetFullVersion())
 		return
+	}
+
+	user, err := user.Current()
+	if err != nil {
+		logger.Error().Println(fullAppName, "current user", err)
+		os.Exit(-14) // errno.h -EFAULT
+	} else if user.Uid != "0" {
+		logger.Error().Println(fullAppName, "insufficient permitions. Please run with `sudo` or as root.")
+		os.Exit(-1) // errno.h -EPERM
 	}
 
 	config.Init()
