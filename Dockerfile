@@ -10,4 +10,4 @@ FROM alpine
 RUN apk update && apk add --no-cache --update iptables
 COPY --from=builder ./app/syntropy_agent /syntropy_agent
 
-ENTRYPOINT [ "./sag"]
+ENTRYPOINT [ "./syntropy_agent"]
