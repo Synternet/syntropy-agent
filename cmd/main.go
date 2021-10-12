@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"os/user"
@@ -31,7 +30,7 @@ func main() {
 		os.Exit(-14) // errno.h -EFAULT
 	} else if user.Uid != "0" {
 		logger.Error().Println(fullAppName, "insufficient permitions. Please run with `sudo` or as root.")
-		os.Exit(-1) // errno.h -EPERM
+		os.Exit(-13) // errno.h -EACCES
 	}
 
 	config.Init()
@@ -39,7 +38,8 @@ func main() {
 
 	syntropyNetAgent, err := agent.NewAgent(config.GetControllerType())
 	if err != nil {
-		log.Fatal("Could not create ", fullAppName, err)
+		logger.Error().Println(fullAppName, "Could not create agent", err)
+		os.Exit(-12) // errno.h -ENOMEM
 	}
 
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")

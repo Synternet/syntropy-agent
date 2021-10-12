@@ -30,7 +30,7 @@ func initAgentDirs() {
 	err := os.MkdirAll(AgentConfigDir, 0700)
 	if err != nil {
 		logger.Error().Printf("%s Config dir %s: %s\n", pkgName, AgentConfigDir, err.Error())
-		os.Exit(-2)
+		os.Exit(-20) // errno.h -ENOTDIR
 	}
 
 	// Cleanup previously cached private & public key files
