@@ -1,6 +1,7 @@
 package script
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const pkgName = "ScriptController. "
@@ -20,16 +22,22 @@ type ScriptController struct {
 	list    []string
 	index   int
 	timeout time.Duration
-	stop    chan bool
+	ctx     scontext.StartStopContext
 }
 
 const scriptPath = config.AgentConfigDir + "/script"
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func NewController() (common.Controller, error) {
+func New(ctx context.Context) (common.Controller, error) {
 	cc := ScriptController{
 		timeout: 1 * time.Second,
+		ctx:     scontext.New(ctx),
+	}
+
+	_, err := cc.ctx.Start()
+	if err != nil {
+		return nil, err
 	}
 
 	script, err := ioutil.ReadFile(scriptPath + "/SCRIPT")
@@ -44,7 +52,6 @@ func NewController() (common.Controller, error) {
 	} else {
 		cc.list = strings.Split(string(script), "\n")
 	}
-	cc.stop = make(chan bool)
 
 	return &cc, nil
 }
@@ -72,13 +79,9 @@ func (cc *ScriptController) Recv() ([]byte, error) {
 	// When no more configuration scripts are left - just block the Recv
 	// and keep agent waiting
 	logger.Debug().Println(pkgName, "No more messages.")
-	_, ok := <-cc.stop
-	if !ok {
-		logger.Debug().Println(pkgName, "EOF")
-		return nil, io.EOF
-	}
-	logger.Error().Println(pkgName, "Reading from closed controller.")
-	return nil, fmt.Errorf("unexpected controller usage")
+	<-cc.ctx.Context().Done()
+	logger.Debug().Println(pkgName, "EOF")
+	return nil, io.EOF
 }
 
 // Write sends nowhere
@@ -90,6 +93,9 @@ func (cc *ScriptController) Write(b []byte) (n int, err error) {
 // Close terminates connection
 func (cc *ScriptController) Close() error {
 	logger.Info().Println(pkgName, "Closing.")
-	close(cc.stop)
+	cc.ctx.Stop()
 	return nil
 }
+
+// Compile time sanity test
+var _ common.Controller = &ScriptController{}

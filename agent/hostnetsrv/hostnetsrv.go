@@ -1,13 +1,14 @@
 package hostnetsrv
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const (
@@ -17,17 +18,15 @@ const (
 )
 
 type hostNetServices struct {
-	slock.AtomicServiceLock
 	writer io.Writer
 	msg    hostNetworkServicesMessage
-	ticker *time.Ticker
-	stop   chan bool
+	ctx    scontext.StartStopContext
 }
 
-func New(w io.Writer) common.Service {
+func New(ctx context.Context, w io.Writer) common.Service {
 	obj := hostNetServices{
 		writer: w,
-		stop:   make(chan bool),
+		ctx:    scontext.New(ctx),
 	}
 	obj.msg.MsgType = cmd
 	obj.msg.ID = env.MessageDefaultID
@@ -39,17 +38,19 @@ func (obj *hostNetServices) Name() string {
 }
 
 func (obj *hostNetServices) Start() error {
-	if !obj.TryLock() {
+	ctx, err := obj.ctx.Start()
+	if err != nil {
 		return fmt.Errorf("host network services watcher already running")
 	}
 
-	obj.ticker = time.NewTicker(updatePeriod)
 	go func() {
+		ticker := time.NewTicker(updatePeriod)
+		defer ticker.Stop()
 		for {
 			select {
-			case <-obj.stop:
+			case <-ctx.Done():
 				return
-			case <-obj.ticker.C:
+			case <-ticker.C:
 				obj.execute()
 			}
 		}
@@ -59,12 +60,9 @@ func (obj *hostNetServices) Start() error {
 }
 
 func (obj *hostNetServices) Stop() error {
-	if !obj.TryUnlock() {
+	if err := obj.ctx.Stop(); err != nil {
 		return fmt.Errorf("host network services watcher is not running")
 	}
-
-	obj.ticker.Stop()
-	obj.stop <- true
 
 	return nil
 }

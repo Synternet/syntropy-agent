@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,7 +10,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/client-go/kubernetes"
 )
@@ -24,18 +25,16 @@ const (
 )
 
 type kubernet struct {
-	slock.AtomicServiceLock
 	writer io.Writer
 	klient *kubernetes.Clientset
 	msg    kubernetesInfoMessage
-	ticker *time.Ticker
-	stop   chan bool
+	ctx    scontext.StartStopContext
 }
 
-func New(w io.Writer) common.Service {
+func New(ctx context.Context, w io.Writer) common.Service {
 	kub := kubernet{
 		writer: w,
-		stop:   make(chan bool),
+		ctx:    scontext.New(ctx),
 	}
 	kub.msg.MsgType = cmd
 	kub.msg.ID = env.MessageDefaultID
@@ -67,7 +66,8 @@ func (obj *kubernet) execute() {
 }
 
 func (obj *kubernet) Start() error {
-	if !obj.TryLock() {
+	ctx, err := obj.ctx.Start()
+	if err != nil {
 		return fmt.Errorf("kubernetes watcher already running")
 	}
 
@@ -75,13 +75,14 @@ func (obj *kubernet) Start() error {
 		return fmt.Errorf("could not connect to kubernetes cluster")
 	}
 
-	obj.ticker = time.NewTicker(updatePeriod)
 	go func() {
+		ticker := time.NewTicker(updatePeriod)
+		defer ticker.Stop()
 		for {
 			select {
-			case <-obj.stop:
+			case <-ctx.Done():
 				return
-			case <-obj.ticker.C:
+			case <-ticker.C:
 				obj.execute()
 			}
 		}
@@ -90,16 +91,13 @@ func (obj *kubernet) Start() error {
 }
 
 func (obj *kubernet) Stop() error {
-	if !obj.TryUnlock() {
+	if err := obj.ctx.Stop(); err != nil {
 		return fmt.Errorf("kubernetes watcher is not running")
 	}
 
 	if obj.klient == nil {
 		return fmt.Errorf("could not connect to kubernetes cluster")
 	}
-
-	obj.ticker.Stop()
-	obj.stop <- true
 
 	return nil
 }

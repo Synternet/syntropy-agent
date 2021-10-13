@@ -1,6 +1,7 @@
 package peerdata
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const cmd = "IFACES_PEERS_BW_DATA"
@@ -54,20 +55,18 @@ type peerBwData struct {
 }
 
 type wgPeerWatcher struct {
-	slock.AtomicServiceLock
 	writer  io.Writer
 	wg      *swireguard.Wireguard
-	ticker  *time.Ticker
 	timeout time.Duration
-	stop    chan bool
+	ctx     scontext.StartStopContext
 }
 
-func New(writer io.Writer, wgctl *swireguard.Wireguard) common.Service {
+func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard) common.Service {
 	return &wgPeerWatcher{
 		wg:      wgctl,
 		writer:  writer,
 		timeout: periodInit,
-		stop:    make(chan bool),
+		ctx:     scontext.New(ctx),
 	}
 }
 
@@ -111,7 +110,7 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 	ie.channel <- ie
 }
 
-func (obj *wgPeerWatcher) execute() error {
+func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) error {
 	wg := obj.wg
 
 	// Update swireguard cached peers statistics
@@ -130,12 +129,12 @@ func (obj *wgPeerWatcher) execute() error {
 	if count == 0 {
 		if obj.timeout != periodInit {
 			obj.timeout = periodInit
-			obj.ticker.Reset(obj.timeout)
+			ticker.Reset(obj.timeout)
 		}
 		return nil
 	} else if obj.timeout != periodRun {
 		obj.timeout = periodRun
-		obj.ticker.Reset(obj.timeout)
+		ticker.Reset(obj.timeout)
 	}
 
 	// The pinger runs in background, so I will create a channel with number of interfaces
@@ -150,7 +149,7 @@ func (obj *wgPeerWatcher) execute() error {
 			channel:    c,
 			pingClient: wg.PeersMonitor(),
 		}
-		ping := multiping.New(&ifaceData)
+		ping := multiping.New(ctx, &ifaceData)
 
 		for _, p := range wgdev.Peers() {
 			if len(p.AllowedIPs) == 0 {
@@ -217,19 +216,20 @@ func (obj *wgPeerWatcher) Name() string {
 }
 
 func (obj *wgPeerWatcher) Start() error {
-	if !obj.TryLock() {
+	ctx, err := obj.ctx.Start()
+	if err != nil {
 		return fmt.Errorf("%s is already running", pkgName)
 	}
 
-	obj.ticker = time.NewTicker(periodInit)
 	go func() {
+		ticker := time.NewTicker(periodInit)
+		defer ticker.Stop()
 		for {
 			select {
-			case <-obj.stop:
+			case <-ctx.Done():
 				return
-			case <-obj.ticker.C:
-				obj.execute()
-
+			case <-ticker.C:
+				obj.execute(ctx, ticker)
 			}
 		}
 	}()
@@ -238,13 +238,10 @@ func (obj *wgPeerWatcher) Start() error {
 
 func (obj *wgPeerWatcher) Stop() error {
 	// Cannot stop not running instance
-	if !obj.TryUnlock() {
+	if err := obj.ctx.Stop(); err != nil {
 		return fmt.Errorf("%s is not running", pkgName)
 
 	}
-
-	obj.ticker.Stop()
-	obj.stop <- true
 
 	return nil
 }

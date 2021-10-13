@@ -2,6 +2,7 @@
 package autoping
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,11 +40,11 @@ type autoPingResponce struct {
 	} `json:"data"`
 }
 
-func New(w io.Writer) common.CommandService {
+func New(ctx context.Context, w io.Writer) common.CommandService {
 	ap := autoPing{
 		writer: w,
 	}
-	ap.ping = multiping.New(&ap)
+	ap.ping = multiping.New(ctx, &ap)
 	return &ap
 }
 
