@@ -27,6 +27,9 @@ all: agent-go
 
 agent-go:
 	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
+# get required dependencies before compile
+	go get -d ./...
+# build the agent
 	go build -o $(APPNAME) -ldflags \
 		"-X github.com/SyntropyNet/syntropy-agent-go/internal/config.version=$(VERSION) \
 		-X github.com/SyntropyNet/syntropy-agent-go/internal/config.subversion=$(SUBVERSION) -s -w" \
