@@ -82,6 +82,9 @@ func initAgentTags() {
 
 func initAgentToken() {
 	cache.apiKey = os.Getenv("SYNTROPY_AGENT_TOKEN")
+	if cache.apiKey == "" {
+		cache.apiKey = os.Getenv("SYNTROPY_API_KEY")
+	}
 }
 
 func initCloudURL() {
