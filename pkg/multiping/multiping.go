@@ -128,8 +128,8 @@ func (p *MultiPing) Ping() {
 	results := make([]PingResult, count)
 	wg := sync.WaitGroup{}
 
-	// Ping results listener. Reads count of hosts entries from channel
-	// Closes the channel and sends collected results
+	// Ping results listener. Waits for all the entries in results to be
+	// filled concurrently. Sends the results for processing.
 	go func() {
 		wg.Wait()
 		p.prp.PingProcess(results)
