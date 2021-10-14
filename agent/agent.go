@@ -206,13 +206,13 @@ func (agent *Agent) stop() error {
 	// Stop all "services"
 	err := agent.stopServices()
 	if err != nil {
-		return err
+		logger.Warning().Println(pkgName, "Failed stopping services: ", err)
 	}
 
 	// Close controler will also terminate agent loop
 	err = agent.controller.Close()
 	if err != nil {
-		return err
+		logger.Warning().Println(pkgName, "Failed stopping the controller: ", err)
 	}
 
 	// Wireguard cleanup on exit
