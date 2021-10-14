@@ -48,22 +48,28 @@ func initNetworkIDs() {
 
 func initPortsRange() {
 	const maxPort = 65535
-	// Init to sane defaults
-	cache.portsRange.start = 49152
-	cache.portsRange.end = maxPort
+
+	cache.portsRange.start = 0
+	cache.portsRange.end = 0
 
 	strport := strings.Split(os.Getenv("SYNTROPY_PORT_RANGE"), "-")
 	if len(strport) != 2 {
 		return
 	}
 	p1, e1 := strconv.Atoi(strport[0])
-	p2, e2 := strconv.Atoi(strport[0])
+	p2, e2 := strconv.Atoi(strport[1])
 	if e1 != nil || e2 != nil ||
 		p1 <= 0 || p2 <= 0 ||
 		p1 > maxPort || p2 > maxPort {
 		return
 	}
 
-	cache.portsRange.start = uint16(p1)
-	cache.portsRange.end = uint16(p2)
+	// expect users to set range correctly, but still validate
+	if p2 > p1 {
+		cache.portsRange.start = uint16(p1)
+		cache.portsRange.end = uint16(p2)
+	} else {
+		cache.portsRange.start = uint16(p2)
+		cache.portsRange.end = uint16(p1)
+	}
 }

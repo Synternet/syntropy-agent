@@ -1,7 +1,6 @@
 package swireguard
 
 import (
-	"math/rand"
 	"net"
 	"strconv"
 	"strings"
@@ -37,29 +36,50 @@ func isSDN(ifname string) bool {
 	return strings.Contains(ifname, "SDN")
 }
 
-func GetFreePort(ifname string) int {
-	if isSDN(ifname) && isBehindNAT() {
-		return 0
-	}
-
+func GetValidPort(reqPort int) int {
 	portStart, portEnd := config.GetPortsRange()
 	usedPorts := make(map[int]bool)
 
-	for {
-		port := rand.Intn(int(portEnd-portStart)) + int(portStart)
-
+	isFreePort := func(p int) bool {
 		// skip previously checked ports
-		if _, ok := usedPorts[port]; ok {
-			continue
+		if _, ok := usedPorts[p]; ok {
+			return false
 		}
-		// WG uses UDP for its traffic. Try findind a free UDP port
-		l, err := net.ListenPacket("udp", ":"+strconv.Itoa(port))
+		// WG uses UDP for its traffic. Try finding a free UDP port
+		l, err := net.ListenPacket("udp", ":"+strconv.Itoa(p))
 		if err != nil {
-			usedPorts[port] = true
-			continue
+			usedPorts[p] = true
+			return false
 		}
 
 		l.Close()
-		return port
+		return true
 	}
+
+	// No ports restriction, if ports range is not configured
+	if portStart == 0 || portEnd == 0 {
+		return reqPort
+	}
+
+	if reqPort < int(portStart) || reqPort > int(portEnd) {
+		reqPort = int(portStart)
+	}
+
+	// First try requested port, then check if any port in configured range is available
+	for port := reqPort; port <= int(portEnd); port++ {
+		if isFreePort(port) {
+			return port
+		}
+	}
+	// the other part of range
+	for port := int(portStart); port < reqPort; port++ {
+		if isFreePort(port) {
+			return port
+		}
+	}
+
+	// Sad reallity - sometimes you may have no free ports in configured range.
+	// Inform user, but try to continue.
+	logger.Warning().Println(pkgName, "Could not find free port in configured range. Fallback to random port.")
+	return 0
 }

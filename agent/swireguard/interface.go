@@ -41,10 +41,9 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	var err error
 	var privKey wgtypes.Key
-	port := ii.Port
-
 	myDev := wg.Device(ii.IfName)
 	osDev, _ := wg.wgc.Device(ii.IfName)
+	port := ii.Port
 
 	if myDev == nil {
 		// Alloc new cached device and add to cache
@@ -75,14 +74,12 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		port = osDev.ListenPort
 	}
 
-	if port == 0 {
-		port = GetFreePort(ii.IfName)
-	}
-
+	port = GetValidPort(port)
 	wgconf := wgtypes.Config{
 		PrivateKey: &privKey,
 		ListenPort: &port,
 	}
+
 	err = wg.wgc.ConfigureDevice(ii.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
