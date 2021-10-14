@@ -56,7 +56,7 @@ func New(ctx context.Context) (common.Controller, error) {
 		ctx:     scontext.New(ctx),
 	}
 
-	_, err = cc.ctx.Start()
+	_, err = cc.ctx.CreateContext()
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (cc *CloudController) Close() error {
 	cc.Lock()
 	defer cc.Unlock()
 
-	cc.ctx.Stop()
+	cc.ctx.CancelContext()
 
 	if cc.ws == nil {
 		return nil

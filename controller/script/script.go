@@ -35,7 +35,7 @@ func New(ctx context.Context) (common.Controller, error) {
 		ctx:     scontext.New(ctx),
 	}
 
-	_, err := cc.ctx.Start()
+	_, err := cc.ctx.CreateContext()
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (cc *ScriptController) Write(b []byte) (n int, err error) {
 // Close terminates connection
 func (cc *ScriptController) Close() error {
 	logger.Info().Println(pkgName, "Closing.")
-	cc.ctx.Stop()
+	cc.ctx.CancelContext()
 	return nil
 }
 

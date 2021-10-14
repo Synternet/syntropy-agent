@@ -59,7 +59,7 @@ func TestStartStopContext_Context(t *testing.T) {
 			func(t *testing.T) *StartStopContext {
 				c := New(ctx)
 				var err error
-				ctxRet, err = c.Start()
+				ctxRet, err = c.CreateContext()
 				if err != nil {
 					t.Errorf("Start failed with %v", err)
 				}
@@ -123,11 +123,11 @@ func TestStartStopContext_Start(t *testing.T) {
 			func(t *testing.T) *StartStopContext {
 				c := New(context.Background())
 				var err error
-				ctxRet1, err = c.Start()
+				ctxRet1, err = c.CreateContext()
 				if err != nil {
 					t.Errorf("context Start failed %v", err)
 				}
-				err = c.Stop()
+				err = c.CancelContext()
 				if err != nil {
 					t.Errorf("context Stop failed %v", err)
 				}
@@ -154,7 +154,7 @@ func TestStartStopContext_Start(t *testing.T) {
 			func(t *testing.T) *StartStopContext {
 				c := New(context.Background())
 				var err error
-				ctxRet1, err = c.Start()
+				ctxRet1, err = c.CreateContext()
 				if err != nil {
 					t.Errorf("context start failed: %v", err)
 				}
@@ -195,7 +195,7 @@ func TestStartStopContext_Start(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			receiver := tt.init(t)
-			got1, err := receiver.Start()
+			got1, err := receiver.CreateContext()
 
 			if tt.inspect != nil {
 				tt.inspect(receiver, t)
@@ -239,7 +239,7 @@ func TestStartStopContext_Stop(t *testing.T) {
 			"Running",
 			func(t *testing.T) *StartStopContext {
 				c := New(context.Background())
-				if _, err := c.Start(); err != nil {
+				if _, err := c.CreateContext(); err != nil {
 					t.Errorf("context start failed: %v", err)
 				}
 				return &c
@@ -256,10 +256,10 @@ func TestStartStopContext_Stop(t *testing.T) {
 			"Stopped",
 			func(t *testing.T) *StartStopContext {
 				c := New(context.Background())
-				if _, err := c.Start(); err != nil {
+				if _, err := c.CreateContext(); err != nil {
 					t.Errorf("context Start failed: %v", err)
 				}
-				if err := c.Stop(); err != nil {
+				if err := c.CancelContext(); err != nil {
 					t.Errorf("context Stop failed: %v", err)
 				}
 				return &c
@@ -276,13 +276,13 @@ func TestStartStopContext_Stop(t *testing.T) {
 			"Restarted",
 			func(t *testing.T) *StartStopContext {
 				c := New(context.Background())
-				if _, err := c.Start(); err != nil {
+				if _, err := c.CreateContext(); err != nil {
 					t.Errorf("context Start failed: %v", err)
 				}
-				if err := c.Stop(); err != nil {
+				if err := c.CancelContext(); err != nil {
 					t.Errorf("context Stop failed: %v", err)
 				}
-				if _, err := c.Start(); err != nil {
+				if _, err := c.CreateContext(); err != nil {
 					t.Errorf("context Start failed: %v", err)
 				}
 				return &c
@@ -300,7 +300,7 @@ func TestStartStopContext_Stop(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			receiver := tt.init(t)
-			err := receiver.Stop()
+			err := receiver.CancelContext()
 
 			if tt.inspect != nil {
 				tt.inspect(receiver, t)

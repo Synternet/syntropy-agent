@@ -40,7 +40,7 @@ func (sc *StartStopContext) Context() context.Context {
 // parent context was cancelled.
 // NOTE: This has to be used inside a mutex or other synchronization primitives
 // if concurrent calls are expected.
-func (sc *StartStopContext) Start() (context.Context, error) {
+func (sc *StartStopContext) CreateContext() (context.Context, error) {
 	if sc.cancel != nil {
 		return nil, ErrRunning
 	}
@@ -59,7 +59,7 @@ func (sc *StartStopContext) Start() (context.Context, error) {
 // Will fail if either the context wasn't started or parent context was stopped.
 // NOTE: This has to be used inside a mutex or other synchronization primitives
 // if concurrent calls are expected.
-func (sc *StartStopContext) Stop() error {
+func (sc *StartStopContext) CancelContext() error {
 	if sc.cancel == nil {
 		return ErrStopped
 	}

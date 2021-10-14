@@ -107,7 +107,7 @@ func (obj *dockerWatcher) run() {
 }
 
 func (obj *dockerWatcher) Start() error {
-	_, err := obj.ctx.Start()
+	_, err := obj.ctx.CreateContext()
 	if err != nil {
 		return fmt.Errorf("docker watcher already running")
 	}
@@ -118,7 +118,7 @@ func (obj *dockerWatcher) Start() error {
 }
 
 func (obj *dockerWatcher) Stop() error {
-	if err := obj.ctx.Stop(); err != nil {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("docker watcher is not running")
 	}
 

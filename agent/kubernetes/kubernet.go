@@ -66,7 +66,7 @@ func (obj *kubernet) execute() {
 }
 
 func (obj *kubernet) Start() error {
-	ctx, err := obj.ctx.Start()
+	ctx, err := obj.ctx.CreateContext()
 	if err != nil {
 		return fmt.Errorf("kubernetes watcher already running")
 	}
@@ -91,7 +91,7 @@ func (obj *kubernet) Start() error {
 }
 
 func (obj *kubernet) Stop() error {
-	if err := obj.ctx.Stop(); err != nil {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("kubernetes watcher is not running")
 	}
 

@@ -38,7 +38,7 @@ func (obj *hostNetServices) Name() string {
 }
 
 func (obj *hostNetServices) Start() error {
-	ctx, err := obj.ctx.Start()
+	ctx, err := obj.ctx.CreateContext()
 	if err != nil {
 		return fmt.Errorf("host network services watcher already running")
 	}
@@ -60,7 +60,7 @@ func (obj *hostNetServices) Start() error {
 }
 
 func (obj *hostNetServices) Stop() error {
-	if err := obj.ctx.Stop(); err != nil {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("host network services watcher is not running")
 	}
 

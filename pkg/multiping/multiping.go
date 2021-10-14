@@ -151,7 +151,7 @@ func (p *MultiPing) Start() {
 		return
 	}
 
-	ctx, _ := p.ctx.Start()
+	ctx, _ := p.ctx.CreateContext()
 	go func() {
 		ticket := time.NewTicker(p.Period)
 		defer ticket.Stop()
@@ -172,5 +172,5 @@ func (p *MultiPing) Stop() {
 	defer p.Unlock()
 
 	// Stop the goroutine
-	p.ctx.Stop()
+	p.ctx.CancelContext()
 }

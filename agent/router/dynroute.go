@@ -69,7 +69,7 @@ func (obj *Router) execute() {
 }
 
 func (obj *Router) Start() error {
-	ctx, err := obj.ctx.Start()
+	ctx, err := obj.ctx.CreateContext()
 	if err != nil {
 		return fmt.Errorf("dynamic routing already running")
 	}
@@ -92,7 +92,7 @@ func (obj *Router) Start() error {
 }
 
 func (obj *Router) Stop() error {
-	if err := obj.ctx.Stop(); err != nil {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("dynamic routing is not running")
 	}
 

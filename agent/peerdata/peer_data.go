@@ -216,7 +216,7 @@ func (obj *wgPeerWatcher) Name() string {
 }
 
 func (obj *wgPeerWatcher) Start() error {
-	ctx, err := obj.ctx.Start()
+	ctx, err := obj.ctx.CreateContext()
 	if err != nil {
 		return fmt.Errorf("%s is already running", pkgName)
 	}
@@ -238,7 +238,7 @@ func (obj *wgPeerWatcher) Start() error {
 
 func (obj *wgPeerWatcher) Stop() error {
 	// Cannot stop not running instance
-	if err := obj.ctx.Stop(); err != nil {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("%s is not running", pkgName)
 
 	}
