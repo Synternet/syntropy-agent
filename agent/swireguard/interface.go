@@ -41,9 +41,9 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	var err error
 	var privKey wgtypes.Key
+	var port int
 	myDev := wg.Device(ii.IfName)
 	osDev, _ := wg.wgc.Device(ii.IfName)
-	port := ii.Port
 
 	if myDev == nil {
 		// Alloc new cached device and add to cache
@@ -67,14 +67,18 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		if err != nil {
 			return fmt.Errorf("generate private key error: %s", err.Error())
 		}
+		port = findFreePort(ii.Port)
 	} else {
 		// reuse existing interface configuration
 		logger.Info().Println(pkgName, "reusing existing interface", ii.IfName)
 		privKey = osDev.PrivateKey
-		port = osDev.ListenPort
+		if isPortInRange(osDev.ListenPort) {
+			port = osDev.ListenPort
+		} else {
+			port = findFreePort(ii.Port)
+		}
 	}
 
-	port = GetValidPort(port)
 	wgconf := wgtypes.Config{
 		PrivateKey: &privKey,
 		ListenPort: &port,

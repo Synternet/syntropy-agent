@@ -8,37 +8,35 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
 
-func GetValidPort(reqPort int) int {
+func isPortInRange(port int) bool {
 	portStart, portEnd := config.GetPortsRange()
-
-	isFreePort := func(p int) bool {
-		// WG uses UDP for its traffic. Try finding a free UDP port
-		l, err := net.ListenPacket("udp", ":"+strconv.Itoa(p))
-		if err != nil {
-			return false
-		}
-
-		l.Close()
+	if portStart == 0 || portEnd == 0 {
+		// No ports restriction, if ports range is not configured
+		return true
+	} else if port >= int(portStart) && port <= int(portEnd) {
 		return true
 	}
+	return false
+}
 
-	// No ports restriction, if ports range is not configured
-	if portStart == 0 || portEnd == 0 {
+func isFreePort(port int) bool {
+	// WG uses UDP for its traffic. Try finding a free UDP port
+	l, err := net.ListenPacket("udp", ":"+strconv.Itoa(port))
+	if err != nil {
+		return false
+	}
+
+	l.Close()
+	return true
+}
+
+func findFreePort(reqPort int) int {
+	if isPortInRange(reqPort) && isFreePort(reqPort) {
 		return reqPort
 	}
 
-	if reqPort < int(portStart) || reqPort > int(portEnd) {
-		reqPort = int(portStart)
-	}
-
-	// First try requested port, then check if any port in configured range is available
-	for port := reqPort; port <= int(portEnd); port++ {
-		if isFreePort(port) {
-			return port
-		}
-	}
-	// the other part of range
-	for port := int(portStart); port < reqPort; port++ {
+	portStart, portEnd := config.GetPortsRange()
+	for port := int(portStart); port <= int(portEnd); port++ {
 		if isFreePort(port) {
 			return port
 		}
