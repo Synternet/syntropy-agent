@@ -38,17 +38,11 @@ func isSDN(ifname string) bool {
 
 func GetValidPort(reqPort int) int {
 	portStart, portEnd := config.GetPortsRange()
-	usedPorts := make(map[int]bool)
 
 	isFreePort := func(p int) bool {
-		// skip previously checked ports
-		if _, ok := usedPorts[p]; ok {
-			return false
-		}
 		// WG uses UDP for its traffic. Try finding a free UDP port
 		l, err := net.ListenPacket("udp", ":"+strconv.Itoa(p))
 		if err != nil {
-			usedPorts[p] = true
 			return false
 		}
 
