@@ -23,12 +23,14 @@ VERSION:=0.0.0
 endif
 
 
-all: agent-go
+all: deps agent-go
+
+deps:
+	@echo Fetching dependencies:
+	go get -d ./...
 
 agent-go:
 	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
-# get required dependencies before compile
-	go get -d ./...
 # build the agent
 	go build -o $(APPNAME) -ldflags \
 		"-X github.com/SyntropyNet/syntropy-agent-go/internal/config.version=$(VERSION) \
