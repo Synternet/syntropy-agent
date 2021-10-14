@@ -3,38 +3,10 @@ package swireguard
 import (
 	"net"
 	"strconv"
-	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
-
-func isBehindNAT() bool {
-	// List all OS IP addresses and compare it with a public IP
-	publicIP := config.GetPublicIp()
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		logger.Error().Println(pkgName, "listing IP address", err)
-		return true
-	}
-
-	for _, a := range addrs {
-		// net.Addr.String() shows local address as 192.168.1.2/24
-		// Remove the mask
-		v := strings.Split(a.String(), "/")
-		if len(v) > 0 && v[0] == publicIP {
-			return false
-		}
-	}
-
-	// Seems I do not have public IP address on my interfaces.
-	// This means host machine is behind NAT
-	return true
-}
-
-func isSDN(ifname string) bool {
-	return strings.Contains(ifname, "SDN")
-}
 
 func GetValidPort(reqPort int) int {
 	portStart, portEnd := config.GetPortsRange()
