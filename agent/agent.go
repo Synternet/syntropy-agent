@@ -62,8 +62,8 @@ func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 	agent := &Agent{
 		ctx:        ctx,
 		controller: controller,
-		commands:   make(map[string]common.Command, 5),
-		services:   make([]common.Service, 0, 5),
+		commands:   make(map[string]common.Command),
+		services:   make([]common.Service, 0),
 	}
 
 	agent.pm = &peermon.PeerMonitor{}
