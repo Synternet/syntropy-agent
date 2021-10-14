@@ -21,8 +21,8 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
-	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
 )

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/netfilter"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
