@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
@@ -42,10 +43,10 @@ type peerDataEntry struct {
 }
 
 type ifaceBwEntry struct {
-	IfName     string             `json:"iface"`
-	PublicKey  string             `json:"iface_public_key"`
-	Peers      []*peerDataEntry   `json:"peers"`
-	channel    chan *ifaceBwEntry `json:"-"`
+	IfName     string           `json:"iface"`
+	PublicKey  string           `json:"iface_public_key"`
+	Peers      []*peerDataEntry `json:"peers"`
+	wait       *sync.WaitGroup  `json:"-"`
 	pingClient multiping.PingClient
 }
 
@@ -71,6 +72,8 @@ func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard) com
 }
 
 func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
+	defer ie.wait.Done()
+
 	// PeerMonitor (as PingClient interface) also needs to process these ping result
 	ie.pingClient.PingProcess(pr)
 
@@ -107,7 +110,6 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 			entry.Status = "CONNECTED"
 		}
 	}
-	ie.channel <- ie
 }
 
 func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) error {
@@ -137,16 +139,15 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 		ticker.Reset(obj.timeout)
 	}
 
-	// The pinger runs in background, so I will create a channel with number of interfaces
-	// And pinger callback will put interface entry (with peers ping info) into channel
-	c := make(chan *ifaceBwEntry, count)
+	// The pinger runs in background - use a WaitGroup to synchronise
+	wait := sync.WaitGroup{}
 
 	for _, wgdev := range wgdevs {
 		ifaceData := ifaceBwEntry{
 			IfName:     wgdev.IfName,
 			PublicKey:  wgdev.PublicKey,
 			Peers:      []*peerDataEntry{},
-			channel:    c,
+			wait:       &wait,
 			pingClient: wg.PeersMonitor(),
 		}
 		ping := multiping.New(ctx, &ifaceData)
@@ -183,18 +184,14 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 					TxSpeed:      p.Stats.TxSpeedMbps,
 				})
 		}
-
-		ping.Ping()
-	}
-
-	for count > 0 {
-		entry := <-c
-		if len(entry.Peers) > 0 {
-			resp.Data = append(resp.Data, *entry)
+		if len(ifaceData.Peers) > 0 {
+			wait.Add(1)
+			resp.Data = append(resp.Data, ifaceData)
+			ping.Ping()
 		}
-		count--
 	}
-	close(c)
+
+	wait.Wait()
 
 	if len(resp.Data) > 0 {
 		resp.Now()
