@@ -13,12 +13,10 @@ func TestEntry(t *testing.T) {
 	rl.Add(&routeEntry{
 		ifname:  "eth0",
 		gateway: "1.1.1.1",
-		id:      111,
 	})
 	rl.Add(&routeEntry{
 		ifname:  "eth1",
 		gateway: "2.2.2.2",
-		id:      222,
 	})
 	if rl.Count() != 2 {
 		t.Error("Invalid route list cout")
@@ -28,7 +26,6 @@ func TestEntry(t *testing.T) {
 	rl.Add(&routeEntry{
 		ifname:  "eth1",
 		gateway: "2.2.2.2",
-		id:      222,
 	})
 	if rl.Count() != 2 {
 		t.Error("Dupplicate route added")
