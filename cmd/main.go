@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -76,7 +77,10 @@ func main() {
 	config.Init()
 	defer config.Close()
 
-	syntropyNetAgent, err := agent.NewAgent(config.GetControllerType())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	syntropyNetAgent, err := agent.NewAgent(ctx, config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
 		exitCode = -12 // errno.h -ENOMEM
@@ -86,15 +90,16 @@ func main() {
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
 
-	//Start main agent loop (forks to goroutines internally)
-	syntropyNetAgent.Loop()
+	//Start main agent loop
+	go func() {
+		if err := syntropyNetAgent.Run(); err != nil {
+			cancel()
+		}
+	}()
 
 	// Wait for SIGINT or SIGKILL to terminate app
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, os.Interrupt)
 	<-terminate
 	logger.Info().Println(fullAppName, " terminating")
-
-	// Stop and cleanup
-	syntropyNetAgent.Stop()
 }

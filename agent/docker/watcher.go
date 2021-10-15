@@ -8,7 +8,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
@@ -21,20 +21,18 @@ const (
 )
 
 type dockerWatcher struct {
-	slock.AtomicServiceLock
 	writer io.Writer
 	cli    *client.Client
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx    scontext.StartStopContext
 }
 
-func New(w io.Writer) DockerService {
+func New(ctx context.Context, w io.Writer) DockerService {
 	var err error
 	dw := dockerWatcher{writer: w}
-	dw.ctx, dw.cancel = context.WithCancel(context.Background())
+	dw.ctx = scontext.New(ctx)
 	dw.cli, err = client.NewClientWithOpts(client.FromEnv)
 	if err == nil {
-		dw.cli.NegotiateAPIVersion(dw.ctx)
+		dw.cli.NegotiateAPIVersion(ctx)
 		logger.Info().Println(pkgName, "negotiated API version", dw.cli.ClientVersion())
 	} else {
 		logger.Error().Println(pkgName, "Docker client: ", err)
@@ -50,7 +48,7 @@ func (obj *dockerWatcher) Name() string {
 }
 
 func (obj *dockerWatcher) run() {
-	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
+	msgs, errs := obj.cli.Events(obj.ctx.Context(), types.EventsOptions{})
 
 	for {
 		select {
@@ -108,8 +106,9 @@ func (obj *dockerWatcher) run() {
 	}
 }
 
-func (obj *dockerWatcher) Start() (err error) {
-	if !obj.TryLock() {
+func (obj *dockerWatcher) Start() error {
+	_, err := obj.ctx.CreateContext()
+	if err != nil {
 		return fmt.Errorf("docker watcher already running")
 	}
 
@@ -119,11 +118,9 @@ func (obj *dockerWatcher) Start() (err error) {
 }
 
 func (obj *dockerWatcher) Stop() error {
-	if !obj.TryUnlock() {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("docker watcher is not running")
 	}
-
-	obj.cancel()
 
 	return nil
 }

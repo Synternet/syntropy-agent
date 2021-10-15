@@ -4,6 +4,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sync"
@@ -12,7 +13,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const (
@@ -43,21 +44,19 @@ func newRespMsg() *peersActiveDataMessage {
 
 type Router struct {
 	sync.Mutex
-	slock.AtomicServiceLock
 	writer      io.Writer
 	peerMonitor *peermon.PeerMonitor
-	ticker      *time.Ticker
-	stop        chan bool
+	ctx         scontext.StartStopContext
 
 	routes map[string]*routeList
 }
 
-func New(w io.Writer, pm *peermon.PeerMonitor) *Router {
+func New(ctx context.Context, w io.Writer, pm *peermon.PeerMonitor) *Router {
 	return &Router{
 		writer:      w,
 		peerMonitor: pm,
-		stop:        make(chan bool),
 		routes:      make(map[string]*routeList),
+		ctx:         scontext.New(ctx),
 	}
 }
 
@@ -70,17 +69,19 @@ func (obj *Router) execute() {
 }
 
 func (obj *Router) Start() error {
-	if !obj.TryLock() {
+	ctx, err := obj.ctx.CreateContext()
+	if err != nil {
 		return fmt.Errorf("dynamic routing already running")
 	}
 
-	obj.ticker = time.NewTicker(checkPeriod)
 	go func() {
+		ticker := time.NewTicker(checkPeriod)
+		defer ticker.Stop()
 		for {
 			select {
-			case <-obj.stop:
+			case <-ctx.Done():
 				return
-			case <-obj.ticker.C:
+			case <-ticker.C:
 				obj.execute()
 
 			}
@@ -91,12 +92,9 @@ func (obj *Router) Start() error {
 }
 
 func (obj *Router) Stop() error {
-	if !obj.TryUnlock() {
+	if err := obj.ctx.CancelContext(); err != nil {
 		return fmt.Errorf("dynamic routing is not running")
 	}
-
-	obj.ticker.Stop()
-	obj.stop <- true
 
 	return nil
 }

@@ -1,6 +1,8 @@
 package saas
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -14,30 +16,28 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 	"github.com/gorilla/websocket"
 )
 
 const pkgName = "Saas Controller. "
-const (
-	stopped = iota
-	connecting
-	running
-)
+
+var ErrNotRunning = errors.New("controller is not running.")
 
 type CloudController struct {
 	sync.Mutex // this lock makes Write thread safe
-	state.StateMachine
-	log     *logger.Logger
-	ws      *websocket.Conn
-	url     string
-	token   string
-	version string
+	log        *logger.Logger
+	ws         *websocket.Conn
+	url        string
+	token      string
+	version    string
+
+	ctx scontext.StartStopContext
 }
 
-// NewController allocates instance of Software-As-A-Service
+// New allocates instance of Software-As-A-Service
 // (aka WSS) controller
-func NewController() (common.Controller, error) {
+func New(ctx context.Context) (common.Controller, error) {
 	// validate URL early. No need to keep busy trying on invalid URLs
 	url := config.GetCloudURL()
 	_, err := net.LookupIP(url)
@@ -53,8 +53,13 @@ func NewController() (common.Controller, error) {
 		url:     url,
 		token:   config.GetAgentToken(),
 		version: config.GetVersion(),
+		ctx:     scontext.New(ctx),
 	}
-	cc.SetState(stopped)
+
+	_, err = cc.ctx.CreateContext()
+	if err != nil {
+		return nil, err
+	}
 
 	// Create new local logger for controller events
 	// I am using configured DebugLevel here, but actually
@@ -69,8 +74,11 @@ func NewController() (common.Controller, error) {
 	return &cc, nil
 }
 
-func (cc *CloudController) connect() (err error) {
-	cc.SetState(connecting)
+func (cc *CloudController) connect() error {
+	// There may be a reader that may try to connect and writing may start during connection.
+	cc.Lock()
+	defer cc.Unlock()
+
 	url := url.URL{Scheme: "wss", Host: cc.url, Path: "/"}
 	headers := http.Header(make(map[string][]string))
 
@@ -83,24 +91,32 @@ func (cc *CloudController) connect() (err error) {
 	headers.Set("x-agenttype", "Linux")
 	headers.Set("x-agentversion", cc.version)
 
+	// TODO: Implement exponential backoff with jitter
+	cc.ws = nil
 	for {
-		var resp *http.Response
-		var httpCode int
-		cc.ws, resp, err = websocket.DefaultDialer.Dial(url.String(), headers)
+		select {
+		case <-cc.ctx.Context().Done():
+			return io.EOF
+		default:
+		}
+
+		ws, resp, err := websocket.DefaultDialer.Dial(url.String(), headers)
 		if err != nil {
+			var httpCode int
 			if resp != nil {
 				httpCode = resp.StatusCode
 			}
 			cc.log.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
 			// Add some randomised sleep, so if controller was down
 			// the reconnecting agents could DDOS the controller
-			delay := time.Duration(rand.Int31n(10000)) * time.Millisecond
+			delay := time.Millisecond*100 + time.Duration(rand.Int31n(10000))*time.Millisecond
 			cc.log.Warning().Println(pkgName, "Reconnecting in ", delay)
 			time.Sleep(delay)
 			continue
 		}
 
-		cc.SetState(running)
+		cc.ws = ws
+
 		break
 	}
 
@@ -108,40 +124,38 @@ func (cc *CloudController) connect() (err error) {
 }
 
 func (cc *CloudController) Recv() ([]byte, error) {
-	if cc.GetState() == stopped {
-		return nil, fmt.Errorf("controller is not running")
+	if cc.ws == nil {
+		cc.log.Warning().Println(pkgName, "Websocket connection to the Controller is missing.")
+		return nil, ErrNotRunning
 	}
 
 	// In this application we have only one reader, so no need to lock here
-
 	for {
 		msgtype, msg, err := cc.ws.ReadMessage()
 
-		switch {
-		case err == nil:
+		select {
+		case <-cc.ctx.Context().Done():
+			return nil, io.EOF
+		default:
+		}
+
+		if err == nil {
 			// successfully received message
 			if msgtype != websocket.TextMessage {
 				cc.log.Warning().Println(pkgName, "Received unexpected message type ", msgtype)
 			}
 			return msg, nil
-
-		case cc.GetState() == stopped:
-			// The connection is closed - simulate EOF
-			return nil, io.EOF
 		}
 
 		// reconnect and continue receiving
 		// NOTE: connect is blocking and will block untill a connection is established
-		cc.connect()
+		if err := cc.connect(); err != nil {
+			return nil, err
+		}
 	}
 }
 
 func (cc *CloudController) Write(b []byte) (n int, err error) {
-	if controllerState := cc.GetState(); controllerState != running {
-		cc.log.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
-		return 0, fmt.Errorf("controller is not running (%d)", controllerState)
-	}
-
 	/*
 		gorilla/websocket concurency:
 			Connections support one concurrent reader and one concurrent writer.
@@ -149,6 +163,11 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 	*/
 	cc.Lock()
 	defer cc.Unlock()
+
+	if cc.ws == nil {
+		cc.log.Warning().Println(pkgName, "Websocket connection to the Controller is missing.")
+		return 0, ErrNotRunning
+	}
 
 	err = cc.ws.WriteMessage(websocket.TextMessage, b)
 	if err != nil {
@@ -161,11 +180,14 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 
 // Close closes websocket connection to saas backend
 func (cc *CloudController) Close() error {
-	if cc.GetState() == stopped {
-		// cannot close already closed connection
-		return fmt.Errorf("controller already closed")
+	cc.Lock()
+	defer cc.Unlock()
+
+	cc.ctx.CancelContext()
+
+	if cc.ws == nil {
+		return nil
 	}
-	cc.SetState(stopped)
 
 	// Cleanly close the connection by sending a close message and then
 	// waiting (with timeout) for the server to close the connection.
@@ -175,5 +197,9 @@ func (cc *CloudController) Close() error {
 	}
 
 	cc.ws.Close()
+	cc.ws = nil
 	return nil
 }
+
+// Compile time sanity test
+var _ common.Controller = &CloudController{}

@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"context"
 	"errors"
 
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
@@ -12,7 +13,7 @@ type BlockchainControler struct {
 
 var err = errors.New("blockchain controller not yet implemented")
 
-func NewController() (common.Controller, error) {
+func New(ctx context.Context) (common.Controller, error) {
 	return nil, err
 }
 
@@ -27,3 +28,6 @@ func (bcc *BlockchainControler) Write(b []byte) (n int, err error) {
 func (bcc *BlockchainControler) Close() error {
 	return err
 }
+
+// Compile time sanity test
+var _ common.Controller = &BlockchainControler{}

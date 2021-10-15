@@ -1,9 +1,11 @@
 package multiping
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 	"github.com/go-ping/ping"
 )
 
@@ -19,8 +21,7 @@ type PingClient interface {
 
 type MultiPing struct {
 	sync.RWMutex
-	stop       chan bool
-	running    bool
+	ctx        scontext.StartStopContext
 	prp        PingClient
 	hosts      []string
 	Count      int
@@ -29,15 +30,14 @@ type MultiPing struct {
 	LimitCount int
 }
 
-func New(p PingClient) *MultiPing {
+func New(ctx context.Context, p PingClient) *MultiPing {
 	return &MultiPing{
 		prp:        p,
 		Period:     0,
 		Count:      1,
 		Timeout:    1 * time.Second,
 		LimitCount: 1000,
-		stop:       make(chan bool),
-		running:    false,
+		ctx:        scontext.New(ctx),
 	}
 }
 
@@ -76,25 +76,31 @@ func (p *MultiPing) DelHost(hosts ...string) {
 	}
 }
 
+// Remove all configured hosts
 func (p *MultiPing) Flush() {
-	// remove all configured hosts
+	p.Lock()
+	defer p.Unlock()
 	p.hosts = []string{}
 }
 
-func (p *MultiPing) pingHost(h string, c chan PingResult) {
-	pinger, err := ping.NewPinger(h)
-	pinger.SetPrivileged(true)
-	res := PingResult{
-		IP:      h,
+// Pings a host given host index
+// Fills in PingResult slice. Since concurrent hostIndex are unique, there is no collision.
+func (p *MultiPing) pingHost(wgroup *sync.WaitGroup, hostIndex int, results []PingResult) {
+	defer wgroup.Done()
+
+	host := p.hosts[hostIndex]
+	results[hostIndex] = PingResult{
+		IP:      host,
 		Latency: 0,
 		Loss:    1,
 	}
-	defer func() { c <- res }()
 
+	pinger, err := ping.NewPinger(host)
 	if err != nil {
 		return
 	}
 
+	pinger.SetPrivileged(true)
 	pinger.Count = p.Count
 	pinger.Timeout = p.Timeout
 
@@ -104,39 +110,36 @@ func (p *MultiPing) pingHost(h string, c chan PingResult) {
 	}
 
 	stats := pinger.Statistics()
-	res.IP = stats.Addr
-	res.Loss = float32(stats.PacketLoss) / 100
-	if res.Loss == 1 {
-		res.Latency = 0
+	results[hostIndex].IP = stats.Addr
+	results[hostIndex].Loss = float32(stats.PacketLoss) / 100
+	if stats.PacketLoss >= 100 {
+		results[hostIndex].Latency = 0
 	} else {
-		res.Latency = float32(stats.AvgRtt.Microseconds()) / 1000
+		results[hostIndex].Latency = float32(stats.AvgRtt.Microseconds()) / 1000
 	}
-	// `res` added to channel from defer
 }
 
+// Pings configured hosts and calls an instance of PingClient with collected results.
 func (p *MultiPing) Ping() {
 	p.RLock()
 	defer p.RUnlock()
 
-	c := make(chan PingResult)
 	count := len(p.hosts)
+	results := make([]PingResult, count)
+	wg := sync.WaitGroup{}
 
-	// Ping results listener. Reads count of hosts entries from channel
-	// Closes the channel and sends collected results
+	// Ping results listener. Waits for all the entries in results to be
+	// filled concurrently. Sends the results for processing.
 	go func() {
-		var result []PingResult
-		for count > 0 {
-			r := <-c
-			result = append(result, r)
-			count--
-		}
-		close(c)
-		p.prp.PingProcess(result)
+		wg.Wait()
+		p.prp.PingProcess(results)
 	}()
 
 	// Spawn all host pinging to goroutines
-	for i := 0; i < len(p.hosts); i++ {
-		go p.pingHost(p.hosts[i], c)
+	wg.Add(count)
+	for i := range p.hosts {
+		// In this case sharing memory is more efficient and readable
+		go p.pingHost(&wg, i, results)
 	}
 }
 
@@ -144,26 +147,20 @@ func (p *MultiPing) Ping() {
 func (p *MultiPing) Start() {
 	p.Lock()
 	defer p.Unlock()
-	if p.running {
-		// Do not start new pinger, if one is alredy running
-		return
-	}
-
 	if p.Period == 0 {
 		return
 	}
-	p.running = true
 
-	t := time.NewTicker(p.Period)
-
+	ctx, _ := p.ctx.CreateContext()
 	go func() {
+		ticket := time.NewTicker(p.Period)
+		defer ticket.Stop()
 		for {
 			select {
-			case <-p.stop:
+			case <-ctx.Done():
 				return
-			case <-t.C:
+			case <-ticket.C:
 				p.Ping()
-
 			}
 		}
 	}()
@@ -174,10 +171,6 @@ func (p *MultiPing) Stop() {
 	p.Lock()
 	defer p.Unlock()
 
-	if p.running {
-		p.running = false
-
-		// Stop the goroutine
-		p.stop <- true
-	}
+	// Stop the goroutine
+	p.ctx.CancelContext()
 }
