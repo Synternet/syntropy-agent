@@ -1,2 +1,2 @@
 # syntropy-agent-go
-Syntropy Angent port to Golang
+Syntropy Agent port to Golang
