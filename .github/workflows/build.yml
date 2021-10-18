@@ -1,4 +1,4 @@
-name: Build Syntropy Agent GO
+name: build
 
 on:
   push:
