@@ -4,16 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"os/user"
-	"strconv"
-	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -32,30 +30,6 @@ func requireRoot() {
 	}
 }
 
-func agentLock() {
-	pidStr, _ := ioutil.ReadFile(lockFile)
-	pid, _ := strconv.Atoi(strings.ReplaceAll(string(pidStr), "\n", ""))
-
-	if pid > 0 {
-		_, err := os.Stat(fmt.Sprintf("/proc/%d", pid))
-		if err == nil {
-			// Another agent instance is running. Exit.
-			logger.Error().Println(fullAppName, "Another agent instance is running")
-			logger.Error().Println(fullAppName, "check lock file", lockFile)
-			os.Exit(-16) // errno.h -EBUSY
-		} else {
-			// Agent is not running. Just for some reasons lock file is present. Continue.
-			logger.Warning().Println(fullAppName, "residual lock file found. An agent was killed or crashed before?")
-		}
-	}
-
-	ioutil.WriteFile(lockFile, []byte(strconv.Itoa(os.Getpid())), 0644)
-}
-
-func agentUnlock() {
-	os.Remove(lockFile)
-}
-
 func main() {
 	exitCode := 0
 	defer func() { os.Exit(exitCode) }()
@@ -71,8 +45,28 @@ func main() {
 	}
 
 	requireRoot()
-	agentLock()
-	defer agentUnlock()
+
+	// Perform locking using Flock.
+	// If running from docker - it is recommended to use `-v /var/lock/syntropy_agent.lock:/var/lock/syntropy_agent.lock`
+	f, err := os.Create(lockFile)
+	if err != nil {
+		logger.Error().Println(fullAppName, lockFile, err)
+		exitCode = -2 // errno.h ENOENT
+		return
+	}
+	err = unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
+	if err != nil {
+		// Another agent instance is running. Exit.
+		logger.Error().Println(fullAppName, "Another agent instance is running")
+		logger.Error().Println(fullAppName, "Lock file residual", lockFile)
+		exitCode = -16 // errno.h -EBUSY
+		return
+	}
+	defer func() {
+		unix.Flock(int(f.Fd()), unix.LOCK_UN)
+		f.Close()
+		os.Remove(lockFile)
+	}()
 
 	config.Init()
 	defer config.Close()
