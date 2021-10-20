@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -71,5 +72,25 @@ func initPortsRange() {
 	} else {
 		cache.portsRange.start = uint16(p2)
 		cache.portsRange.end = uint16(p1)
+	}
+}
+
+func initAllowedIPs() {
+	cache.allowedIPs = []AllowedIPEntry{}
+	str := os.Getenv("SYNTROPY_ALLOWED_IPS")
+
+	var objMap []map[string]string
+	err := json.Unmarshal([]byte(str), &objMap)
+	if err != nil {
+		return
+	}
+
+	for _, pair := range objMap {
+		for k, v := range pair {
+			cache.allowedIPs = append(cache.allowedIPs, AllowedIPEntry{
+				Name:   v,
+				Subnet: k,
+			})
+		}
 	}
 }

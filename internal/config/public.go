@@ -107,3 +107,7 @@ func GetLocationLongitude() float32 {
 func CleanupOnExit() bool {
 	return cache.cleanupOnExit
 }
+
+func GetHostAllowedIPs() []AllowedIPEntry {
+	return cache.allowedIPs
+}

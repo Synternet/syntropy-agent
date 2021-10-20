@@ -9,6 +9,11 @@ type Location struct {
 	Longitude float32
 }
 
+type AllowedIPEntry struct {
+	Name   string
+	Subnet string
+}
+
 // This struct is used to cache commonly used Syntropy agent configuration
 // some of them are exported shell variables, some are parsed from OS settings
 // Some may be generated.
@@ -39,6 +44,8 @@ type configCache struct {
 	location      Location
 	containerType string
 	cleanupOnExit bool
+
+	allowedIPs []AllowedIPEntry
 }
 
 var cache configCache

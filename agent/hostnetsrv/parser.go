@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 	"github.com/google/go-cmp/cmp"
@@ -144,6 +145,21 @@ func findNameFromInode(inode string) string {
 	return "Unknown"
 }
 
+func (obj *hostNetServices) appendEnvSetup(services *[]hostServiceEntry) {
+	for _, e := range config.GetHostAllowedIPs() {
+		entry := hostServiceEntry{
+			Name:    e.Name,
+			Subnets: []string{e.Subnet},
+			Ports: common.Ports{
+				TCP: []uint16{},
+				UDP: []uint16{},
+			},
+		}
+		*services = append(*services, entry)
+	}
+
+}
+
 func (obj *hostNetServices) execute() {
 	services := []hostServiceEntry{}
 
@@ -152,6 +168,8 @@ func (obj *hostNetServices) execute() {
 	// Not yet
 	//	obj.parseProcNetFile("/proc/net/tcp6", &services)
 	//	obj.parseProcNetFile("/proc/net/udp6", &services)
+
+	obj.appendEnvSetup(&services)
 
 	if !cmp.Equal(services, obj.msg.Data) {
 		obj.msg.Data = services
