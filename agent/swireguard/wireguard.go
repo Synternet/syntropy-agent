@@ -118,8 +118,8 @@ func (wg *Wireguard) Apply() error {
 
 		if !found {
 			wg.CreateInterface(agentDev)
-			wg.applyPeers(agentDev)
 		}
+		wg.applyPeers(agentDev)
 	}
 
 	return nil
