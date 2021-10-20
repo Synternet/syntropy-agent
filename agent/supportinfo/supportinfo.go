@@ -3,6 +3,7 @@ package supportinfo
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"io"
 	"os/exec"
 
@@ -12,6 +13,7 @@ import (
 const (
 	cmd     = "SUPPORT_INFO_CTA"
 	cmdResp = "SUPPORT_INFO_ATC"
+	pkgName = "SupportInfo. "
 )
 
 type supportInfoRequest struct {
@@ -76,7 +78,7 @@ func (obj *supportInfo) Exec(raw []byte) error {
 	if err != nil {
 		return err
 	}
-
+	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.w.Write(arr)
 
 	return err
