@@ -16,7 +16,7 @@ type loggerMessage struct {
 	Data      struct {
 		Level   string `json:"severity"`
 		Message string `json:"message"`
-	}
+	} `json:"data"`
 }
 
 type controllerLogger struct {
