@@ -163,8 +163,11 @@ func (obj *hostNetServices) appendEnvSetup(services *[]hostServiceEntry) {
 func (obj *hostNetServices) execute() {
 	services := []hostServiceEntry{}
 
-	obj.parseProcNetFile("/proc/net/tcp", &services)
-	obj.parseProcNetFile("/proc/net/udp", &services)
+	// Do not parse locally running services. They can anyway be reached via created tunnels
+	// Leving commented code for some time, as this part may need to be reviewed once again
+	// obj.parseProcNetFile("/proc/net/tcp", &services)
+	// obj.parseProcNetFile("/proc/net/udp", &services)
+
 	// Not yet
 	//	obj.parseProcNetFile("/proc/net/tcp6", &services)
 	//	obj.parseProcNetFile("/proc/net/udp6", &services)
