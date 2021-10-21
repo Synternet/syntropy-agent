@@ -93,9 +93,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
 	}
-	if netcfg.InterfaceHasIP(ii.IfName, ii.IP) {
-		logger.Warning().Println(pkgName, ii.IfName, "already has address", ii.IP)
-	} else {
+	if !netcfg.InterfaceHasIP(ii.IfName, ii.IP) {
 		err = netcfg.InterfaceIPAdd(ii.IfName, ii.IP)
 		if err != nil {
 			logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
