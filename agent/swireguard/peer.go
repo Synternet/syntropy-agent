@@ -25,6 +25,7 @@ type PeerInfo struct {
 	Stats        PeerStats
 }
 
+// Structure conversion helper
 func (pi *PeerInfo) asPeerConfig() (*wgtypes.PeerConfig, error) {
 	var err error
 	pcfg := &wgtypes.PeerConfig{}
@@ -51,6 +52,7 @@ func (pi *PeerInfo) asPeerConfig() (*wgtypes.PeerConfig, error) {
 	return pcfg, nil
 }
 
+// AddPeer adds a peer to Wireguard interface and internal cache
 func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	if pi == nil {
 		return fmt.Errorf("invalid parameters to AddPeer")
@@ -94,6 +96,7 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	return nil
 }
 
+// RemovePeer removes a peer from Wireguard interface and internal cache
 func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	if pi == nil {
 		return fmt.Errorf("invalid parameters to RemovePeer")
@@ -127,20 +130,60 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	return nil
 }
 
+// applyPeers does a synchronisation from cache to OS WG interface
+// adds missing, and removes residual peers
 func (wg *Wireguard) applyPeers(ii *InterfaceInfo) error {
+	dev, err := wg.wgc.Device(ii.IfName)
+	if err != nil {
+		return err
+	}
+
 	wgconf := wgtypes.Config{
-		ReplacePeers: true,
+		ReplacePeers: false,
 	}
 
-	for _, pi := range ii.peers {
-		pcfg, err := pi.asPeerConfig()
-		if err != nil {
-			logger.Error().Println(pkgName, ii.IfName, "(re)apply peers", err)
-			continue
+	// add missing peers
+	for _, myPeer := range ii.peers {
+		addPeer := true
+		for _, osPeer := range dev.Peers {
+			if myPeer.PublicKey == osPeer.PublicKey.String() {
+				addPeer = false
+				break
+			}
 		}
-		wgconf.Peers = append(wgconf.Peers, *pcfg)
+		if addPeer {
+			pcfg, err := myPeer.asPeerConfig()
+			if err != nil {
+				logger.Error().Println(pkgName, ii.IfName, "(re)apply peers", err)
+				continue
+			}
+			wgconf.Peers = append(wgconf.Peers, *pcfg)
+		}
 	}
 
-	// TODO: what about monitoring and setting/cleaning netfilter rules ?
-	return wg.wgc.ConfigureDevice(ii.IfName, wgconf)
+	// remove residual peers
+	for _, osPeer := range dev.Peers {
+		needRemove := true
+		for _, myPeer := range ii.peers {
+			if myPeer.PublicKey == osPeer.PublicKey.String() {
+				needRemove = false
+				break
+			}
+		}
+		if needRemove {
+			wgconf.Peers = append(wgconf.Peers, wgtypes.PeerConfig{
+				PublicKey: osPeer.PublicKey,
+				Remove:    true,
+			})
+		}
+	}
+
+	// apply changes if needed
+	if len(wgconf.Peers) > 0 {
+		// TODO: what about monitoring and setting/cleaning netfilter rules ?
+		return wg.wgc.ConfigureDevice(ii.IfName, wgconf)
+	}
+
+	// no changes needed
+	return nil
 }
