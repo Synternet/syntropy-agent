@@ -48,16 +48,10 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) []comm
 			return
 		}
 
-		if netcfg.RouteExists(ip) {
-			entry.Error = fmt.Errorf("route to %s already exists", ip)
-			logger.Warning().Println(pkgName, entry.Error)
-			return
-		}
-
 		logger.Info().Println(pkgName, "Route add ", ip, " via ", netpath.Gateway)
 		entry.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, ip)
 		if entry.Error != nil {
-			logger.Error().Println(pkgName, "route add error", entry.Error)
+			logger.Error().Println(pkgName, "route add error:", entry.Error)
 		}
 
 		return

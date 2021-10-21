@@ -1,6 +1,7 @@
 package netcfg
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 
@@ -24,6 +25,18 @@ func RouteAdd(ifname string, gw string, ip string) error {
 	if err != nil {
 		return fmt.Errorf("%s while parsing %s", err.Error(), ip)
 	}
+
+	if routeExists(iface, route.Dst, route.Gw) {
+		// same route already present. Most probably from previous agent instance.
+		// It is not error - return success
+		return nil
+	}
+
+	err = checkRouteConflicts(route.Dst)
+	if err != nil {
+		return err
+	}
+
 	err = netlink.RouteAdd(&route)
 	if err != nil {
 		return fmt.Errorf("route %s via %s: %s", ip, gw, err.Error())
@@ -79,16 +92,47 @@ func RouteReplace(ifname string, gw string, ip string) error {
 	return nil
 }
 
-func RouteExists(ip string) bool {
-	routes, err := netlink.RouteList(nil, 0)
+func routeExists(link netlink.Link, dst *net.IPNet, gw net.IP) bool {
+	if dst == nil {
+		return true // TODO: default route checking. But now we do not configure default routes
+	}
+
+	routes, err := netlink.RouteList(link, 0)
 	if err != nil {
 		// Cannot list routes. Should be quite a problem on the system.
 		return false
 	}
 	for _, r := range routes {
-		if r.Dst != nil && r.Dst.String() == ip {
+		if r.Dst == nil {
+			continue
+		}
+		// We are already listing required interface routes.
+		// So need only to compare destination and gateway
+		if r.Dst.IP.Equal(dst.IP) &&
+			bytes.Equal(r.Dst.Mask, dst.Mask) && r.Gw.Equal(gw) {
 			return true
 		}
 	}
 	return false
+}
+
+func checkRouteConflicts(dst *net.IPNet) error {
+	if dst == nil {
+		return nil // we can have several default routes, right
+	}
+	routes, err := netlink.RouteList(nil, 0)
+	if err != nil {
+		// Cannot list routes. Should be quite a problem on the system.
+		return err
+	}
+
+	for _, r := range routes {
+		if r.Dst == nil {
+			continue
+		}
+		if r.Dst.Contains(dst.IP) {
+			return fmt.Errorf("route conflict %s vs %s", dst.String(), r.Dst.String())
+		}
+	}
+	return nil
 }
