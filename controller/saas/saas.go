@@ -20,9 +20,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const pkgName = "Saas Controller. "
+const (
+	pkgName        = "Saas Controller. "
+	reconnectDelay = 10000 // 10 seconds (in milliseconds)
+)
 
-var ErrNotRunning = errors.New("controller is not running.")
+var ErrNotRunning = errors.New("controller is not running")
 
 type CloudController struct {
 	sync.Mutex // this lock makes Write thread safe
@@ -91,7 +94,6 @@ func (cc *CloudController) connect() error {
 	headers.Set("x-agenttype", "Linux")
 	headers.Set("x-agentversion", cc.version)
 
-	// TODO: Implement exponential backoff with jitter
 	cc.ws = nil
 	for {
 		select {
@@ -109,7 +111,7 @@ func (cc *CloudController) connect() error {
 			cc.log.Error().Printf("%s ConnectionError: %s (HTTP: %d)\n", pkgName, err.Error(), httpCode)
 			// Add some randomised sleep, so if controller was down
 			// the reconnecting agents could DDOS the controller
-			delay := time.Millisecond*100 + time.Duration(rand.Int31n(10000))*time.Millisecond
+			delay := time.Millisecond*100 + time.Duration(rand.Int31n(reconnectDelay))*time.Millisecond
 			cc.log.Warning().Println(pkgName, "Reconnecting in ", delay)
 			time.Sleep(delay)
 			continue
