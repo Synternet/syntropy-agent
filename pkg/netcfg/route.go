@@ -130,8 +130,12 @@ func checkRouteConflicts(dst *net.IPNet) error {
 		if r.Dst == nil {
 			continue
 		}
-		if r.Dst.Contains(dst.IP) {
-			return fmt.Errorf("route conflict %s vs %s", dst.String(), r.Dst.String())
+		// In this case do not worry about correct rule already existing.
+		// This case was already checked in `routeExists()`, and code should never reach here
+		// If I am here - then we have a dupplicate route.
+		// Error out and do not add additional conflict route
+		if r.Dst.String() == dst.String() {
+			return fmt.Errorf("route conflict %s vs %s [%d]", dst.String(), r.Dst.String(), r.LinkIndex)
 		}
 	}
 	return nil
