@@ -111,3 +111,7 @@ func CleanupOnExit() bool {
 func GetHostAllowedIPs() []AllowedIPEntry {
 	return cache.allowedIPs
 }
+
+func IsVPNClient() bool {
+	return cache.vpnClient
+}

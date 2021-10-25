@@ -44,6 +44,7 @@ type configCache struct {
 	location      Location
 	containerType string
 	cleanupOnExit bool
+	vpnClient     bool
 
 	allowedIPs []AllowedIPEntry
 }

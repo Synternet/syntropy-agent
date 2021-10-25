@@ -31,6 +31,7 @@ func Init() {
 	initLocation()
 	initContainer()
 	initCleanupOnExit()
+	initVPNClient()
 }
 
 func Close() {

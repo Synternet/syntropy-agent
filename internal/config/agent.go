@@ -112,3 +112,7 @@ func initControllerType() {
 func initCleanupOnExit() {
 	cache.cleanupOnExit, _ = strconv.ParseBool(os.Getenv("SYNTROPY_CLEANUP_ON_EXIT"))
 }
+
+func initVPNClient() {
+	cache.vpnClient, _ = strconv.ParseBool(os.Getenv("VPN_CLIENT"))
+}
