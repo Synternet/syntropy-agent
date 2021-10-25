@@ -92,6 +92,10 @@ func GetInterfaceMTU() uint32 {
 	return cache.mtu
 }
 
+func CreateIptablesRules() bool {
+	return cache.createIptablesRules
+}
+
 func GetDeviceID() string {
 	return cache.deviceID
 }

@@ -91,6 +91,8 @@ func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 		dockerWatch := docker.New(ctx, agent.controller)
 		agent.addService(dockerWatch)
 		dockerHelper = dockerWatch
+		// SYNTROPY_CHAIN iptables rule is created only in Docker case
+		netfilter.CreateChain()
 
 	case config.ContainerTypeKubernetes:
 		agent.addService(kubernetes.New(ctx, agent.controller))
@@ -104,13 +106,10 @@ func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 
 	if config.GetContainerType() != config.ContainerTypeDocker {
 		dockerHelper = &docker.DockerNull{}
-		netfilter.Disable()
 	}
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 	agent.addCommand(supportinfo.New(agent.controller))
-
-	netfilter.CreateChain()
 
 	return agent, nil
 }

@@ -39,7 +39,8 @@ type configCache struct {
 		start uint16
 		end   uint16
 	}
-	mtu uint32
+	mtu                 uint32
+	createIptablesRules bool
 
 	debugLevel    int
 	location      Location

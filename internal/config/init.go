@@ -28,6 +28,7 @@ func Init() {
 	initPortsRange()
 	initAllowedIPs()
 	initMTU()
+	initIptables()
 
 	initLocation()
 	initContainer()

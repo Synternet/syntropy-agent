@@ -113,3 +113,11 @@ func initMTU() {
 	}
 	cache.mtu = uint32(mtu)
 }
+
+func initIptables() {
+	cache.createIptablesRules = true
+
+	if strings.ToLower(os.Getenv("SYNTROPY_CREATE_IPTABLES_RULES")) == "disabled" {
+		cache.createIptablesRules = false
+	}
+}

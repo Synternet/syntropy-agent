@@ -107,9 +107,12 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 			logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 		}
 	}
-	err = netfilter.ForwardEnable(ii.IfName)
-	if err != nil {
-		logger.Error().Println(pkgName, "netfilter forward enable", ii.IfName, err)
+	// Why this config variale configures only forward, and does not impact other iptables rules ???
+	if config.CreateIptablesRules() {
+		err = netfilter.ForwardEnable(ii.IfName)
+		if err != nil {
+			logger.Error().Println(pkgName, "netfilter forward enable", ii.IfName, err)
+		}
 	}
 
 	// Reread OS configuration and update cache for params, that may have changed

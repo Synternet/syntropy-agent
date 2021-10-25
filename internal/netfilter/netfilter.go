@@ -9,23 +9,17 @@ import (
 
 // TODO: review `-nft` and `-legacy` usage
 
-var disabled bool
-
 const (
 	defaultTable  = "filter"
 	natTable      = "nat"
 	syntropyChain = "SYNTROPY_CHAIN"
 )
 
-func Disable() {
-	disabled = true
-}
+var (
+	chainCreated = false
+)
 
 func CreateChain() error {
-	if disabled {
-		return nil
-	}
-
 	rule := []string{"-s", "0.0.0.0/0", "-d", "0.0.0.0/0", "-j", syntropyChain}
 
 	ipt, err := iptables.New()
@@ -49,11 +43,13 @@ func CreateChain() error {
 		return err
 	}
 
+	chainCreated = true
 	return nil
 }
 
 func processPeerRule(ipt *iptables.IPTables, add bool, ip string) (err error) {
-	if disabled {
+	// No need adding rules to non existing chain
+	if !chainCreated {
 		return nil
 	}
 
@@ -67,6 +63,11 @@ func processPeerRule(ipt *iptables.IPTables, add bool, ip string) (err error) {
 }
 
 func RulesAdd(ips ...string) error {
+	// No need adding rules to non existing chain
+	if !chainCreated {
+		return nil
+	}
+
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
@@ -81,6 +82,11 @@ func RulesAdd(ips ...string) error {
 }
 
 func RulesDel(ips ...string) error {
+	// No need adding rules to non existing chain
+	if !chainCreated {
+		return nil
+	}
+
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
@@ -95,10 +101,6 @@ func RulesDel(ips ...string) error {
 }
 
 func ForwardEnable(ifname string) error {
-	if disabled {
-		return nil
-	}
-
 	ipt, err := iptables.New()
 	if err != nil {
 		return err
