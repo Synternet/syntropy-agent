@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -87,6 +88,12 @@ func initAllowedIPs() {
 
 	for _, pair := range objMap {
 		for k, v := range pair {
+			// A very simple CIDR validation
+			_, _, err := net.ParseCIDR(k)
+			if err != nil {
+				continue
+			}
+
 			cache.allowedIPs = append(cache.allowedIPs, AllowedIPEntry{
 				Name:   v,
 				Subnet: k,
