@@ -39,6 +39,7 @@ type configCache struct {
 		start uint16
 		end   uint16
 	}
+	mtu uint32
 
 	debugLevel    int
 	location      Location

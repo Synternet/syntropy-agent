@@ -27,6 +27,7 @@ func Init() {
 	updatePublicIp()
 	initPortsRange()
 	initAllowedIPs()
+	initMTU()
 
 	initLocation()
 	initContainer()

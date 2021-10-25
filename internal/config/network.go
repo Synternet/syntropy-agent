@@ -101,3 +101,15 @@ func initAllowedIPs() {
 		}
 	}
 }
+
+func initMTU() {
+	cache.mtu = 0 // default value - auto
+	mtu, err := strconv.Atoi(os.Getenv("SYNTROPY_MTU"))
+	if err != nil {
+		return
+	}
+	if mtu < 0 {
+		return
+	}
+	cache.mtu = uint32(mtu)
+}

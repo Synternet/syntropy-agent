@@ -3,6 +3,7 @@ package swireguard
 import (
 	"fmt"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
@@ -76,6 +77,13 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 			port = osDev.ListenPort
 		} else {
 			port = findFreePort(ii.Port)
+		}
+	}
+
+	if mtu := config.GetInterfaceMTU(); mtu > 0 {
+		err = netcfg.InterfaceSetMTU(ii.IfName, mtu)
+		if err != nil {
+			logger.Error().Println(pkgName, "MTU error: ", ii.IfName, mtu, err)
 		}
 	}
 

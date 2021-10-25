@@ -85,3 +85,12 @@ func InterfaceHasIP(ifname, ip string) bool {
 	}
 	return false
 }
+
+func InterfaceSetMTU(ifname string, mtu uint32) error {
+	iface, err := netlink.LinkByName(ifname)
+	if err != nil {
+		return err
+	}
+
+	return netlink.LinkSetMTU(iface, int(mtu))
+}

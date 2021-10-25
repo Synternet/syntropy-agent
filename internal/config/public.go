@@ -88,6 +88,10 @@ func GetPortsRange() (uint16, uint16) {
 	return cache.portsRange.start, cache.portsRange.end
 }
 
+func GetInterfaceMTU() uint32 {
+	return cache.mtu
+}
+
 func GetDeviceID() string {
 	return cache.deviceID
 }
