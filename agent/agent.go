@@ -27,31 +27,33 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
 )
 
 const pkgName = "SyntropyAgent. "
-const (
-	stopped = iota
-	running
-)
 
 type Agent struct {
-	state.StateMachine
-	ctx        context.Context
+	// main controller agent is communicating to.
+	// Is used as io.Writer to send messages and Recv to read messages from
 	controller controller.Controller
 
+	// context is for all agent's childs, like "services"
+	// Agent itself is not dependent on this context
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// various helpers, used crossed-services
 	wg     *swireguard.Wireguard
 	pm     *peermon.PeerMonitor
 	router *router.Router
 
+	// services and commands slice/map
 	commands map[string]common.Command
 	services []common.Service
 }
 
-// NewAgent allocates instance of agent struct
+// New allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func NewAgent(ctx context.Context, contype int) (*Agent, error) {
+func New(contype int) (*Agent, error) {
 	var err error
 	var controller controller.Controller
 
@@ -73,14 +75,14 @@ func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 	logger.SetupGlobalLoger(controller, config.GetDebugLevel(), os.Stdout)
 
 	agent := &Agent{
-		ctx:        ctx,
 		controller: controller,
 		commands:   make(map[string]common.Command),
 		services:   make([]common.Service, 0),
 	}
+	agent.ctx, agent.cancel = context.WithCancel(context.Background())
 
 	agent.pm = &peermon.PeerMonitor{}
-	agent.router = router.New(ctx, agent.controller, agent.pm)
+	agent.router = router.New(agent.ctx, agent.controller, agent.pm)
 	agent.wg, err = swireguard.New(agent.pm)
 	if err != nil {
 		return nil, err
@@ -90,28 +92,28 @@ func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router))
 	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
 
-	autoping := autoping.New(ctx, agent.controller)
+	autoping := autoping.New(agent.ctx, agent.controller)
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerdata.New(ctx, agent.controller, agent.wg))
+	agent.addService(peerdata.New(agent.ctx, agent.controller, agent.wg))
 	agent.addService(agent.router)
 
 	var dockerHelper docker.DockerHelper
 
 	switch config.GetContainerType() {
 	case config.ContainerTypeDocker:
-		dockerWatch := docker.New(ctx, agent.controller)
+		dockerWatch := docker.New(agent.ctx, agent.controller)
 		agent.addService(dockerWatch)
 		dockerHelper = dockerWatch
 		// SYNTROPY_CHAIN iptables rule is created only in Docker case
 		netfilter.CreateChain()
 
 	case config.ContainerTypeKubernetes:
-		agent.addService(kubernetes.New(ctx, agent.controller))
+		agent.addService(kubernetes.New(agent.ctx, agent.controller))
 
 	case config.ContainerTypeHost:
-		agent.addService(hostnetsrv.New(ctx, agent.controller))
+		agent.addService(hostnetsrv.New(agent.ctx, agent.controller))
 
 	default:
 		logger.Warning().Println(pkgName, "unknown container type: ", config.GetContainerType())
@@ -127,94 +129,37 @@ func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 	return agent, nil
 }
 
-func (agent *Agent) messageHandler() {
-	// Change state on start
-	if !agent.ChangeState(stopped, running) {
-		logger.Warning().Println(pkgName, "could not start. Already started ?")
-		return
-	}
-	// Mark as not running on exit
-	defer agent.SetState(stopped)
+// Starts worker services and executes the message loop.
+// This loop is terminated by Close()
+func (agent *Agent) Run() {
+	logger.Info().Println(pkgName, "Starting Agent messages handler")
+	// Start all "services"
+	agent.startServices()
 
 	for {
-		raw, err := agent.controller.Recv()
-
-		if err == io.EOF {
-			// Stop runner if the reader is done
-			logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
-			return
-		} else if err != nil {
-			// Simple errors are handled inside controller. This should be only fatal errors
-			logger.Error().Println(pkgName, "Message handler error: ", err)
-			return
-		}
-
-		agent.processCommand(raw)
-	}
-}
-
-func (agent *Agent) Write(msg []byte) (int, error) {
-	if agent.GetState() != running {
-		return 0, fmt.Errorf("sending on stopped agent instance")
-	}
-
-	return agent.controller.Write(msg)
-}
-
-// Starts the agent and executes the message loop.
-// Exits the loop after the context is closed.
-// Also, cleans up everything.
-func (agent *Agent) Run() error {
-	err := agent.start()
-	if err != nil {
-		return err
-	}
-	defer agent.stop()
-
-	for {
-		select {
-		case <-agent.ctx.Done():
-			return nil
-		default:
-		}
-
 		raw, err := agent.controller.Recv()
 
 		if errors.Is(err, io.EOF) {
 			// Stop runner if the reader is done
 			logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
-			return err
+			return
 		} else if err != nil {
-			// Simple errors are handled inside controller. This should be only fatal errors
+			// Simple errors are handled inside controller.
+			// This should be only fatal non recovery errors
+			// Actually this should never happen.
 			logger.Error().Println(pkgName, "Message handler error: ", err)
-			return err
+			return
 		}
 
 		agent.processCommand(raw)
 	}
 }
 
-func (agent *Agent) start() error {
-	logger.Info().Println(pkgName, "Starting Agent messages handler")
-
-	if agent.GetState() != stopped {
-		logger.Warning().Println(pkgName, "Agent instance is already running")
-		return nil
-	}
-
-	// Start all "services"
-	agent.startServices()
-	return nil
-}
-
-// Stop closes connections to controller and stops all runners
-func (agent *Agent) stop() error {
+// Close closes connections to controller and stops all runners
+// P.S. The naming dilemma: Stop vs Close
+// And I choose Close, because I can use Closer interface
+func (agent *Agent) Close() error {
 	logger.Info().Println(pkgName, "Stopping Agent")
-	if agent.GetState() == stopped {
-		logger.Warning().Println(pkgName, "Agent instance is not running")
-
-		return nil
-	}
 
 	// Stop all "services"
 	agent.stopServices()
@@ -226,5 +171,10 @@ func (agent *Agent) stop() error {
 	}
 
 	// Wireguard cleanup on exit
-	return agent.wg.Close()
+	err = agent.wg.Close()
+	if err != nil {
+		logger.Error().Println(pkgName, "wireguard helper cleanup:", err)
+	}
+
+	return nil
 }

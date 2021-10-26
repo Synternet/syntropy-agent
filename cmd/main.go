@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -71,10 +70,7 @@ func main() {
 	config.Init()
 	defer config.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	syntropyNetAgent, err := agent.NewAgent(ctx, config.GetControllerType())
+	syntropyNetAgent, err := agent.New(config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
 		exitCode = -12 // errno.h -ENOMEM
@@ -85,11 +81,8 @@ func main() {
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
 
 	//Start main agent loop
-	go func() {
-		if err := syntropyNetAgent.Run(); err != nil {
-			cancel()
-		}
-	}()
+	go syntropyNetAgent.Run()
+	defer syntropyNetAgent.Close()
 
 	// Wait for SIGINT or SIGKILL to terminate app
 	terminate := make(chan os.Signal, 1)
