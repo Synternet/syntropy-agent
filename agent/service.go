@@ -10,7 +10,7 @@ func (a *Agent) addService(s common.Service) error {
 	return nil
 }
 
-func (a *Agent) startServices() error {
+func (a *Agent) startServices() {
 	for _, s := range a.services {
 		logger.Info().Printf("%s Starting %s service.\n", pkgName, s.Name())
 		err := s.Start()
@@ -18,10 +18,9 @@ func (a *Agent) startServices() error {
 			logger.Error().Printf("%s Service %s: %s\n", pkgName, s.Name(), err.Error())
 		}
 	}
-	return nil
 }
 
-func (a *Agent) stopServices() error {
+func (a *Agent) stopServices() {
 	for _, s := range a.services {
 		logger.Info().Printf("%s Stopping %s service.\n", pkgName, s.Name())
 		err := s.Stop()
@@ -29,6 +28,4 @@ func (a *Agent) stopServices() error {
 			logger.Error().Printf("%s Service %s: %s\n", pkgName, s.Name(), err.Error())
 		}
 	}
-
-	return nil
 }

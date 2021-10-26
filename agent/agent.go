@@ -203,7 +203,8 @@ func (agent *Agent) start() error {
 	}
 
 	// Start all "services"
-	return agent.startServices()
+	agent.startServices()
+	return nil
 }
 
 // Stop closes connections to controller and stops all runners
@@ -216,13 +217,10 @@ func (agent *Agent) stop() error {
 	}
 
 	// Stop all "services"
-	err := agent.stopServices()
-	if err != nil {
-		logger.Warning().Println(pkgName, "Failed stopping services: ", err)
-	}
+	agent.stopServices()
 
 	// Close controler will also terminate agent loop
-	err = agent.controller.Close()
+	err := agent.controller.Close()
 	if err != nil {
 		logger.Warning().Println(pkgName, "Failed stopping the controller: ", err)
 	}
