@@ -19,6 +19,9 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent-go/controller/blockchain"
+	"github.com/SyntropyNet/syntropy-agent-go/controller/saas"
+	"github.com/SyntropyNet/syntropy-agent-go/controller/script"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
@@ -36,7 +39,7 @@ const (
 type Agent struct {
 	state.StateMachine
 	ctx        context.Context
-	controller common.Controller
+	controller controller.Controller
 
 	wg     *swireguard.Wireguard
 	pm     *peermon.PeerMonitor
@@ -50,8 +53,18 @@ type Agent struct {
 // Parses shell environment and setups internal variables
 func NewAgent(ctx context.Context, contype int) (*Agent, error) {
 	var err error
+	var controller controller.Controller
 
-	controller, err := controller.New(ctx, contype)
+	switch contype {
+	case config.ControllerSaas:
+		controller, err = saas.New()
+	case config.ControllerScript:
+		controller, err = script.New()
+	case config.ControllerBlockchain:
+		controller, err = blockchain.New()
+	default:
+		err = fmt.Errorf("unexpected controller type %d", contype)
+	}
 	if err != nil {
 		return nil, err
 	}

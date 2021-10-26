@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const pkgName = "ScriptController. "
@@ -22,23 +21,19 @@ type ScriptController struct {
 	list    []string
 	index   int
 	timeout time.Duration
-	ctx     scontext.StartStopContext
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 const scriptPath = config.AgentConfigDir + "/script"
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
-func New(ctx context.Context) (common.Controller, error) {
+func New() (controller.Controller, error) {
 	cc := ScriptController{
 		timeout: 1 * time.Second,
-		ctx:     scontext.New(ctx),
 	}
-
-	_, err := cc.ctx.CreateContext()
-	if err != nil {
-		return nil, err
-	}
+	cc.ctx, cc.cancel = context.WithCancel(context.Background())
 
 	script, err := ioutil.ReadFile(scriptPath + "/SCRIPT")
 	if err != nil {
@@ -79,7 +74,7 @@ func (cc *ScriptController) Recv() ([]byte, error) {
 	// When no more configuration scripts are left - just block the Recv
 	// and keep agent waiting
 	logger.Debug().Println(pkgName, "No more messages.")
-	<-cc.ctx.Context().Done()
+	<-cc.ctx.Done()
 	logger.Debug().Println(pkgName, "EOF")
 	return nil, io.EOF
 }
@@ -93,9 +88,6 @@ func (cc *ScriptController) Write(b []byte) (n int, err error) {
 // Close terminates connection
 func (cc *ScriptController) Close() error {
 	logger.Info().Println(pkgName, "Closing.")
-	cc.ctx.CancelContext()
+	cc.cancel()
 	return nil
 }
-
-// Compile time sanity test
-var _ common.Controller = &ScriptController{}
