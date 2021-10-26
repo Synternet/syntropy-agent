@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/autoping"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/configinfo"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/getinfo"
@@ -26,7 +27,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
 )
 
 const pkgName = "SyntropyAgent. "

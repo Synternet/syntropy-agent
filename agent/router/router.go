@@ -9,7 +9,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/generic/router"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
@@ -22,11 +22,11 @@ import (
  * So for now lets stick to plain strings (TODO)
  **/
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) []common.RouteResult {
-	res := []common.RouteResult{}
+func (r *Router) RouteAdd(netpath *router.SdnNetworkPath, dest ...string) []router.RouteResult {
+	res := []router.RouteResult{}
 
 	// add a single route helper function (makes results formating easier)
-	singleRouteAdd := func(ip string) (entry common.RouteResult) {
+	singleRouteAdd := func(ip string) (entry router.RouteResult) {
 		entry.IP = ip
 
 		// Keep a list of active SDN routes
@@ -77,15 +77,15 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) []comm
 	return res
 }
 
-func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) []common.RouteResult {
-	res := []common.RouteResult{}
+func (r *Router) RouteDel(netpath *router.SdnNetworkPath, ips ...string) []router.RouteResult {
+	res := []router.RouteResult{}
 	r.Lock()
 	defer r.Unlock()
 
 	for _, ip := range ips {
 		if r.routes[ip] != nil {
 			delete(r.routes, ip)
-			entry := common.RouteResult{
+			entry := router.RouteResult{
 				IP: ip,
 			}
 			entry.Error = netcfg.RouteDel(netpath.Ifname, ip)

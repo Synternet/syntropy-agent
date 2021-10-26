@@ -1,4 +1,5 @@
-package common
+// Generic router interface
+package router
 
 import "fmt"
 

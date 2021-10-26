@@ -3,11 +3,12 @@ package supportinfo
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"io"
 	"os/exec"
 
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+
+	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 )
 
 const (

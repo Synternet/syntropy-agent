@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/common"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/generic/router"
 )
 
 const (
@@ -60,7 +61,7 @@ func (msg *wgRouteStatusMsg) Send(w io.Writer) error {
 	return err
 }
 
-func (msg *wgRouteStatusMsg) Add(connID, grID int, rrs []common.RouteResult) error {
+func (msg *wgRouteStatusMsg) Add(connID, grID int, rrs []router.RouteResult) error {
 	ce := wgConnectionEntry{
 		ConnectionID: connID,
 		GroupID:      grID,
