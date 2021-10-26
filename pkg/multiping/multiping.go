@@ -1,5 +1,7 @@
 package multiping
 
+//go:generate mockgen -source=multiping.go -destination=mock.go -package=multiping
+
 import (
 	"context"
 	"sync"
@@ -19,26 +21,50 @@ type PingClient interface {
 	PingProcess(pr []PingResult)
 }
 
+type Pinger interface {
+	Run() error
+	Statistics() *ping.Statistics
+}
+
 type MultiPing struct {
 	sync.RWMutex
 	ctx        scontext.StartStopContext
-	prp        PingClient
-	hosts      []string
-	Count      int
 	Timeout    time.Duration
 	Period     time.Duration
+	pinger     func(string) (Pinger, error)
+	pingClient PingClient
+	hosts      []string
+	Count      int
 	LimitCount int
 }
 
 func New(ctx context.Context, p PingClient) *MultiPing {
-	return &MultiPing{
-		prp:        p,
+	mp := &MultiPing{
+		pingClient: p,
 		Period:     0,
 		Count:      1,
 		Timeout:    1 * time.Second,
 		LimitCount: 1000,
 		ctx:        scontext.New(ctx),
 	}
+	mp.pinger = mp.pingerCreator
+	return mp
+}
+
+// This abstraction is required for testing
+// Otherwise the interface of this package should be changed to support
+// dependency injection pattern.
+// However, sadly, ping library used here, does not expose proper API that is suitable for testing.
+// Hence the wrapper.
+func (p *MultiPing) pingerCreator(addr string) (Pinger, error) {
+	pinger, err := ping.NewPinger(addr)
+	if err != nil {
+		return nil, err
+	}
+	pinger.SetPrivileged(true)
+	pinger.Count = p.Count
+	pinger.Timeout = p.Timeout
+	return pinger, err
 }
 
 func (p *MultiPing) AddHost(hosts ...string) {
@@ -95,14 +121,10 @@ func (p *MultiPing) pingHost(wgroup *sync.WaitGroup, hostIndex int, results []Pi
 		Loss:    1,
 	}
 
-	pinger, err := ping.NewPinger(host)
+	pinger, err := p.pinger(host)
 	if err != nil {
 		return
 	}
-
-	pinger.SetPrivileged(true)
-	pinger.Count = p.Count
-	pinger.Timeout = p.Timeout
 
 	err = pinger.Run()
 	if err != nil {
@@ -132,7 +154,7 @@ func (p *MultiPing) Ping() {
 	// filled concurrently. Sends the results for processing.
 	go func() {
 		wg.Wait()
-		p.prp.PingProcess(results)
+		p.pingClient.PingProcess(results)
 	}()
 
 	// Spawn all host pinging to goroutines
