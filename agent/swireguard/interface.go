@@ -61,7 +61,9 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		}
 		wg.interfaceCacheAdd(myDev)
 	} else {
+		wg.Lock()
 		myDev.flushPeers()
+		wg.Unlock()
 	}
 
 	if osDev == nil {

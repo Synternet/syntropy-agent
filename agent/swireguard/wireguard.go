@@ -56,6 +56,9 @@ func (wg *Wireguard) PeersMonitor() multiping.PingClient {
 }
 
 func (wg *Wireguard) Devices() []*InterfaceInfo {
+	wg.RLock()
+	defer wg.RUnlock()
+
 	rv := []*InterfaceInfo{}
 
 	rv = append(rv, wg.devices...)
@@ -76,12 +79,18 @@ func (wg *Wireguard) Close() error {
 
 // Flush clears all WG local cache
 func (wg *Wireguard) Flush() {
+	wg.Lock()
+	defer wg.Unlock()
+
 	wg.devices = wg.devices[:0]
 }
 
 // Apply function setups cached WG configuration,
 // and cleans up resident configuration
 func (wg *Wireguard) Apply() error {
+	wg.RLock()
+	defer wg.RUnlock()
+
 	osDevs, err := wg.wgc.Devices()
 	if err != nil {
 		return err
