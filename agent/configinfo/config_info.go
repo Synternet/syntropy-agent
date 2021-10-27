@@ -189,6 +189,10 @@ func (obj *configInfo) Exec(raw []byte) error {
 
 	routeStatus := routestatus.NewMsg()
 
+	// CONFIG_INFO message sends me full configuration
+	// Drop old cache and will build a new cache from zero
+	obj.wg.Flush()
+
 	// create missing interfaces
 	wgi := req.Data.Network.Public.asInterfaceInfo("PUBLIC")
 	err = obj.wg.CreateInterface(wgi)

@@ -74,6 +74,11 @@ func (wg *Wireguard) Close() error {
 	return wg.wgc.Close()
 }
 
+// Flush clears all WG local cache
+func (wg *Wireguard) Flush() {
+	wg.devices = wg.devices[:0]
+}
+
 // Apply function setups cached WG configuration,
 // and cleans up resident configuration
 func (wg *Wireguard) Apply() error {

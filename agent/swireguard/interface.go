@@ -25,6 +25,11 @@ func (ii *InterfaceInfo) Peers() []*PeerInfo {
 	return rv
 }
 
+// Remove all peers
+func (ii *InterfaceInfo) flushPeers() {
+	ii.peers = ii.peers[:0]
+}
+
 func (wg *Wireguard) Device(ifname string) *InterfaceInfo {
 	wg.RLock()
 	defer wg.RUnlock()
@@ -55,6 +60,8 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 			IP:        ii.IP,
 		}
 		wg.interfaceCacheAdd(myDev)
+	} else {
+		myDev.flushPeers()
 	}
 
 	if osDev == nil {
