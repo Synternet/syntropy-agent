@@ -23,9 +23,10 @@ const (
 )
 
 type peerActiveDataEntry struct {
-	ConnectionID int    `json:"connection_id"`
-	GroupID      int    `json:"connection_group_id"`
-	Timestamp    string `json:"timestamp"`
+	PreviousConnID int    `json:"prev_connection_id"`
+	ConnectionID   int    `json:"connection_id"`
+	GroupID        int    `json:"connection_group_id"`
+	Timestamp      string `json:"timestamp"`
 }
 
 type peersActiveDataMessage struct {

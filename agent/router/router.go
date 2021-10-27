@@ -112,23 +112,24 @@ func (r *Router) Reroute(newgw string) error {
 			continue
 		}
 
-		for idx, route := range routes.list {
-			if newgw == route.gateway {
+		for idx, newRoute := range routes.list {
+			if newgw == newRoute.gateway {
 				if idx == routes.active {
 					break
 				}
+				oldRoute := routes.list[routes.active]
 				logger.Info().Printf("%s change route to %s via %s [id:%d]\n",
-					pkgName, dest, newgw, route.groupID)
-				logger.Info().Println(pkgName, idx, routes.active)
+					pkgName, dest, newgw, newRoute.groupID)
 				routes.Print()
 				routes.active = idx
-				err := netcfg.RouteReplace(route.ifname, newgw, dest)
+				err := netcfg.RouteReplace(newRoute.ifname, newgw, dest)
 				if err == nil {
 					resp.Data = append(resp.Data,
 						peerActiveDataEntry{
-							ConnectionID: route.connectionID,
-							GroupID:      route.groupID,
-							Timestamp:    time.Now().Format(env.TimeFormat),
+							PreviousConnID: oldRoute.connectionID,
+							ConnectionID:   newRoute.connectionID,
+							GroupID:        newRoute.groupID,
+							Timestamp:      time.Now().Format(env.TimeFormat),
 						})
 				} else {
 					logger.Error().Println(pkgName, err)
