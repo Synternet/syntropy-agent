@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"github.com/docker/docker/api/types/network"
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
@@ -122,4 +123,20 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 	}
 
 	return containerInfo
+}
+
+func (obj *dockerWatcher) NetworkCreate(name string, subnet string) error {
+	_, err := obj.cli.NetworkCreate(context.Background(), name, types.NetworkCreate{
+		CheckDuplicate: false,
+		IPAM: &network.IPAM{
+			Driver: "default",
+			Config: []network.IPAMConfig{
+				{
+					Subnet: subnet,
+				},
+			},
+		},
+		Attachable: true,
+	})
+	return err
 }

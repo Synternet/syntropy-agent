@@ -11,6 +11,10 @@ func (dn *DockerNull) ContainerInfo() []DockerContainerInfoEntry {
 	return []DockerContainerInfoEntry{}
 }
 
+func (dn *DockerNull) NetworkCreate(name string, subnet string) error {
+	return nil
+}
+
 func (dn *DockerNull) Name() string {
 	return "DockerNull"
 }
