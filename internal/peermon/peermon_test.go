@@ -294,9 +294,8 @@ func TestPeerMonitor_PingProcess(t *testing.T) {
 
 func TestPeerMonitor_BestPath(t *testing.T) {
 	tests := []struct {
-		name    string
-		init    func(t *testing.T) *PeerMonitor
-		inspect func(r *PeerMonitor, t *testing.T) //inspects receiver after test run
+		name string
+		init func(t *testing.T) *PeerMonitor
 
 		want1 string
 	}{
@@ -305,23 +304,12 @@ func TestPeerMonitor_BestPath(t *testing.T) {
 			func(t *testing.T) *PeerMonitor {
 				pm := defaultPeerMonitor(t)
 				pm.PingProcess([]multiping.PingResult{
-					{IP: "1.1.1.9", Loss: 0, Latency: 10}, // Medium result
-					{IP: "2.2.2.9", Loss: 1, Latency: 0},  // Lowest Latency, but packet Loss
-					{IP: "3.3.3.9", Loss: 0, Latency: 3},  // Expected best
-					{IP: "4.4.4.9", Loss: 0, Latency: 5},  // Best is not the last
+					{IP: "1.1.1.9", Loss: 0.2, Latency: 3}, // Medium result
+					{IP: "2.2.2.9", Loss: 1, Latency: 0},   // Lowest Latency, but packet Loss
+					{IP: "3.3.3.9", Loss: 0.1, Latency: 3}, // Expected best
+					{IP: "4.4.4.9", Loss: 0.1, Latency: 5}, // Best is not the last
 				})
 				return pm
-			},
-			func(r *PeerMonitor, t *testing.T) {
-				want := []*peerInfo{
-					{gateway: "1.1.1.1", endpoint: "1.1.1.9", loss: 0, latency: 10},
-					{gateway: "2.2.2.1", endpoint: "2.2.2.9", loss: 1, latency: 0},
-					{gateway: "3.3.3.1", endpoint: "3.3.3.9", loss: 0, latency: 3},
-					{gateway: "4.4.4.1", endpoint: "4.4.4.9", loss: 0, latency: 5},
-				}
-				if !reflect.DeepEqual(r.peerList, want) {
-					t.Errorf("PeerMonitor.PingProcess got = %v, want: %v", r.peerList, want)
-				}
 			},
 			"3.3.3.1",
 		},
@@ -331,10 +319,6 @@ func TestPeerMonitor_BestPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			receiver := tt.init(t)
 			got1 := receiver.BestPath()
-
-			if tt.inspect != nil {
-				tt.inspect(receiver, t)
-			}
 
 			if !reflect.DeepEqual(got1, tt.want1) {
 				t.Errorf("PeerMonitor.BestPath got1 = %v, want1: %v", got1, tt.want1)
