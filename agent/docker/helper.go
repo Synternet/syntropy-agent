@@ -13,7 +13,7 @@ import (
 func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 	networkInfo := []DockerNetworkInfoEntry{}
 
-	networks, err := obj.cli.NetworkList(context.Background(), types.NetworkListOptions{})
+	networks, err := obj.cli.NetworkList(obj.ctx.Context(), types.NetworkListOptions{})
 	if err != nil {
 		logger.Warning().Println(pkgName, "Network List: ", err)
 		return networkInfo
@@ -55,7 +55,7 @@ func addPort(arr *[]uint16, port uint16) {
 func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 	containerInfo := []DockerContainerInfoEntry{}
 
-	containers, err := obj.cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := obj.cli.ContainerList(obj.ctx.Context(), types.ContainerListOptions{})
 	if err != nil {
 		logger.Warning().Println(pkgName, "Container List: ", err)
 		return containerInfo
@@ -126,7 +126,7 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 }
 
 func (obj *dockerWatcher) NetworkCreate(name string, subnet string) error {
-	_, err := obj.cli.NetworkCreate(context.Background(), name, types.NetworkCreate{
+	_, err := obj.cli.NetworkCreate(obj.ctx.Context(), name, types.NetworkCreate{
 		CheckDuplicate: false,
 		IPAM: &network.IPAM{
 			Driver: "default",
