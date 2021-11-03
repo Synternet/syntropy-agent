@@ -39,7 +39,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            syntropynet/agent:go-sandbox
+            syntropynet/agent:sandbox
+            syntropynet/agent:latest
           platforms: linux/amd64
           build-args: |
              AGENT_VERSION=${{ steps.previoustag.outputs.tag }}
@@ -51,7 +52,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: syntropynet/agent:go-devel
+          tags: syntropynet/agent:devel
       -
         name: PROD Build and push
         # BRANCH_STABLE_VERSION
@@ -62,5 +63,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            syntropynet/agent:go-prod
-            syntropynet/agent:go-stable
+            syntropynet/agent:prod
+            syntropynet/agent:stable
