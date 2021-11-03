@@ -24,24 +24,24 @@ func (node *peerInfo) String() string {
 
 type PeerMonitor struct {
 	sync.RWMutex
-	list []*peerInfo
+	peerList []*peerInfo
 }
 
-func (pm *PeerMonitor) AddNode(gw, peer string) {
+func (pm *PeerMonitor) AddNode(gateway, endpoint string) {
 	pm.Lock()
 	defer pm.Unlock()
 
-	for _, n := range pm.list {
-		if n.endpoint == peer {
+	for _, peer := range pm.peerList {
+		if peer.endpoint == endpoint {
 			return
 		}
 	}
 
 	e := peerInfo{
-		gateway:  gw,
-		endpoint: peer,
+		gateway:  gateway,
+		endpoint: endpoint,
 	}
-	pm.list = append(pm.list, &e)
+	pm.peerList = append(pm.peerList, &e)
 }
 
 func (pm *PeerMonitor) Peers() []string {
@@ -50,8 +50,8 @@ func (pm *PeerMonitor) Peers() []string {
 
 	rv := []string{}
 
-	for _, e := range pm.list {
-		rv = append(rv, e.endpoint)
+	for _, peer := range pm.peerList {
+		rv = append(rv, peer.endpoint)
 	}
 	return rv
 }
@@ -61,7 +61,7 @@ func (pm *PeerMonitor) PingProcess(pr []multiping.PingResult) {
 	defer pm.Unlock()
 
 	for _, res := range pr {
-		for _, peer := range pm.list {
+		for _, peer := range pm.peerList {
 			if peer.endpoint == res.IP {
 				peer.latency = res.Latency
 				peer.loss = res.Loss
@@ -76,18 +76,18 @@ func (pm *PeerMonitor) BestPath() string {
 	pm.RLock()
 	defer pm.RUnlock()
 
-	if len(pm.list) == 0 {
+	if len(pm.peerList) == 0 {
 		return ""
 	}
 
 	bestIdx := 0
-	for i := bestIdx + 1; i < len(pm.list); i++ {
-		if pm.list[i].loss < pm.list[bestIdx].loss {
+	for i := bestIdx + 1; i < len(pm.peerList); i++ {
+		if pm.peerList[i].loss < pm.peerList[bestIdx].loss {
 			bestIdx = i
-		} else if pm.list[i].latency > 0 && pm.list[i].latency < pm.list[bestIdx].latency {
+		} else if pm.peerList[i].latency > 0 && pm.peerList[i].latency < pm.peerList[bestIdx].latency {
 			bestIdx = i
 		}
 	}
 
-	return pm.list[bestIdx].gateway
+	return pm.peerList[bestIdx].gateway
 }
