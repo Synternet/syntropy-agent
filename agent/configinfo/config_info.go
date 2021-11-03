@@ -3,6 +3,7 @@ package configinfo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"io"
 	"strings"
 
@@ -24,6 +25,7 @@ type configInfo struct {
 	writer io.Writer
 	wg     *swireguard.Wireguard
 	router router.SdnRouter
+	docker docker.DockerHelper
 }
 
 type configInfoNetworkEntry struct {
@@ -32,11 +34,12 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port,omitempty"`
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard, r router.SdnRouter) common.Command {
+func New(w io.Writer, wg *swireguard.Wireguard, r router.SdnRouter, d docker.DockerHelper) common.Command {
 	return &configInfo{
 		writer: w,
 		wg:     wg,
 		router: r,
+		docker: d,
 	}
 }
 
@@ -94,6 +97,12 @@ func (e *configInfoVpnEntry) asInterfaceInfo() *swireguard.InterfaceInfo {
 	}
 }
 
+type configInfoSubnetworksEntry struct {
+	Name   string `json:"name"`
+	Subnet string `json:"subnet"`
+	Type   string `json:"type"`
+}
+
 type configInfoVpnEntry struct {
 	Function string `json:"fn"`
 
@@ -134,7 +143,8 @@ type configInfoMsg struct {
 			Sdn2   configInfoNetworkEntry `json:"SDN2"`
 			Sdn3   configInfoNetworkEntry `json:"SDN3"`
 		}
-		VPN []configInfoVpnEntry `json:"vpn,omitempty"`
+		VPN         []configInfoVpnEntry         `json:"vpn,omitempty"`
+		Subnetworks []configInfoSubnetworksEntry `json:"subnetworks,omitempty"`
 	} `json:"data"`
 }
 
@@ -236,6 +246,15 @@ func (obj *configInfo) Exec(raw []byte) error {
 	if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn3.Port != wgi.Port {
 		resp.AddInterface(wgi)
+	}
+
+	for _, subnetwork := range req.Data.Subnetworks {
+		if subnetwork.Type == "DOCKER" {
+			err := obj.docker.NetworkCreate(subnetwork.Name, subnetwork.Subnet)
+			if err != nil {
+				logger.Error().Printf("%s Create docker network error: %s\n", pkgName, err)
+			}
+		}
 	}
 
 	for _, cmd := range req.Data.VPN {

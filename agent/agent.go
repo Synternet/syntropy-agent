@@ -89,16 +89,6 @@ func New(contype int) (*Agent, error) {
 	}
 	agent.wg.LogInfo()
 
-	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router))
-	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
-
-	autoping := autoping.New(agent.ctx, agent.controller)
-	agent.addCommand(autoping)
-	agent.addService(autoping)
-
-	agent.addService(peerdata.New(agent.ctx, agent.controller, agent.wg))
-	agent.addService(agent.router)
-
 	var dockerHelper docker.DockerHelper
 
 	switch config.GetContainerType() {
@@ -116,12 +106,22 @@ func New(contype int) (*Agent, error) {
 		agent.addService(hostnetsrv.New(agent.ctx, agent.controller))
 
 	default:
-		logger.Warning().Println(pkgName, "unknown container type: ", config.GetContainerType())
+		logger.Warning().Println(pkgName, "unknown SYNTROPY_NETWORK_API type: ", config.GetContainerType())
 	}
 
 	if config.GetContainerType() != config.ContainerTypeDocker {
 		dockerHelper = &docker.DockerNull{}
 	}
+
+	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router, dockerHelper))
+	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
+
+	autoping := autoping.New(agent.ctx, agent.controller)
+	agent.addCommand(autoping)
+	agent.addService(autoping)
+
+	agent.addService(peerdata.New(agent.ctx, agent.controller, agent.wg))
+	agent.addService(agent.router)
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 	agent.addCommand(supportinfo.New(agent.controller))
