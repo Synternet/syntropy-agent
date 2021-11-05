@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
@@ -18,10 +19,12 @@ import (
 const cmd = "AUTO_PING"
 const pkgName = "Auto_Ping. "
 
-type autoPing struct {
+type AutoPing struct {
+	sync.RWMutex
 	slock.AtomicServiceLock
-	writer io.Writer
-	ping   *multiping.MultiPing
+	writer  io.Writer
+	ping    *multiping.MultiPing
+	results []byte
 }
 
 type autoPingRequest struct {
@@ -40,19 +43,19 @@ type autoPingResponce struct {
 	} `json:"data"`
 }
 
-func New(ctx context.Context, w io.Writer) common.CommandService {
-	ap := autoPing{
+func New(ctx context.Context, w io.Writer) *AutoPing {
+	ap := AutoPing{
 		writer: w,
 	}
 	ap.ping = multiping.New(ctx, &ap)
 	return &ap
 }
 
-func (obj *autoPing) Name() string {
+func (obj *AutoPing) Name() string {
 	return cmd
 }
 
-func (obj *autoPing) Exec(raw []byte) error {
+func (obj *AutoPing) Exec(raw []byte) error {
 
 	var req autoPingRequest
 	err := json.Unmarshal(raw, &req)
@@ -70,7 +73,7 @@ func (obj *autoPing) Exec(raw []byte) error {
 	return nil
 }
 
-func (obj *autoPing) PingProcess(pr []multiping.PingResult) {
+func (obj *AutoPing) PingProcess(pr []multiping.PingResult) {
 	var resp autoPingResponce
 	resp.Data.Pings = pr
 	resp.MsgType = cmd
@@ -78,17 +81,22 @@ func (obj *autoPing) PingProcess(pr []multiping.PingResult) {
 	resp.Now()
 
 	if len(resp.Data.Pings) > 0 {
-		arr, err := json.Marshal(resp)
+		var err error
+		obj.Lock()
+		obj.results, err = json.Marshal(resp)
+		obj.Unlock()
 		if err != nil {
 			logger.Error().Println(pkgName, "Process Ping Results: ", err)
 			return
 		}
 
-		obj.writer.Write(arr)
+		obj.RLock()
+		obj.writer.Write(obj.results)
+		obj.RUnlock()
 	}
 }
 
-func (obj *autoPing) Start() error {
+func (obj *AutoPing) Start() error {
 	if !obj.TryLock() {
 		return fmt.Errorf("%s is already started", pkgName)
 	}
@@ -96,11 +104,21 @@ func (obj *autoPing) Start() error {
 	return nil
 }
 
-func (obj *autoPing) Stop() error {
+func (obj *AutoPing) Stop() error {
 	if !obj.TryUnlock() {
 		return fmt.Errorf("%s is not running", pkgName)
 	}
 
 	obj.ping.Stop()
 	return nil
+}
+
+func (obj *AutoPing) SupportInfo() *common.KeyValue {
+	obj.RLock()
+	defer obj.RUnlock()
+
+	return &common.KeyValue{
+		Key:   cmd,
+		Value: string(obj.results),
+	}
 }

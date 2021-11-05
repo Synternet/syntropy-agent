@@ -1,10 +1,8 @@
 package supportinfo
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
-	"os/exec"
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 
@@ -22,23 +20,20 @@ type supportInfoRequest struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-type supportInfoEntry struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
 type supportInfoResponse struct {
 	common.MessageHeader
-	Data []*supportInfoEntry `json:"data"`
+	Data []*common.KeyValue `json:"data"`
 }
 
 type supportInfo struct {
-	w io.Writer
+	w       io.Writer
+	helpers []common.SupportInfoHelper
 }
 
-func New(w io.Writer) common.Command {
+func New(w io.Writer, sihelper ...common.SupportInfoHelper) common.Command {
 	return &supportInfo{
-		w: w,
+		w:       w,
+		helpers: sihelper,
 	}
 }
 
@@ -46,20 +41,13 @@ func (obj *supportInfo) Name() string {
 	return cmd
 }
 
-func getSupportInfoEntries() []*supportInfoEntry {
-	var entries []*supportInfoEntry
-	// wg_info msg
-	entries = append(entries,
-		&supportInfoEntry{
-			Key:   "wg_info",
-			Value: fetchCmdExecOutput("wg", "show"),
-		})
-	// routes msg
-	entries = append(entries,
-		&supportInfoEntry{
-			Key:   "routes",
-			Value: fetchCmdExecOutput("route", "-n"),
-		})
+func (obj *supportInfo) getSupportInfoEntries() []*common.KeyValue {
+	var entries []*common.KeyValue
+
+	for _, helper := range obj.helpers {
+		entries = append(entries, helper.SupportInfo())
+	}
+
 	return entries
 }
 
@@ -73,7 +61,7 @@ func (obj *supportInfo) Exec(raw []byte) error {
 		MessageHeader: req.MessageHeader,
 	}
 	resp.MsgType = cmdResp
-	resp.Data = getSupportInfoEntries()
+	resp.Data = obj.getSupportInfoEntries()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {
@@ -83,16 +71,4 @@ func (obj *supportInfo) Exec(raw []byte) error {
 	obj.w.Write(arr)
 
 	return err
-}
-
-func fetchCmdExecOutput(cmdName string, params ...string) string {
-	cmd := exec.Command(cmdName, params...)
-	var outb, errb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	if err != nil {
-		return errb.String()
-	}
-	return outb.String()
 }

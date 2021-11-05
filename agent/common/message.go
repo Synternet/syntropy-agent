@@ -24,3 +24,8 @@ type ErrorResponce struct {
 		Message string `json:"error"`
 	} `json:"data"`
 }
+
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}

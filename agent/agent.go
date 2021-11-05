@@ -17,6 +17,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/supportinfo"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/supportinfo/shellcmd"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
@@ -124,7 +125,10 @@ func New(contype int) (*Agent, error) {
 	agent.addService(agent.router)
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
-	agent.addCommand(supportinfo.New(agent.controller))
+	agent.addCommand(supportinfo.New(agent.controller,
+		shellcmd.New("wg_info", "wg", "show"),
+		shellcmd.New("routes", "route", "-n"),
+		autoping))
 
 	return agent, nil
 }

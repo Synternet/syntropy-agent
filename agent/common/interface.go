@@ -19,3 +19,7 @@ type CommandService interface {
 	Command
 	Service
 }
+
+type SupportInfoHelper interface {
+	SupportInfo() *KeyValue
+}
