@@ -62,6 +62,7 @@ func (obj *supportInfo) Exec(raw []byte) error {
 	}
 	resp.MsgType = cmdResp
 	resp.Data = obj.getSupportInfoEntries()
+	resp.Now()
 
 	arr, err := json.Marshal(&resp)
 	if err != nil {
