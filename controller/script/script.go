@@ -81,7 +81,6 @@ func (cc *ScriptController) Recv() ([]byte, error) {
 
 // Write sends nowhere
 func (cc *ScriptController) Write(b []byte) (n int, err error) {
-	logger.Debug().Println(pkgName, "Writting: ", string(b))
 	return len(b), nil
 }
 
