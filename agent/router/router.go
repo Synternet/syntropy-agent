@@ -118,8 +118,8 @@ func (r *Router) Reroute(newgw string) error {
 					break
 				}
 				oldRoute := routes.list[routes.active]
-				logger.Info().Printf("%s change route to %s via %s [id:%d]\n",
-					pkgName, dest, newgw, newRoute.groupID)
+				logger.Info().Printf("%s SDN route change to %s via %s [%s:%d]\n",
+					pkgName, dest, newgw, newRoute.ifname, newRoute.groupID)
 				routes.Print()
 				routes.active = idx
 				err := netcfg.RouteReplace(newRoute.ifname, newgw, dest)
