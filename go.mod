@@ -8,6 +8,7 @@ require (
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/go-ping/ping v0.0.0-20210506233800-ff8be3320020
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/go-cmp v0.5.5
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.4.2
