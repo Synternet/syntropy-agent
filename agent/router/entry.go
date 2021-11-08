@@ -15,6 +15,13 @@ type routeList struct {
 	active int
 }
 
+func newRouteList() *routeList {
+	return &routeList{
+		// when adding new destination - always start with the first route active
+		// Yes, I know this is zero by default, but I wanted it to be explicitely clear
+		active: 0,
+	}
+}
 func (rl *routeList) Print() {
 	for i, r := range rl.list {
 		mark := " "

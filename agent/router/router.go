@@ -31,11 +31,7 @@ func (r *Router) RouteAdd(netpath *router.SdnNetworkPath, dest ...string) []rout
 
 		// Keep a list of active SDN routes
 		if r.routes[ip] == nil {
-			r.routes[ip] = &routeList{
-				// when adding new destination - always start with the first route active
-				// Yes, I know this is zero by default, but I wanted it to be explicitely clear
-				active: 0,
-			}
+			r.routes[ip] = newRouteList()
 		}
 		r.routes[ip].Add(&routeEntry{
 			ifname:       netpath.Ifname,
