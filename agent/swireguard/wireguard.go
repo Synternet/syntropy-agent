@@ -13,8 +13,6 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
@@ -25,8 +23,7 @@ type Wireguard struct {
 	RemoveNonSyntropyInterfaces bool
 
 	sync.RWMutex
-	wgc         *wgctrl.Client
-	peerMonitor *peermon.PeerMonitor
+	wgc *wgctrl.Client
 	// NOTE: caching wireguard setup may sound like an overhead at first.
 	// But in future we may need to add checking/syncing/recreating delete interfaces
 	// TODO: thing about using sync.Map here and get rid of mutex
@@ -34,7 +31,7 @@ type Wireguard struct {
 }
 
 // New creates new instance of Wireguard configurer and monitor
-func New(pm *peermon.PeerMonitor) (*Wireguard, error) {
+func New() (*Wireguard, error) {
 	wgc, err := wgctrl.New()
 	if err != nil {
 		return nil, err
@@ -42,17 +39,12 @@ func New(pm *peermon.PeerMonitor) (*Wireguard, error) {
 
 	wg := Wireguard{
 		wgc:                         wgc,
-		peerMonitor:                 pm,
 		RemoveNonSyntropyInterfaces: false,
 	}
 
 	loadKernelModule()
 
 	return &wg, nil
-}
-
-func (wg *Wireguard) PeersMonitor() multiping.PingClient {
-	return wg.peerMonitor
 }
 
 func (wg *Wireguard) Devices() []*InterfaceInfo {

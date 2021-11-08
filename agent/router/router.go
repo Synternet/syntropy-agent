@@ -58,7 +58,7 @@ func (r *Router) RouteAdd(netpath *router.SdnNetworkPath, dest ...string) []rout
 	r.Lock()
 	defer r.Unlock()
 
-	for _, ip := range dest {
+	for idx, ip := range dest {
 		// A very dumb protection from "bricking" servers by adding default routes
 		// Allow add default routes only for configured VPN_CLIENT
 		// TODO: there are dosens other ways to act as default route, without 0.0.0.0 IP
@@ -68,6 +68,11 @@ func (r *Router) RouteAdd(netpath *router.SdnNetworkPath, dest ...string) []rout
 		}
 
 		res = append(res, singleRouteAdd(ip))
+		if idx == 0 {
+			// peerMonitor needs only IP, not full CIDR
+			parts := strings.Split(ip, "/")
+			r.peerMonitor.AddNode(netpath.Gateway, parts[0])
+		}
 	}
 
 	return res

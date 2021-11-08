@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
@@ -52,10 +52,10 @@ type Router struct {
 	routes map[string]*routeList
 }
 
-func New(ctx context.Context, w io.Writer, pm *peermon.PeerMonitor) *Router {
+func New(ctx context.Context, w io.Writer) *Router {
 	return &Router{
 		writer:      w,
-		peerMonitor: pm,
+		peerMonitor: &peermon.PeerMonitor{},
 		routes:      make(map[string]*routeList),
 		ctx:         scontext.New(ctx),
 	}

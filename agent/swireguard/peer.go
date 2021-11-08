@@ -81,13 +81,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	// Add peer to cache
 	wg.peerCacheAdd(pi)
 
-	if len(pcfg.AllowedIPs) > 0 {
-		// NOTE: pi and pcfg actually are same data, but different format.
-		// I am using IP from pcfg, since pi has CIDR notation,
-		// and pcfg already parsed the data
-		wg.peerMonitor.AddNode(pi.Gateway, pcfg.AllowedIPs[0].IP.String())
-	}
-
 	err = netfilter.RulesAdd(pi.AllowedIPs...)
 	if err != nil {
 		logger.Error().Println(pkgName, "iptables rules add", err)

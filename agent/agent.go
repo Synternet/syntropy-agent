@@ -27,7 +27,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/peermon"
 )
 
 const pkgName = "SyntropyAgent. "
@@ -44,7 +43,6 @@ type Agent struct {
 
 	// various helpers, used crossed-services
 	wg     *swireguard.Wireguard
-	pm     *peermon.PeerMonitor
 	router *router.Router
 
 	// services and commands slice/map
@@ -82,9 +80,8 @@ func New(contype int) (*Agent, error) {
 	}
 	agent.ctx, agent.cancel = context.WithCancel(context.Background())
 
-	agent.pm = &peermon.PeerMonitor{}
-	agent.router = router.New(agent.ctx, agent.controller, agent.pm)
-	agent.wg, err = swireguard.New(agent.pm)
+	agent.router = router.New(agent.ctx, agent.controller)
+	agent.wg, err = swireguard.New()
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +118,7 @@ func New(contype int) (*Agent, error) {
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerdata.New(agent.ctx, agent.controller, agent.wg))
+	agent.addService(peerdata.New(agent.ctx, agent.controller, agent.wg, agent.router))
 	agent.addService(agent.router)
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))

@@ -43,11 +43,11 @@ type peerDataEntry struct {
 }
 
 type ifaceBwEntry struct {
-	IfName     string           `json:"iface"`
-	PublicKey  string           `json:"iface_public_key"`
-	Peers      []*peerDataEntry `json:"peers"`
-	wait       *sync.WaitGroup  `json:"-"`
-	pingClient multiping.PingClient
+	IfName      string           `json:"iface"`
+	PublicKey   string           `json:"iface_public_key"`
+	Peers       []*peerDataEntry `json:"peers"`
+	wait        *sync.WaitGroup  `json:"-"`
+	pingClients []multiping.PingClient
 }
 
 type peerBwData struct {
@@ -56,26 +56,30 @@ type peerBwData struct {
 }
 
 type wgPeerWatcher struct {
-	writer  io.Writer
-	wg      *swireguard.Wireguard
-	timeout time.Duration
-	ctx     scontext.StartStopContext
+	writer      io.Writer
+	wg          *swireguard.Wireguard
+	timeout     time.Duration
+	ctx         scontext.StartStopContext
+	pingClients []multiping.PingClient
 }
 
-func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard) common.Service {
+func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard, pcl ...multiping.PingClient) common.Service {
 	return &wgPeerWatcher{
-		wg:      wgctl,
-		writer:  writer,
-		timeout: periodInit,
-		ctx:     scontext.New(ctx),
+		wg:          wgctl,
+		writer:      writer,
+		timeout:     periodInit,
+		ctx:         scontext.New(ctx),
+		pingClients: pcl,
 	}
 }
 
 func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 	defer ie.wait.Done()
 
-	// PeerMonitor (as PingClient interface) also needs to process these ping result
-	ie.pingClient.PingProcess(pr)
+	// PingClients (actually PeerMonitor instance) also needs to process these ping result
+	for _, pc := range ie.pingClients {
+		pc.PingProcess(pr)
+	}
 
 	var entry *peerDataEntry
 
@@ -144,11 +148,11 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 
 	for _, wgdev := range wgdevs {
 		ifaceData := ifaceBwEntry{
-			IfName:     wgdev.IfName,
-			PublicKey:  wgdev.PublicKey,
-			Peers:      []*peerDataEntry{},
-			wait:       &wait,
-			pingClient: wg.PeersMonitor(),
+			IfName:      wgdev.IfName,
+			PublicKey:   wgdev.PublicKey,
+			Peers:       []*peerDataEntry{},
+			wait:        &wait,
+			pingClients: obj.pingClients,
 		}
 		ping := multiping.New(ctx, &ifaceData)
 
