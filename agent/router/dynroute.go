@@ -10,63 +10,40 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/router/ipadmsg"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router/peermon"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/router/servicemon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const (
-	cmd         = "IFACES_PEERS_ACTIVE_DATA"
 	checkPeriod = time.Second * 3
 	pkgName     = "Router. "
 )
 
-type peerActiveDataEntry struct {
-	PreviousConnID int    `json:"prev_connection_id"`
-	ConnectionID   int    `json:"connection_id"`
-	GroupID        int    `json:"connection_group_id"`
-	Timestamp      string `json:"timestamp"`
-}
-
-type peersActiveDataMessage struct {
-	common.MessageHeader
-	Data []peerActiveDataEntry `json:"data"`
-}
-
-func newRespMsg() *peersActiveDataMessage {
-	resp := peersActiveDataMessage{
-		Data: []peerActiveDataEntry{},
-	}
-	resp.ID = env.MessageDefaultID
-	resp.MsgType = cmd
-	return &resp
-}
-
 type Router struct {
 	sync.Mutex
-	writer      io.Writer
-	peerMonitor *peermon.PeerMonitor
-	ctx         scontext.StartStopContext
-
-	routes map[string]*routeList
+	writer         io.Writer
+	peerMonitor    *peermon.PeerMonitor
+	serviceMonitor *servicemon.ServiceMonitor
+	ctx            scontext.StartStopContext
 }
 
 func New(ctx context.Context, w io.Writer) *Router {
 	return &Router{
-		writer:      w,
-		peerMonitor: &peermon.PeerMonitor{},
-		routes:      make(map[string]*routeList),
-		ctx:         scontext.New(ctx),
+		writer:         w,
+		peerMonitor:    &peermon.PeerMonitor{},
+		serviceMonitor: servicemon.New(w),
+		ctx:            scontext.New(ctx),
 	}
 }
 
 func (obj *Router) Name() string {
-	return cmd
+	return ipadmsg.Cmd
 }
 
 func (obj *Router) execute() {
-	obj.Reroute(obj.peerMonitor.BestPath())
+	obj.serviceMonitor.Reroute(obj.peerMonitor.BestPath())
 }
 
 func (obj *Router) Start() error {

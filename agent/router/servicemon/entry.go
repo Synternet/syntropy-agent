@@ -1,4 +1,4 @@
-package router
+package servicemon
 
 import "github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 

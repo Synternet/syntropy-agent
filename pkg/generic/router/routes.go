@@ -21,6 +21,6 @@ type RouteResult struct {
 }
 
 type SdnRouter interface {
-	RouteAdd(route *SdnNetworkPath, dest ...string) []RouteResult
-	RouteDel(route *SdnNetworkPath, dest ...string) []RouteResult
+	RouteAdd(route *SdnNetworkPath, dest []string) []RouteResult
+	RouteDel(route *SdnNetworkPath, dest []string) []RouteResult
 }

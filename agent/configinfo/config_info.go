@@ -3,9 +3,10 @@ package configinfo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"io"
 	"strings"
+
+	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
@@ -268,7 +269,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 						Gateway:      cmd.Args.GatewayIPv4,
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
-					}, cmd.Args.AllowedIPs...)
+					}, cmd.Args.AllowedIPs)
 				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, res)
 			}
 

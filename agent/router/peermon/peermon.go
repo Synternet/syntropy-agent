@@ -44,6 +44,21 @@ func (pm *PeerMonitor) AddNode(gateway, endpoint string) {
 	pm.peerList = append(pm.peerList, &e)
 }
 
+func (pm *PeerMonitor) DelNode(endpoint string) {
+	pm.Lock()
+	defer pm.Unlock()
+
+	for idx, peer := range pm.peerList {
+		if peer.endpoint == endpoint {
+			// order is not important.
+			// Remove from slice in more effective way
+			pm.peerList[idx] = pm.peerList[len(pm.peerList)-1]
+			pm.peerList = pm.peerList[:len(pm.peerList)-1]
+			return
+		}
+	}
+}
+
 func (pm *PeerMonitor) Peers() []string {
 	pm.RLock()
 	defer pm.RUnlock()

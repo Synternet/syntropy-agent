@@ -168,7 +168,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 						Gateway:      cmd.Args.GatewayIPv4,
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
-					}, cmd.Args.AllowedIPs...)
+					}, cmd.Args.AllowedIPs)
 				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, res)
 			}
 
@@ -177,7 +177,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 			obj.router.RouteDel(
 				&router.SdnNetworkPath{
 					Ifname: cmd.Args.IfName,
-				}, cmd.Args.AllowedIPs...)
+				}, cmd.Args.AllowedIPs)
 
 			wgp := cmd.asPeerInfo()
 			err = obj.wg.RemovePeer(wgp)
