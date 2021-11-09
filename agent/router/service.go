@@ -10,7 +10,7 @@ import (
 )
 
 func (r *Router) ServiceAdd(netpath *router.SdnNetworkPath, destination string) router.RouteResult {
-	entry := router.RouteResult{
+	routeRes := router.RouteResult{
 		IP: destination,
 	}
 
@@ -18,22 +18,22 @@ func (r *Router) ServiceAdd(netpath *router.SdnNetworkPath, destination string) 
 		if errors.Is(err, servicemon.ErrSdnRouteExists) {
 			logger.Debug().Println(pkgName, "skip existing SDN route to", destination)
 		} else {
-			entry.Error = err
+			routeRes.Error = err
 		}
-		return entry
+		return routeRes
 	}
 
 	logger.Info().Println(pkgName, "Route add ", destination, " via ", netpath.Gateway)
-	entry.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
-	if entry.Error != nil {
-		logger.Error().Println(pkgName, "route add error:", entry.Error)
+	routeRes.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
+	if routeRes.Error != nil {
+		logger.Error().Println(pkgName, "route add error:", routeRes.Error)
 	}
 
-	return entry
+	return routeRes
 }
 
 func (r *Router) ServiceDel(netpath *router.SdnNetworkPath, destination string) router.RouteResult {
-	entry := router.RouteResult{
+	routeRes := router.RouteResult{
 		IP: destination,
 	}
 
@@ -41,10 +41,10 @@ func (r *Router) ServiceDel(netpath *router.SdnNetworkPath, destination string) 
 
 	logger.Info().Println(pkgName, "Route delete ", destination, " via ", netpath.Gateway)
 
-	entry.Error = netcfg.RouteDel(netpath.Ifname, destination)
-	if entry.Error != nil {
-		logger.Error().Println(pkgName, destination, "route delete error", entry.Error)
+	routeRes.Error = netcfg.RouteDel(netpath.Ifname, destination)
+	if routeRes.Error != nil {
+		logger.Error().Println(pkgName, destination, "route delete error", routeRes.Error)
 	}
 
-	return entry
+	return routeRes
 }
