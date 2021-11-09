@@ -1,5 +1,4 @@
-// Generic router interface
-package router
+package common
 
 import "fmt"
 
@@ -18,9 +17,4 @@ func (sr *SdnNetworkPath) String() string {
 type RouteResult struct {
 	IP    string
 	Error error
-}
-
-type SdnRouter interface {
-	RouteAdd(route *SdnNetworkPath, dest []string) []RouteResult
-	RouteDel(route *SdnNetworkPath, dest []string) []RouteResult
 }

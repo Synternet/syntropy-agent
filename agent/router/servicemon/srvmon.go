@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/generic/router"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 )
 
 // Not a fatal error, but a message for higher layer (analog to EOF)
@@ -27,7 +27,7 @@ func New(w io.Writer) *ServiceMonitor {
 	}
 }
 
-func (sm *ServiceMonitor) Add(netpath *router.SdnNetworkPath, ip string) error {
+func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip string) error {
 	sm.Lock()
 	defer sm.Unlock()
 
@@ -48,7 +48,7 @@ func (sm *ServiceMonitor) Add(netpath *router.SdnNetworkPath, ip string) error {
 	return nil
 }
 
-func (sm *ServiceMonitor) Del(netpath *router.SdnNetworkPath, ip string) error {
+func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip string) error {
 	sm.Lock()
 	defer sm.Unlock()
 

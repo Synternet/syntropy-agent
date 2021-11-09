@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router/ipadmsg"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router/servicemon"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
@@ -19,6 +18,7 @@ import (
 const (
 	checkPeriod = time.Second * 3
 	pkgName     = "Router. "
+	cmd         = "SMART_ROUTER"
 )
 
 type Router struct {
@@ -39,7 +39,7 @@ func New(ctx context.Context, w io.Writer) *Router {
 }
 
 func (obj *Router) Name() string {
-	return ipadmsg.Cmd
+	return cmd
 }
 
 func (obj *Router) execute() {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router/ipadmsg"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
@@ -14,7 +14,7 @@ import (
 
 func (sm *ServiceMonitor) Reroute(newgw string) error {
 	errIPs := []string{}
-	resp := ipadmsg.NewMessage()
+	resp := peeradata.NewMessage()
 
 	sm.Lock()
 
@@ -37,7 +37,7 @@ func (sm *ServiceMonitor) Reroute(newgw string) error {
 				err := netcfg.RouteReplace(newRoute.ifname, newgw, dest)
 				if err == nil {
 					resp.Data = append(resp.Data,
-						ipadmsg.PeerActiveDataEntry{
+						peeradata.PeerActiveDataEntry{
 							PreviousConnID: oldRoute.connectionID,
 							ConnectionID:   newRoute.connectionID,
 							GroupID:        newRoute.groupID,

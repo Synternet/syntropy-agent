@@ -3,8 +3,8 @@ package router
 import (
 	"strings"
 
+	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/generic/router"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
@@ -13,8 +13,8 @@ func (r *Router) PingProcess(pr []multiping.PingResult) {
 	r.peerMonitor.PingProcess(pr)
 }
 
-func (r *Router) PeerAdd(netpath *router.SdnNetworkPath, destination string) router.RouteResult {
-	entry := router.RouteResult{
+func (r *Router) PeerAdd(netpath *common.SdnNetworkPath, destination string) common.RouteResult {
+	entry := common.RouteResult{
 		IP: destination,
 	}
 
@@ -30,8 +30,8 @@ func (r *Router) PeerAdd(netpath *router.SdnNetworkPath, destination string) rou
 	return entry
 }
 
-func (r *Router) PeerDel(netpath *router.SdnNetworkPath, destination string) router.RouteResult {
-	entry := router.RouteResult{
+func (r *Router) PeerDel(netpath *common.SdnNetworkPath, destination string) common.RouteResult {
+	entry := common.RouteResult{
 		IP: destination,
 	}
 

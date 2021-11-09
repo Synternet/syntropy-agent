@@ -1,9 +1,10 @@
 package router
 
 import (
+	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/generic/router"
 )
 
 /**
@@ -15,9 +16,10 @@ import (
  * So for now lets stick to plain strings (TODO)
  **/
 
-func (r *Router) RouteAdd(netpath *router.SdnNetworkPath, dest []string) []router.RouteResult {
+func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]common.RouteResult, []peeradata.PeerActiveDataEntry) {
 	const defaultRouteIP = "0.0.0.0/0"
-	res := []router.RouteResult{}
+	res := []common.RouteResult{}
+	pad := []peeradata.PeerActiveDataEntry{}
 
 	r.Lock()
 	defer r.Unlock()
@@ -38,15 +40,21 @@ func (r *Router) RouteAdd(netpath *router.SdnNetworkPath, dest []string) []route
 		if idx == 0 {
 			r.PeerAdd(netpath, ip)
 		} else {
-			res = append(res, r.ServiceAdd(netpath, ip))
+			resEntry, padEntry := r.ServiceAdd(netpath, ip)
+			if resEntry != nil {
+				res = append(res, *resEntry)
+			}
+			if padEntry != nil {
+				pad = append(pad, *padEntry)
+			}
 		}
 	}
 
-	return res
+	return res, pad
 }
 
-func (r *Router) RouteDel(netpath *router.SdnNetworkPath, ips []string) []router.RouteResult {
-	res := []router.RouteResult{}
+func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []common.RouteResult {
+	res := []common.RouteResult{}
 	r.Lock()
 	defer r.Unlock()
 
@@ -58,7 +66,10 @@ func (r *Router) RouteDel(netpath *router.SdnNetworkPath, ips []string) []router
 		if idx == 0 {
 			r.PeerDel(netpath, ip)
 		} else {
-			res = append(res, r.ServiceDel(netpath, ip))
+			rres := r.ServiceDel(netpath, ip)
+			if rres != nil {
+				res = append(res, *rres)
+			}
 		}
 	}
 

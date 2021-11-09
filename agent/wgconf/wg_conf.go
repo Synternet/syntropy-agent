@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/generic/router"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 type wgConf struct {
 	writer io.Writer
 	wg     *swireguard.Wireguard
-	router router.SdnRouter
+	router *router.Router
 }
 
 // This struct is not used in Linux agent
@@ -130,7 +131,7 @@ func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *swireguard.InterfaceInfo) 
 	msg.Data = append(msg.Data, e)
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard, r router.SdnRouter) common.Command {
+func New(w io.Writer, wg *swireguard.Wireguard, r *router.Router) common.Command {
 	return &wgConf{
 		writer: w,
 		wg:     wg,
@@ -151,6 +152,8 @@ func (obj *wgConf) Exec(raw []byte) error {
 	}
 
 	routeStatus := routestatus.NewMsg()
+	padMsg := peeradata.NewMessage()
+
 	resp := wgConfMsg{
 		MessageHeader: req.MessageHeader,
 		Data:          []wgConfEntry{},
@@ -162,20 +165,21 @@ func (obj *wgConf) Exec(raw []byte) error {
 			err = obj.wg.AddPeer(wgp)
 			resp.AddPeerCmd(cmd.Function, wgp)
 			if err == nil {
-				res := obj.router.RouteAdd(
-					&router.SdnNetworkPath{
+				routeRes, peersData := obj.router.RouteAdd(
+					&common.SdnNetworkPath{
 						Ifname:       cmd.Args.IfName,
 						Gateway:      cmd.Args.GatewayIPv4,
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
 					}, cmd.Args.AllowedIPs)
-				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, res)
+				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, routeRes)
+				padMsg.Add(peersData...)
 			}
 
 		case "remove_peer":
 			// Nobody is interested in RouteDel results
 			obj.router.RouteDel(
-				&router.SdnNetworkPath{
+				&common.SdnNetworkPath{
 					Ifname: cmd.Args.IfName,
 				}, cmd.Args.AllowedIPs)
 
@@ -228,6 +232,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 	obj.writer.Write(arr)
 
 	routeStatus.Send(obj.writer)
+	padMsg.Send(obj.writer)
 
 	return nil
 }
