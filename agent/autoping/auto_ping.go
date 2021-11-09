@@ -4,7 +4,6 @@ package autoping
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/slock"
 )
 
 const cmd = "AUTO_PING"
@@ -21,7 +19,6 @@ const pkgName = "Auto_Ping. "
 
 type AutoPing struct {
 	sync.RWMutex
-	slock.AtomicServiceLock
 	writer  io.Writer
 	ping    *multiping.MultiPing
 	results []byte
@@ -97,18 +94,11 @@ func (obj *AutoPing) PingProcess(pr []multiping.PingResult) {
 }
 
 func (obj *AutoPing) Start() error {
-	if !obj.TryLock() {
-		return fmt.Errorf("%s is already started", pkgName)
-	}
 	obj.ping.Start()
 	return nil
 }
 
 func (obj *AutoPing) Stop() error {
-	if !obj.TryUnlock() {
-		return fmt.Errorf("%s is not running", pkgName)
-	}
-
 	obj.ping.Stop()
 	return nil
 }
