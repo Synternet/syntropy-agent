@@ -2,8 +2,9 @@ package docker
 
 import (
 	"context"
-	"github.com/docker/docker/api/types/network"
 	"strings"
+
+	"github.com/docker/docker/api/types/network"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
@@ -21,7 +22,8 @@ func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 
 	for _, n := range networks {
 		ni := DockerNetworkInfoEntry{
-			Name:    n.Name,
+			// why docker package returns name prepended with `/` ?
+			Name:    strings.TrimPrefix(n.Name, "/"),
 			ID:      n.ID,
 			Subnets: []string{},
 		}
