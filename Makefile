@@ -9,10 +9,10 @@ ifeq ($(FULL_VERSION), ${EMPTY:Q})
 FULL_VERSION := $(shell git describe --tags --dirty --candidates=1)
 endif
 # Split git describe into version and subversion
-# 1.0.4-14-g2414721 ==> version = 1.0.4, subversion = 14-g2414721
+# 1.0.4-14-g2414721-dirty ==> version = 1.0.4, subversion = 14.g2414721.dirty
 # NOTE: do not include `v` in versioning
 VERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f1)
-SUBVERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f2-4)
+SUBVERSION = $(shell echo $(FULL_VERSION) | cut -d "-" -f2-6 | sed -r 's/-/+/' | sed -r 's/-/./g')
 ifeq ($(FULL_VERSION), $(VERSION))
 SUBVERSION:=
 endif
