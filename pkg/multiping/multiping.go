@@ -149,6 +149,7 @@ func (p *MultiPing) Ping() {
 	count := len(p.hosts)
 	results := make([]PingResult, count)
 	wg := sync.WaitGroup{}
+	wg.Add(count)
 
 	// Ping results listener. Waits for all the entries in results to be
 	// filled concurrently. Sends the results for processing.
@@ -158,7 +159,6 @@ func (p *MultiPing) Ping() {
 	}()
 
 	// Spawn all host pinging to goroutines
-	wg.Add(count)
 	for i := range p.hosts {
 		// In this case sharing memory is more efficient and readable
 		go p.pingHost(&wg, i, results)
