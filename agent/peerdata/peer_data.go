@@ -21,8 +21,9 @@ const cmd = "IFACES_PEERS_BW_DATA"
 const pkgName = "Peer_Data. "
 
 const (
-	periodInit = time.Second
-	periodRun  = time.Second * 10
+	periodInit           = time.Second
+	periodRun            = time.Second * 5 // ping every 5 seconds
+	controllerSendPeriod = 12              // reduce messages to controller to every minute
 )
 
 type peerDataEntry struct {
@@ -61,6 +62,7 @@ type wgPeerWatcher struct {
 	timeout     time.Duration
 	ctx         scontext.StartStopContext
 	pingClients []multiping.PingClient
+	counter     int
 }
 
 func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard, pcl ...multiping.PingClient) common.Service {
@@ -197,16 +199,21 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 
 	wait.Wait()
 
-	if len(resp.Data) > 0 {
-		resp.Now()
-		raw, err := json.Marshal(resp)
-		if err != nil {
-			logger.Error().Println(pkgName, "json", err)
-			return err
-		}
+	obj.counter++
+	// TODO: optimise and do not parse results if not sending
+	if obj.counter >= controllerSendPeriod {
+		obj.counter = 0
+		if len(resp.Data) > 0 {
+			resp.Now()
+			raw, err := json.Marshal(resp)
+			if err != nil {
+				logger.Error().Println(pkgName, "json", err)
+				return err
+			}
 
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
-		obj.writer.Write(raw)
+			logger.Debug().Println(pkgName, "Sending: ", string(raw))
+			obj.writer.Write(raw)
+		}
 	}
 
 	return nil
