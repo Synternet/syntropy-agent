@@ -300,7 +300,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	if errorCount > 0 {
-		errResp := common.ErrorResponce{
+		errResp := common.ErrorResponse{
 			MessageHeader: req.MessageHeader,
 		}
 		errResp.Data.Type = cmd + "_ERROR"

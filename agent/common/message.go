@@ -17,7 +17,7 @@ func (mh *MessageHeader) Now() {
 	mh.Timestamp = time.Now().Format(env.TimeFormat)
 }
 
-type ErrorResponce struct {
+type ErrorResponse struct {
 	MessageHeader
 	Data struct {
 		Type    string `json:"type"`

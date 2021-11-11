@@ -29,11 +29,11 @@ type autoPingRequest struct {
 	Data struct {
 		IPs       []string `json:"ips"`
 		Interval  int      `json:"interval"`
-		RespLimit int      `json:"responce_limit"`
+		RespLimit int      `json:"response_limit"`
 	} `json:"data"`
 }
 
-type autoPingResponce struct {
+type autoPingResponse struct {
 	common.MessageHeader
 	Data struct {
 		Pings []multiping.PingResult `json:"pings"`
@@ -71,7 +71,7 @@ func (obj *AutoPing) Exec(raw []byte) error {
 }
 
 func (obj *AutoPing) PingProcess(pr []multiping.PingResult) {
-	var resp autoPingResponce
+	var resp autoPingResponse
 	resp.Data.Pings = pr
 	resp.MsgType = cmd
 	resp.ID = env.MessageDefaultID

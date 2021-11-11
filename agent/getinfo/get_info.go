@@ -20,7 +20,7 @@ type getInfoRequest struct {
 	Data interface{} `json:"data,omitempty"`
 }
 
-type getInfoResponce struct {
+type getInfoResponse struct {
 	common.MessageHeader
 	Data struct {
 		Provider          int      `json:"agent_provider,omitempty"` // 0 is not used and do not send
@@ -58,7 +58,7 @@ func (obj *getInfo) Exec(raw []byte) error {
 		return err
 	}
 
-	resp := getInfoResponce{
+	resp := getInfoResponse{
 		MessageHeader: req.MessageHeader,
 	}
 
