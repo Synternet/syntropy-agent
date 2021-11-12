@@ -1,3 +1,4 @@
+// A simple wrapper to have State changes based on atomic variable
 package state
 
 import "sync/atomic"
