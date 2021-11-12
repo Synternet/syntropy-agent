@@ -1,5 +1,7 @@
 package docker
 
+import "context"
+
 type DockerNull struct {
 }
 
@@ -19,10 +21,6 @@ func (dn *DockerNull) Name() string {
 	return "DockerNull"
 }
 
-func (dn *DockerNull) Start() error {
-	return nil
-}
-
-func (dn *DockerNull) Stop() error {
+func (dn *DockerNull) Run(ctx context.Context) error {
 	return nil
 }

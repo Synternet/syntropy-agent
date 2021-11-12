@@ -1,7 +1,7 @@
 package docker
 
 import (
-	"context"
+	"errors"
 	"strings"
 
 	"github.com/docker/docker/api/types/network"
@@ -11,10 +11,17 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+var errClientInit = errors.New("docker client is not initialised")
+
 func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 	networkInfo := []DockerNetworkInfoEntry{}
 
-	networks, err := obj.cli.NetworkList(obj.ctx.Context(), types.NetworkListOptions{})
+	if obj.cli == nil {
+		logger.Error().Println(pkgName, errClientInit)
+		return networkInfo
+	}
+
+	networks, err := obj.cli.NetworkList(obj.ctx, types.NetworkListOptions{})
 	if err != nil {
 		logger.Warning().Println(pkgName, "Network List: ", err)
 		return networkInfo
@@ -57,14 +64,19 @@ func addPort(arr *[]uint16, port uint16) {
 func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 	containerInfo := []DockerContainerInfoEntry{}
 
-	containers, err := obj.cli.ContainerList(obj.ctx.Context(), types.ContainerListOptions{})
+	if obj.cli == nil {
+		logger.Error().Println(pkgName, errClientInit)
+		return containerInfo
+	}
+
+	containers, err := obj.cli.ContainerList(obj.ctx, types.ContainerListOptions{})
 	if err != nil {
 		logger.Warning().Println(pkgName, "Container List: ", err)
 		return containerInfo
 	}
 
 	for _, c := range containers {
-		jsoncfg, err := obj.cli.ContainerInspect(context.Background(), c.ID)
+		jsoncfg, err := obj.cli.ContainerInspect(obj.ctx, c.ID)
 		if err != nil {
 			logger.Error().Println(pkgName, "Inspect container ", c.ID, err)
 		}
@@ -128,7 +140,11 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 }
 
 func (obj *dockerWatcher) NetworkCreate(name string, subnet string) error {
-	_, err := obj.cli.NetworkCreate(obj.ctx.Context(), name, types.NetworkCreate{
+	if obj.cli == nil {
+		return errClientInit
+	}
+
+	_, err := obj.cli.NetworkCreate(obj.ctx, name, types.NetworkCreate{
 		CheckDuplicate: false,
 		IPAM: &network.IPAM{
 			Driver: "default",

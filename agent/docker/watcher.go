@@ -8,7 +8,6 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
@@ -23,24 +22,11 @@ const (
 type dockerWatcher struct {
 	writer io.Writer
 	cli    *client.Client
-	ctx    scontext.StartStopContext
+	ctx    context.Context
 }
 
-func New(ctx context.Context, w io.Writer) DockerService {
-	var err error
-	dw := dockerWatcher{writer: w}
-	dw.ctx = scontext.New(ctx)
-	dw.cli, err = client.NewClientWithOpts(client.FromEnv)
-	if err == nil {
-		dw.cli.NegotiateAPIVersion(ctx)
-		logger.Info().Println(pkgName, "negotiated API version", dw.cli.ClientVersion())
-	} else {
-		logger.Error().Println(pkgName, "Docker client: ", err)
-		logger.Warning().Println(pkgName, "fallback to null Docker client")
-		return &DockerNull{}
-	}
-
-	return &dw
+func New(w io.Writer) DockerService {
+	return &dockerWatcher{writer: w}
 }
 
 func (obj *dockerWatcher) Name() string {
@@ -48,7 +34,13 @@ func (obj *dockerWatcher) Name() string {
 }
 
 func (obj *dockerWatcher) run() {
-	msgs, errs := obj.cli.Events(obj.ctx.Context(), types.EventsOptions{})
+	// cleanup context and doker client on exit
+	defer func() {
+		obj.ctx = nil
+		obj.cli = nil
+	}()
+
+	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
 
 	for {
 		select {
@@ -106,21 +98,23 @@ func (obj *dockerWatcher) run() {
 	}
 }
 
-func (obj *dockerWatcher) Start() error {
-	_, err := obj.ctx.CreateContext()
-	if err != nil {
+func (obj *dockerWatcher) Run(ctx context.Context) error {
+	if obj.ctx != nil {
 		return fmt.Errorf("docker watcher already running")
 	}
 
-	go obj.run()
-
-	return nil
-}
-
-func (obj *dockerWatcher) Stop() error {
-	if err := obj.ctx.CancelContext(); err != nil {
-		return fmt.Errorf("docker watcher is not running")
+	var err error
+	obj.ctx = ctx
+	obj.cli, err = client.NewClientWithOpts(client.FromEnv)
+	if err == nil {
+		obj.cli.NegotiateAPIVersion(ctx)
+		logger.Info().Println(pkgName, "negotiated API version", obj.cli.ClientVersion())
+	} else {
+		logger.Error().Println(pkgName, "Docker client init: ", err)
+		return fmt.Errorf("could not initialise docker client")
 	}
+
+	go obj.run()
 
 	return nil
 }

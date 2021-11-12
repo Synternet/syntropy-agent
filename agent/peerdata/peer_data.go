@@ -3,7 +3,6 @@ package peerdata
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -14,7 +13,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const cmd = "IFACES_PEERS_BW_DATA"
@@ -60,17 +58,15 @@ type wgPeerWatcher struct {
 	writer      io.Writer
 	wg          *swireguard.Wireguard
 	timeout     time.Duration
-	ctx         scontext.StartStopContext
 	pingClients []multiping.PingClient
 	counter     int
 }
 
-func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard, pcl ...multiping.PingClient) common.Service {
+func New(writer io.Writer, wgctl *swireguard.Wireguard, pcl ...multiping.PingClient) common.Service {
 	return &wgPeerWatcher{
 		wg:          wgctl,
 		writer:      writer,
 		timeout:     periodInit,
-		ctx:         scontext.New(ctx),
 		pingClients: pcl,
 	}
 }
@@ -215,12 +211,7 @@ func (obj *wgPeerWatcher) Name() string {
 	return cmd
 }
 
-func (obj *wgPeerWatcher) Start() error {
-	ctx, err := obj.ctx.CreateContext()
-	if err != nil {
-		return fmt.Errorf("%s is already running", pkgName)
-	}
-
+func (obj *wgPeerWatcher) Run(ctx context.Context) error {
 	go func() {
 		ticker := time.NewTicker(periodInit)
 		defer ticker.Stop()
@@ -233,15 +224,5 @@ func (obj *wgPeerWatcher) Start() error {
 			}
 		}
 	}()
-	return nil
-}
-
-func (obj *wgPeerWatcher) Stop() error {
-	// Cannot stop not running instance
-	if err := obj.ctx.CancelContext(); err != nil {
-		return fmt.Errorf("%s is not running", pkgName)
-
-	}
-
 	return nil
 }

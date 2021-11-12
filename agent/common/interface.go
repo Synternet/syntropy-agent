@@ -1,5 +1,7 @@
 package common
 
+import "context"
+
 // Command interface is used for controller commands executors
 type Command interface {
 	Name() string
@@ -9,8 +11,7 @@ type Command interface {
 // Service interface describes background running instances
 type Service interface {
 	Name() string
-	Start() error
-	Stop() error
+	Run(ctx context.Context) error
 }
 
 // CommandService implements both: Command + Service

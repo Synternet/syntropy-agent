@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"context"
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
@@ -47,7 +46,7 @@ func (obj *kubernet) initClient() bool {
 // Caller is responsible to be sure that obj.klient is not nil
 func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 	res := []kubernetesServiceEntry{}
-	srvs, err := obj.klient.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{})
+	srvs, err := obj.klient.CoreV1().Services("").List(obj.ctx, metav1.ListOptions{})
 	if err != nil {
 		logger.Error().Println(pkgName, "listing services", err)
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/client-go/kubernetes"
 )
@@ -28,13 +27,12 @@ type kubernet struct {
 	writer io.Writer
 	klient *kubernetes.Clientset
 	msg    kubernetesInfoMessage
-	ctx    scontext.StartStopContext
+	ctx    context.Context
 }
 
-func New(ctx context.Context, w io.Writer) common.Service {
+func New(w io.Writer) common.Service {
 	kub := kubernet{
 		writer: w,
-		ctx:    scontext.New(ctx),
 	}
 	kub.msg.MsgType = cmd
 	kub.msg.ID = env.MessageDefaultID
@@ -65,11 +63,11 @@ func (obj *kubernet) execute() {
 	}
 }
 
-func (obj *kubernet) Start() error {
-	ctx, err := obj.ctx.CreateContext()
-	if err != nil {
+func (obj *kubernet) Run(ctx context.Context) error {
+	if obj.ctx != nil {
 		return fmt.Errorf("kubernetes watcher already running")
 	}
+	obj.ctx = ctx
 
 	if obj.klient == nil {
 		return fmt.Errorf("could not connect to kubernetes cluster")
@@ -87,17 +85,5 @@ func (obj *kubernet) Start() error {
 			}
 		}
 	}()
-	return nil
-}
-
-func (obj *kubernet) Stop() error {
-	if err := obj.ctx.CancelContext(); err != nil {
-		return fmt.Errorf("kubernetes watcher is not running")
-	}
-
-	if obj.klient == nil {
-		return fmt.Errorf("could not connect to kubernetes cluster")
-	}
-
 	return nil
 }

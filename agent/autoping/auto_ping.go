@@ -12,7 +12,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const (
@@ -22,19 +21,16 @@ const (
 
 type AutoPing struct {
 	sync.RWMutex
-	// TODO: no worries, this mess will be fixed ASAP
-	ctx     scontext.StartStopContext
-	ctx2    context.Context
+	ctx     context.Context
 	writer  io.Writer
 	ping    *multiping.MultiPing
 	timer   *time.Ticker
 	results []byte
 }
 
-func New(ctx context.Context, w io.Writer) *AutoPing {
+func New(w io.Writer) *AutoPing {
 	ap := AutoPing{
 		writer: w,
-		ctx:    scontext.New(ctx),
 	}
 	ap.ping = multiping.New(&ap)
 	return &ap
@@ -101,12 +97,17 @@ func (obj *AutoPing) stop() {
 }
 
 func (obj *AutoPing) start(period time.Duration) {
+	if obj.ctx == nil {
+		logger.Error().Println(pkgName, "service is not started")
+		return
+	}
+
 	obj.timer = time.NewTicker(period)
 	go func() {
 		defer obj.timer.Stop()
 		for {
 			select {
-			case <-obj.ctx2.Done():
+			case <-obj.ctx.Done():
 				return
 			case <-obj.timer.C:
 				obj.ping.Ping()
@@ -115,19 +116,11 @@ func (obj *AutoPing) start(period time.Duration) {
 	}()
 }
 
-func (obj *AutoPing) Start() error {
-	var err error
-	obj.ctx2, err = obj.ctx.CreateContext()
-	if err != nil {
+func (obj *AutoPing) Run(ctx context.Context) error {
+	if obj.ctx != nil {
 		return fmt.Errorf("%s is already running", pkgName)
 	}
-	return nil
-}
-
-func (obj *AutoPing) Stop() error {
-	if err := obj.ctx.CancelContext(); err != nil {
-		return fmt.Errorf("auto_ping is not running")
-	}
+	obj.ctx = ctx
 
 	return nil
 }

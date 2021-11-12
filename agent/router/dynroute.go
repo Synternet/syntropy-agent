@@ -5,14 +5,12 @@ package router
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sync"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/router/servicemon"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/scontext"
 )
 
 const (
@@ -26,15 +24,13 @@ type Router struct {
 	writer         io.Writer
 	peerMonitor    *peermon.PeerMonitor
 	serviceMonitor *servicemon.ServiceMonitor
-	ctx            scontext.StartStopContext
 }
 
-func New(ctx context.Context, w io.Writer) *Router {
+func New(w io.Writer) *Router {
 	return &Router{
 		writer:         w,
 		peerMonitor:    &peermon.PeerMonitor{},
 		serviceMonitor: servicemon.New(w),
-		ctx:            scontext.New(ctx),
 	}
 }
 
@@ -46,12 +42,7 @@ func (obj *Router) execute() {
 	obj.serviceMonitor.Reroute(obj.peerMonitor.BestPath())
 }
 
-func (obj *Router) Start() error {
-	ctx, err := obj.ctx.CreateContext()
-	if err != nil {
-		return fmt.Errorf("dynamic routing already running")
-	}
-
+func (obj *Router) Run(ctx context.Context) error {
 	go func() {
 		ticker := time.NewTicker(checkPeriod)
 		defer ticker.Stop()
@@ -65,14 +56,6 @@ func (obj *Router) Start() error {
 			}
 		}
 	}()
-
-	return nil
-}
-
-func (obj *Router) Stop() error {
-	if err := obj.ctx.CancelContext(); err != nil {
-		return fmt.Errorf("dynamic routing is not running")
-	}
 
 	return nil
 }

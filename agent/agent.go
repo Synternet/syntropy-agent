@@ -80,7 +80,7 @@ func New(contype int) (*Agent, error) {
 	}
 	agent.ctx, agent.cancel = context.WithCancel(context.Background())
 
-	agent.router = router.New(agent.ctx, agent.controller)
+	agent.router = router.New(agent.controller)
 	agent.wg, err = swireguard.New()
 	if err != nil {
 		return nil, err
@@ -98,10 +98,10 @@ func New(contype int) (*Agent, error) {
 		netfilter.CreateChain()
 
 	case config.ContainerTypeKubernetes:
-		agent.addService(kubernetes.New(agent.ctx, agent.controller))
+		agent.addService(kubernetes.New(agent.controller))
 
 	case config.ContainerTypeHost:
-		agent.addService(hostnetsrv.New(agent.ctx, agent.controller))
+		agent.addService(hostnetsrv.New(agent.controller))
 
 	default:
 		logger.Warning().Println(pkgName, "unknown SYNTROPY_NETWORK_API type: ", config.GetContainerType())
@@ -114,11 +114,11 @@ func New(contype int) (*Agent, error) {
 	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router, dockerHelper))
 	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
 
-	autoping := autoping.New(agent.ctx, agent.controller)
+	autoping := autoping.New(agent.controller)
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerdata.New(agent.ctx, agent.controller, agent.wg, agent.router))
+	agent.addService(peerdata.New(agent.controller, agent.wg, agent.router))
 	agent.addService(agent.router)
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
