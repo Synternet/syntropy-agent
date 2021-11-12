@@ -104,6 +104,9 @@ func (obj *AutoPing) start(period time.Duration) {
 
 	obj.timer = time.NewTicker(period)
 	go func() {
+		// Don't wait for ticker and do the first ping asap
+		obj.ping.Ping()
+
 		defer obj.timer.Stop()
 		for {
 			select {
