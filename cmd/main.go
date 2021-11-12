@@ -15,7 +15,7 @@ import (
 
 const (
 	fullAppName = "Syntropy Stack Agent. "
-	lockFile    = "/var/lock/syntropy_agent.lock"
+	lockFile    = "/var/lock/syntropy"
 )
 
 func requireRoot() {
@@ -46,7 +46,7 @@ func main() {
 	requireRoot()
 
 	// Perform locking using Flock.
-	// If running from docker - it is recommended to use `-v /var/lock/syntropy_agent.lock:/var/lock/syntropy_agent.lock`
+	// If running from docker - it is recommended to use `-v /var/lock/syntropy:/var/lock/syntropy`
 	f, err := os.Create(lockFile)
 	if err != nil {
 		logger.Error().Println(fullAppName, lockFile, err)
