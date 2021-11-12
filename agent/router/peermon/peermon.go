@@ -5,6 +5,7 @@ package peermon
 import (
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
@@ -71,17 +72,17 @@ func (pm *PeerMonitor) Peers() []string {
 	return rv
 }
 
-func (pm *PeerMonitor) PingProcess(pr []multiping.PingResult) {
+func (pm *PeerMonitor) PingProcess(pr *multiping.PingResult) {
 	pm.Lock()
 	defer pm.Unlock()
 
-	for _, res := range pr {
-		for _, peer := range pm.peerList {
-			if peer.endpoint == res.IP {
-				peer.Add(res.Latency, res.Loss)
-				break // break internal loop, continue on external
-			}
+	for _, peer := range pm.peerList {
+		val, ok := pr.Get(peer.endpoint)
+		if !ok {
+			logger.Error().Println(pkgName, peer.endpoint, "missing in ping results")
+			continue
 		}
+		peer.Add(val.Latency, val.Loss)
 	}
 
 }

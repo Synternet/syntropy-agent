@@ -9,7 +9,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
-func (r *Router) PingProcess(pr []multiping.PingResult) {
+func (r *Router) PingProcess(pr *multiping.PingResult) {
 	r.peerMonitor.PingProcess(pr)
 }
 

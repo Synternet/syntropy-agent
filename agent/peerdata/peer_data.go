@@ -75,7 +75,7 @@ func New(ctx context.Context, writer io.Writer, wgctl *swireguard.Wireguard, pcl
 	}
 }
 
-func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
+func (ie *ifaceBwEntry) PingProcess(pr *multiping.PingResult) {
 	defer ie.wait.Done()
 
 	// PingClients (actually PeerMonitor instance) also needs to process these ping result
@@ -83,24 +83,16 @@ func (ie *ifaceBwEntry) PingProcess(pr []multiping.PingResult) {
 		pc.PingProcess(pr)
 	}
 
-	var entry *peerDataEntry
-
 	// format results for controler
-	for _, pingres := range pr {
-		entry = nil
-		for _, e := range ie.Peers {
-			if e.IP == pingres.IP {
-				entry = e
-				break
-			}
-		}
-
-		if entry == nil {
+	for _, entry := range ie.Peers {
+		val, ok := pr.Get(entry.IP)
+		if !ok {
+			logger.Error().Println(pkgName, entry.IP, "missing in ping results")
 			continue
 		}
 
-		entry.Latency = pingres.Latency
-		entry.Loss = pingres.Loss
+		entry.Latency = val.Latency
+		entry.Loss = val.Loss
 
 		switch {
 		case entry.Loss >= 1:
@@ -156,7 +148,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			wait:        &wait,
 			pingClients: obj.pingClients,
 		}
-		ping := multiping.New(ctx, &ifaceData)
+		ping := multiping.New(&ifaceData)
 
 		for _, p := range wgdev.Peers() {
 			if len(p.AllowedIPs) == 0 {
