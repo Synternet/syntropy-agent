@@ -91,7 +91,7 @@ func New(contype int) (*Agent, error) {
 
 	switch config.GetContainerType() {
 	case config.ContainerTypeDocker:
-		dockerWatch := docker.New(agent.ctx, agent.controller)
+		dockerWatch := docker.New(agent.controller)
 		agent.addService(dockerWatch)
 		dockerHelper = dockerWatch
 		// SYNTROPY_CHAIN iptables rule is created only in Docker case
