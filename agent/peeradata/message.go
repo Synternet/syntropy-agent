@@ -40,6 +40,11 @@ func (pad *PeersActiveDataMessage) Add(entries ...PeerActiveDataEntry) {
 }
 
 func (pad *PeersActiveDataMessage) Send(writer io.Writer) error {
+	if len(pad.Data) == 0 {
+		// controler does not need an empty message
+		return nil
+	}
+
 	pad.Now()
 	raw, err := json.Marshal(pad)
 	if err != nil {
