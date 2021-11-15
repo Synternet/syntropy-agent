@@ -2,6 +2,8 @@ package router
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
@@ -26,11 +28,34 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 		return nil, nil
 	}
 
-	logger.Info().Println(pkgName, "Route add ", destination, " via ", netpath.Gateway)
-	routeRes.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
-	if routeRes.Error != nil {
-		logger.Error().Println(pkgName, "route add error:", routeRes.Error)
-		return &routeRes, nil
+	routeConflict, conflictIfName := netcfg.RouteConflict(destination)
+	if routeConflict {
+		// Route already exists. So we have 2 options here
+		if strings.HasPrefix(conflictIfName, env.InterfaceNamePrefix) {
+			// If route is via other Syntropy interface - change the route to this interface
+			// TODO: in future optimise this, and if existing link is legal - try not to change it
+			logger.Info().Println(pkgName, "Route update ", destination, " via ", netpath.Gateway)
+			routeRes.Error = netcfg.RouteReplace(netpath.Ifname, netpath.Gateway, destination)
+			if routeRes.Error != nil {
+				logger.Error().Println(pkgName, "route update error:", routeRes.Error)
+				return &routeRes, nil
+			}
+		} else {
+			// If route is not via SYNTROPY - inform error
+			routeRes.Error = fmt.Errorf("route to %s conflict: wanted via %s exists on %s",
+				destination, netpath.Gateway, conflictIfName)
+			logger.Error().Println(pkgName, "route add error:", routeRes.Error)
+			return &routeRes, nil
+		}
+
+	} else {
+		// clean case - no route conflict. Simply add the route
+		logger.Info().Println(pkgName, "Route add ", destination, " via ", netpath.Gateway)
+		routeRes.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
+		if routeRes.Error != nil {
+			logger.Error().Println(pkgName, "route add error:", routeRes.Error)
+			return &routeRes, nil
+		}
 	}
 
 	return &routeRes,

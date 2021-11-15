@@ -92,6 +92,35 @@ func RouteReplace(ifname string, gw string, ip string) error {
 	return nil
 }
 
+func RouteConflict(ip string) (rc bool, ifname string) {
+	_, dest, err := net.ParseCIDR(ip)
+	if err != nil {
+		return
+	}
+
+	routes, err := netlink.RouteList(nil, 0)
+	if err != nil {
+		// Cannot list routes. Should be quite a problem on the system.
+		return
+	}
+	for _, r := range routes {
+		if r.Dst == nil {
+			continue
+		}
+		// We are already listing required interface routes.
+		// So need only to compare destination and gateway
+		if r.Dst.IP.Equal(dest.IP) {
+			rc = true
+			link, err := netlink.LinkByIndex(r.LinkIndex)
+			if err == nil {
+				ifname = link.Attrs().Name
+			}
+		}
+	}
+
+	return rc, ifname
+}
+
 func routeExists(link netlink.Link, dst *net.IPNet, gw net.IP) bool {
 	if dst == nil {
 		return true // TODO: default route checking. But now we do not configure default routes
