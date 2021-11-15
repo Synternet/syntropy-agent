@@ -13,7 +13,13 @@ import (
  * vishvananda's netlink package is either too low level or tries reusing net packages interfaces
  * An option could be to use tailscale's inet.af/netaddr, but this needs more investigation
  * what benefits tradeoffs we will get
- * So for now lets stick to plain strings (TODO)
+ * So for now lets stick to plain strings
+ *
+ * Some good news. New 1.18 GO will include net/netip in stdlib,
+ * which is almost same tailscale's inet.af/netaddr
+ * https://sebastian-holstein.de/post/2021-11-08-go-1.18-features/
+ * So lets wait till February 2022 and finaly fix this.
+ * TODO ^^^^
  **/
 
 func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]common.RouteResult, []peeradata.PeerActiveDataEntry) {
