@@ -15,6 +15,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/controller"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
 	"github.com/gorilla/websocket"
 )
@@ -100,7 +101,7 @@ func (cc *CloudController) connect() (err error) {
 	// Without these headers connection will be ignored silently
 	headers.Set("authorization", cc.token)
 	headers.Set("x-deviceid", config.GetDeviceID())
-	headers.Set("x-deviceip", config.GetPublicIp())
+	headers.Set("x-deviceip", pubip.GetPublicIp().String())
 	headers.Set("x-devicename", config.GetAgentName())
 	headers.Set("x-devicestatus", "OK")
 	headers.Set("x-agenttype", "Linux")

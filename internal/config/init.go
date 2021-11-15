@@ -24,7 +24,6 @@ func Init() {
 	initAgentTags()
 	initNetworkIDs()
 
-	updatePublicIp()
 	initPortsRange()
 	initAllowedIPs()
 	initMTU()

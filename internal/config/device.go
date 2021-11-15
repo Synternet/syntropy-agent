@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip"
 )
 
 func initDeviceID() {
@@ -21,7 +23,7 @@ func initDeviceID() {
 		if err != nil {
 			return "", err
 		}
-		return strings.Trim(string(data), "\n") + GetPublicIp(), nil
+		return strings.Trim(string(data), "\n") + pubip.GetPublicIp().String(), nil
 	}
 
 	cpuSerial := func() string {
@@ -31,7 +33,7 @@ func initDeviceID() {
 		// But is not working on generic PC linux
 		file, err := os.Open("/proc/cpuinfo")
 		if err != nil {
-			return "0000000000000000" + GetPublicIp()
+			return "0000000000000000" + pubip.GetPublicIp().String()
 		}
 		defer file.Close()
 
@@ -46,7 +48,7 @@ func initDeviceID() {
 
 		// Fallback to any sane value
 		if serial == "" {
-			serial = "0000000000000000" + GetPublicIp()
+			serial = "0000000000000000" + pubip.GetPublicIp().String()
 		}
 
 		return serial

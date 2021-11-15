@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 const pkgName = "SyntropyAgentConfig. "
 
 type Location struct {
@@ -31,10 +29,6 @@ type configCache struct {
 	agentTags      []string
 	networkIDs     []string
 
-	publicIP struct {
-		ip      string
-		updated time.Time
-	}
 	portsRange struct {
 		start uint16
 		end   uint16

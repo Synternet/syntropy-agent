@@ -1,7 +1,5 @@
 package config
 
-import "time"
-
 const (
 	ControllerSaas = iota
 	ControllerScript
@@ -74,14 +72,6 @@ func GetNetworkIDs() []string {
 	} else {
 		return []string{}
 	}
-}
-
-func GetPublicIp() string {
-	if time.Now().After(cache.publicIP.updated.Add(ipUpdatePeriod)) {
-		updatePublicIp()
-	}
-
-	return cache.publicIP.ip
 }
 
 func GetPortsRange() (uint16, uint16) {

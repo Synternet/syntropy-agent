@@ -8,6 +8,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip"
 )
 
 const (
@@ -65,7 +66,7 @@ func (obj *getInfo) Exec(raw []byte) error {
 	resp.Data.Provider = config.GetAgentProvider()
 	resp.Data.Status = config.GetServicesStatus()
 	resp.Data.Tags = config.GetAgentTags()
-	resp.Data.ExternalIP = config.GetPublicIp()
+	resp.Data.ExternalIP = pubip.GetPublicIp().String()
 	resp.Data.LocationLatitude = config.GetLocationLatitude()
 	resp.Data.LocationLongitude = config.GetLocationLongitude()
 	resp.Data.NetworkInfo = obj.docker.NetworkInfo()
