@@ -255,7 +255,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		if subnetwork.Type == "DOCKER" {
 			err := obj.docker.NetworkCreate(subnetwork.Name, subnetwork.Subnet)
 			if err != nil {
-				logger.Error().Printf("%s Create docker network error: %s\n", pkgName, err)
+				logger.Info().Printf("%s Docker subnetwork %s already created\n", pkgName, subnetwork.Name)
 			}
 		}
 	}
