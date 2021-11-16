@@ -2,6 +2,7 @@ package docker
 
 import (
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/docker/docker/api/types/network"
@@ -29,8 +30,7 @@ func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 
 	for _, n := range networks {
 		ni := DockerNetworkInfoEntry{
-			// why docker package returns name prepended with `/` ?
-			Name:    strings.TrimPrefix(n.Name, "/"),
+			Name:    n.Name,
 			ID:      n.ID,
 			Subnets: []string{},
 		}
@@ -93,11 +93,14 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 			name = jsoncfg.Config.Domainname
 		}
 		if name == "" {
-			name = c.Names[0]
+			// why docker package returns name prepended with `/` ?
+			name = strings.TrimPrefix(c.Names[0], "/")
 		}
 		if name == "" {
 			name = jsoncfg.Config.Hostname
 		}
+
+		log.Println("Docker Helper ", name)
 
 		ci := DockerContainerInfoEntry{
 			ID:       c.ID,
