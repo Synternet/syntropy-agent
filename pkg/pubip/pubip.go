@@ -76,6 +76,12 @@ func GetPublicIp() net.IP {
 			publicIP.cache.updated = time.Now()
 		} else {
 			logger.Error().Println(pkgName, err)
+			if publicIP.cache.ip == nil {
+				// Fallback to 0.0.0.0, if have no valid older ip (stick to old value, if it is present)
+				// Do not update timestamp, so I will retry asap
+				// Temporary workarround until a propper solution will be implemented
+				publicIP.cache.ip = net.ParseIP("0.0.0.0")
+			}
 		}
 	}
 
