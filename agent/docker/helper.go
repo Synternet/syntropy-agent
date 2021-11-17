@@ -2,7 +2,6 @@ package docker
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/docker/docker/api/types/network"
@@ -99,8 +98,6 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 		if name == "" {
 			name = jsoncfg.Config.Hostname
 		}
-
-		log.Println("Docker Helper ", name)
 
 		ci := DockerContainerInfoEntry{
 			ID:       c.ID,
