@@ -22,14 +22,14 @@ func newRouteList() *routeList {
 		active: 0,
 	}
 }
-func (rl *routeList) Print() {
+func (rl *routeList) Dump() {
 	for i, r := range rl.list {
 		mark := " "
 		if i == rl.active {
 			mark = "*"
 		}
-		logger.Debug().Printf("%s [%d] %s %s (%d / %d)\n",
-			mark, i, r.gateway, r.ifname, r.connectionID, r.groupID)
+		logger.Debug().Printf("%s%s [%d] %s %s (%d / %d)\n",
+			pkgName, mark, i, r.gateway, r.ifname, r.connectionID, r.groupID)
 	}
 }
 

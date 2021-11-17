@@ -3,7 +3,6 @@ package servicemon
 import (
 	"errors"
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
@@ -16,13 +15,11 @@ const pkgName = "ServiceMonitor. "
 
 type ServiceMonitor struct {
 	sync.Mutex
-	writer io.Writer
 	routes map[string]*routeList
 }
 
-func New(w io.Writer) *ServiceMonitor {
+func New() *ServiceMonitor {
 	return &ServiceMonitor{
-		writer: w,
 		routes: make(map[string]*routeList),
 	}
 }

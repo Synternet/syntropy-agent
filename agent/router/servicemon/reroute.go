@@ -1,8 +1,6 @@
 package servicemon
 
 import (
-	"encoding/json"
-	"fmt"
 	"strings"
 	"time"
 
@@ -12,11 +10,12 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
-func (sm *ServiceMonitor) Reroute(newgw string) error {
+func (sm *ServiceMonitor) Reroute(newgw string) []peeradata.PeerActiveDataEntry {
 	errIPs := []string{}
-	resp := peeradata.NewMessage()
+	ret := []peeradata.PeerActiveDataEntry{}
 
 	sm.Lock()
+	defer sm.Unlock()
 
 	for dest, routes := range sm.routes {
 		if routes.Count() <= 1 {
@@ -32,11 +31,10 @@ func (sm *ServiceMonitor) Reroute(newgw string) error {
 				oldRoute := routes.list[routes.active]
 				logger.Info().Printf("%s SDN route change to %s via %s [%s:%d]\n",
 					pkgName, dest, newgw, newRoute.ifname, newRoute.groupID)
-				routes.Print()
 				routes.active = idx
 				err := netcfg.RouteReplace(newRoute.ifname, newgw, dest)
 				if err == nil {
-					resp.Data = append(resp.Data,
+					ret = append(ret,
 						peeradata.PeerActiveDataEntry{
 							PreviousConnID: oldRoute.connectionID,
 							ConnectionID:   newRoute.connectionID,
@@ -51,22 +49,10 @@ func (sm *ServiceMonitor) Reroute(newgw string) error {
 		}
 	}
 
-	sm.Unlock()
-
-	if len(resp.Data) > 0 {
-		resp.Now()
-		raw, err := json.Marshal(resp)
-		if err != nil {
-			return err
-		}
-
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
-		sm.writer.Write(raw)
-	}
-
 	if len(errIPs) > 0 {
-		return fmt.Errorf("could not change routes to %s via %s", strings.Join(errIPs, ","), newgw)
+		logger.Error().Printf("%s could not change routes to %s via %s\n",
+			pkgName, strings.Join(errIPs, ","), newgw)
 	}
 
-	return nil
+	return ret
 }

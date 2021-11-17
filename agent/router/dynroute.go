@@ -5,12 +5,13 @@ package router
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router/peermon"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router/servicemon"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
 
 const (
@@ -21,16 +22,14 @@ const (
 
 type Router struct {
 	sync.Mutex
-	writer         io.Writer
-	peerMonitor    *peermon.PeerMonitor
-	serviceMonitor *servicemon.ServiceMonitor
+	writer io.Writer
+	routes map[int]*routerGroupEntry // route list ordered by group_id
 }
 
 func New(w io.Writer) *Router {
 	return &Router{
-		writer:         w,
-		peerMonitor:    &peermon.PeerMonitor{},
-		serviceMonitor: servicemon.New(w),
+		writer: w,
+		routes: make(map[int]*routerGroupEntry),
 	}
 }
 
@@ -39,7 +38,25 @@ func (obj *Router) Name() string {
 }
 
 func (obj *Router) execute() {
-	obj.serviceMonitor.Reroute(obj.peerMonitor.BestPath())
+	resp := peeradata.NewMessage()
+
+	for _, routeGroup := range obj.routes {
+		rv := routeGroup.serviceMonitor.Reroute(routeGroup.peerMonitor.BestPath())
+		resp.Data = append(resp.Data, rv...)
+	}
+
+	if len(resp.Data) > 0 {
+		resp.Now()
+		raw, err := json.Marshal(resp)
+		if err != nil {
+			logger.Error().Println(pkgName, err)
+			return
+		}
+
+		logger.Debug().Println(pkgName, "Sending: ", string(raw))
+		obj.writer.Write(raw)
+	}
+
 }
 
 func (obj *Router) Run(ctx context.Context) error {

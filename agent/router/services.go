@@ -18,8 +18,10 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 	routeRes := common.RouteResult{
 		IP: destination,
 	}
+	routesGroup := r.findOrCreate(netpath.GroupID)
+	sm := routesGroup.serviceMonitor
 
-	if err := r.serviceMonitor.Add(netpath, destination); err != nil {
+	if err := sm.Add(netpath, destination); err != nil {
 		if errors.Is(err, servicemon.ErrSdnRouteExists) {
 			logger.Debug().Println(pkgName, "skip existing SDN route to", destination)
 		} else {
@@ -34,7 +36,7 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 		if strings.HasPrefix(conflictIfName, env.InterfaceNamePrefix) {
 			// If route is via other Syntropy interface - change the route to this interface
 			// TODO: in future optimise this, and if existing link is legal - try not to change it
-			logger.Info().Println(pkgName, "Route update ", destination, " via ", netpath.Gateway)
+			logger.Info().Println(pkgName, "Route update ", destination, " via ", netpath.Gateway, "/", netpath.Ifname)
 			routeRes.Error = netcfg.RouteReplace(netpath.Ifname, netpath.Gateway, destination)
 			if routeRes.Error != nil {
 				logger.Error().Println(pkgName, "route update error:", routeRes.Error)
@@ -50,7 +52,7 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 
 	} else {
 		// clean case - no route conflict. Simply add the route
-		logger.Info().Println(pkgName, "Route add ", destination, " via ", netpath.Gateway)
+		logger.Info().Println(pkgName, "Route add ", destination, " via ", netpath.Gateway, "/", netpath.Ifname)
 		routeRes.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
 		if routeRes.Error != nil {
 			logger.Error().Println(pkgName, "route add error:", routeRes.Error)
@@ -68,11 +70,21 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 }
 
 func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination string) *common.RouteResult {
-	routeRes := common.RouteResult{
+	routeRes := &common.RouteResult{
 		IP: destination,
 	}
 
-	r.serviceMonitor.Del(netpath, destination)
+	routesGroup, ok := r.find(netpath.GroupID)
+	if !ok {
+		// Was asked to delete non-existing service route.
+		// So its like I've done what I was asked - do not disturb caller
+		logger.Warning().Printf("%s delete service route to %s: route group %d does not exist\n",
+			pkgName, destination, netpath.GroupID)
+		return routeRes
+	}
+	sm := routesGroup.serviceMonitor
+
+	sm.Del(netpath, destination)
 
 	logger.Info().Println(pkgName, "Route delete ", destination, " via ", netpath.Gateway)
 
@@ -81,5 +93,5 @@ func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination string) 
 		logger.Error().Println(pkgName, destination, "route delete error", routeRes.Error)
 	}
 
-	return &routeRes
+	return routeRes
 }

@@ -1,24 +1,39 @@
 package peermon
 
-// TODO: think about merging this with router.Router and using some interfaces
-
 import (
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
 const (
-	pkgName          = "PeerMonitor. "
-	valuesCount      = 10  // how much values use for moving average
-	betterCoeficient = 0.9 // 10% better
+	pkgName = "PeerMonitor. "
+	// how many values use for moving average
+	// this value is like multiplicator for peerdata.periodRun
+	// if peerdata.periodRun=5secs, then 5*24=2 minutes average
+	valuesCount = 24
+	// when have an active route and want to change a better route
+	// this new better route must be 10% better, to reduce route change fluctuation
+	betterCoeficient = 0.9
+	// Loss from multipinger is in 0.0 .. 1.0 range.
+	// Convert it to promiles (percent*10) for better debug accurancy
+	lossCoefficient = 1000
+	// internal use
 	invalidBestIndex = -1
+)
+
+const (
+	reasonNewRoute = iota
+	reasonLoss
+	reasonLatency
 )
 
 type PeerMonitor struct {
 	sync.RWMutex
-	peerList []*peerInfo
-	lastBest int
+	peerList     []*peerInfo
+	lastBest     int
+	changeReason int
 }
 
 func New() *PeerMonitor {
@@ -71,6 +86,18 @@ func (pm *PeerMonitor) Peers() []string {
 	return rv
 }
 
+func (pm *PeerMonitor) Dump() {
+	for i := 0; i < len(pm.peerList); i++ {
+		e := pm.peerList[i]
+		mark := " "
+		if i == pm.lastBest {
+			mark = "*"
+		}
+		logger.Debug().Printf("%s%s %s\t%s\t%fms\t%f%%\n",
+			pkgName, mark, e.endpoint, e.gateway, e.Latency(), 100*e.Loss())
+	}
+}
+
 func (pm *PeerMonitor) PingProcess(pr *multiping.PingResult) {
 	pm.Lock()
 	defer pm.Unlock()
@@ -115,20 +142,26 @@ func (pm *PeerMonitor) BestPath() string {
 		}
 	}
 
-	if pm.lastBest == invalidBestIndex {
-		// No previous best route yet - choose the best
-		pm.lastBest = bestIdx
-	} else {
-		switch {
-		case pm.peerList[bestIdx].Loss() < pm.peerList[pm.lastBest].Loss():
-			// lower loss is a must
-			pm.lastBest = bestIdx
-		case pm.peerList[bestIdx].Latency() < pm.peerList[pm.lastBest].Latency()*betterCoeficient:
-			// reduce too much reroutes and move to other route only if it is xx% better
-			pm.lastBest = bestIdx
-		}
-
-	}
+	pm.checkNewBest(bestIdx)
 
 	return pm.peerList[pm.lastBest].gateway
+}
+
+func (pm *PeerMonitor) checkNewBest(idx int) {
+	if pm.lastBest == invalidBestIndex {
+		// No previous best route yet - choose the best
+		pm.changeReason = reasonNewRoute
+		pm.lastBest = idx
+	} else {
+		switch {
+		case pm.peerList[idx].Loss() < pm.peerList[pm.lastBest].Loss():
+			// lower loss is a must
+			pm.changeReason = reasonLoss
+			pm.lastBest = idx
+		case pm.peerList[idx].Latency() < pm.peerList[pm.lastBest].Latency()*betterCoeficient:
+			// reduce too much reroutes and move to other route only if it is xx% better
+			pm.changeReason = reasonLatency
+			pm.lastBest = idx
+		}
+	}
 }
