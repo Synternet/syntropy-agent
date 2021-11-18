@@ -3,16 +3,8 @@ package autoping
 import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
-
-type autoPingRequest struct {
-	common.MessageHeader
-	Data struct {
-		IPs       []string `json:"ips"`
-		Interval  int      `json:"interval"`
-		RespLimit int      `json:"response_limit"`
-	} `json:"data"`
-}
 
 type pingResponseEntry struct {
 	IP      string  `json:"ip"`
@@ -35,4 +27,19 @@ func newResponceMsg() autoPingResponse {
 	msg.Now()
 
 	return msg
+}
+
+func (resp *autoPingResponse) PingProcess(data *multiping.PingData) {
+	// TODO: respect controllers set LimitCount
+	data.Iterate(func(ip string, val multiping.PingStats) {
+		resp.Data.Pings = append(resp.Data.Pings,
+			pingResponseEntry{
+				IP:      ip,
+				Latency: val.Latency(),
+				Loss:    val.Loss(),
+			})
+	})
+
+	// Clear old statistics
+	data.Clear()
 }

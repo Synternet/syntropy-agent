@@ -66,15 +66,7 @@ func (obj *AutoPing) Exec(raw []byte) error {
 func (obj *AutoPing) PingProcess(pr *multiping.PingData) {
 	resp := newResponceMsg()
 
-	// TODO: respect controllers set LimitCount
-	pr.Iterate(func(ip string, val multiping.PingStats) {
-		resp.Data.Pings = append(resp.Data.Pings,
-			pingResponseEntry{
-				IP:      ip,
-				Latency: val.Latency(),
-				Loss:    val.Loss(),
-			})
-	})
+	resp.PingProcess(pr)
 
 	if len(resp.Data.Pings) > 0 {
 		var err error
