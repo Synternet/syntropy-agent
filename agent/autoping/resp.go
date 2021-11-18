@@ -41,5 +41,5 @@ func (resp *autoPingResponse) PingProcess(data *multiping.PingData) {
 	})
 
 	// Clear old statistics
-	data.Clear()
+	data.Reset()
 }

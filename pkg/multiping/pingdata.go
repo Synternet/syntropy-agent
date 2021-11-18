@@ -17,8 +17,8 @@ type PingStats struct {
 	rtt time.Duration
 }
 
-// Clear - reset statistics to zero values
-func (s *PingStats) Clear() {
+// Reset statistics to zero values
+func (s *PingStats) Reset() {
 	s.tx = 0
 	s.rx = 0
 	s.rtt = 0
@@ -72,18 +72,18 @@ func (pr *PingData) Flush() {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
-	for h, _ := range pr.entries {
+	for h := range pr.entries {
 		delete(pr.entries, h)
 	}
 }
 
-// Clear resets statistics. Host list remains unchainged.
-func (pr *PingData) Clear() {
+// Reset statistics. Host list remains unchainged.
+func (pr *PingData) Reset() {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
 	for _, e := range pr.entries {
-		e.Clear()
+		e.Reset()
 	}
 }
 
