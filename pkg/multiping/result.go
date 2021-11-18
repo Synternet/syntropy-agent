@@ -3,7 +3,7 @@ package multiping
 import (
 	"sync"
 
-	"github.com/go-ping/ping"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping/ping"
 )
 
 type PingClient interface {
