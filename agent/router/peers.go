@@ -55,7 +55,7 @@ func (r *Router) PeerDel(netpath *common.SdnNetworkPath, destination string) com
 	return entry
 }
 
-func (r *Router) PingProcess(pr *multiping.PingResult) {
+func (r *Router) PingProcess(pr *multiping.PingData) {
 	for _, pm := range r.routes {
 		pm.peerMonitor.PingProcess(pr)
 	}

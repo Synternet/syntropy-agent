@@ -1,5 +1,5 @@
 // This file code is based on https://github.com/go-ping/ping
-package ping
+package multiping
 
 import (
 	"bytes"

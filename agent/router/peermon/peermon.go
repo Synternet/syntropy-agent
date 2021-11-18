@@ -98,7 +98,7 @@ func (pm *PeerMonitor) Dump() {
 	}
 }
 
-func (pm *PeerMonitor) PingProcess(pr *multiping.PingResult) {
+func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 	pm.Lock()
 	defer pm.Unlock()
 
@@ -112,7 +112,7 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingResult) {
 			// NOTE: Do not print error here - PeerMonitor always finds its peers. Just not all of them in one run.
 			continue
 		}
-		peer.Add(val.Latency, val.Loss)
+		peer.Add(val.Latency(), val.Loss())
 	}
 
 }

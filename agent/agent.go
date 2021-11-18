@@ -27,6 +27,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
+	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
 const pkgName = "SyntropyAgent. "
@@ -44,6 +45,7 @@ type Agent struct {
 	// various helpers, used crossed-services
 	wg     *swireguard.Wireguard
 	router *router.Router
+	pinger *multiping.MultiPing
 
 	// services and commands slice/map
 	commands map[string]common.Command
@@ -81,6 +83,12 @@ func New(contype int) (*Agent, error) {
 	agent.ctx, agent.cancel = context.WithCancel(context.Background())
 
 	agent.router = router.New(agent.controller)
+
+	agent.pinger, err = multiping.New(true)
+	if err != nil {
+		return nil, err
+	}
+
 	agent.wg, err = swireguard.New()
 	if err != nil {
 		return nil, err
@@ -114,11 +122,11 @@ func New(contype int) (*Agent, error) {
 	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router, dockerHelper))
 	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
 
-	autoping := autoping.New(agent.controller)
+	autoping := autoping.New(agent.controller, agent.pinger)
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerdata.New(agent.controller, agent.wg, agent.router))
+	agent.addService(peerdata.New(agent.controller, agent.wg, agent.pinger, agent.router))
 	agent.addService(agent.router)
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))

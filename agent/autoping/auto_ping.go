@@ -21,18 +21,21 @@ const (
 
 type AutoPing struct {
 	sync.RWMutex
-	ctx     context.Context
-	writer  io.Writer
-	ping    *multiping.MultiPing
-	timer   *time.Ticker
-	results []byte
+	ctx      context.Context
+	writer   io.Writer
+	pinger   *multiping.MultiPing
+	pingData *multiping.PingData
+	timer    *time.Ticker
+	results  []byte
 }
 
-func New(w io.Writer) *AutoPing {
+func New(w io.Writer, p *multiping.MultiPing) *AutoPing {
 	ap := AutoPing{
-		writer: w,
+		writer:   w,
+		pinger:   p,
+		pingData: multiping.NewPingData(),
 	}
-	ap.ping = multiping.New(&ap)
+
 	return &ap
 }
 
@@ -51,25 +54,25 @@ func (obj *AutoPing) Exec(raw []byte) error {
 	defer obj.Unlock()
 
 	obj.stop()
-	obj.ping.Flush()
-	obj.ping.AddHost(req.Data.IPs...)
-	if obj.ping.Count() > 0 {
+	obj.pingData.Flush()
+	obj.pingData.Add(req.Data.IPs...)
+	if obj.pingData.Count() > 0 {
 		obj.start(time.Duration(req.Data.Interval) * time.Second)
 	}
 
 	return nil
 }
 
-func (obj *AutoPing) PingProcess(pr *multiping.PingResult) {
+func (obj *AutoPing) PingProcess(pr *multiping.PingData) {
 	resp := newResponceMsg()
 
 	// TODO: respect controllers set LimitCount
-	pr.Iterate(func(ip string, val multiping.PingResultValue) {
+	pr.Iterate(func(ip string, val multiping.PingStats) {
 		resp.Data.Pings = append(resp.Data.Pings,
 			pingResponseEntry{
 				IP:      ip,
-				Latency: val.Latency,
-				Loss:    val.Loss,
+				Latency: val.Latency(),
+				Loss:    val.Loss(),
 			})
 	})
 
@@ -105,7 +108,8 @@ func (obj *AutoPing) start(period time.Duration) {
 	obj.timer = time.NewTicker(period)
 	go func() {
 		// Don't wait for ticker and do the first ping asap
-		obj.ping.Ping()
+		obj.pinger.Ping(obj.pingData)
+		obj.PingProcess(obj.pingData)
 
 		defer obj.timer.Stop()
 		for {
@@ -113,7 +117,8 @@ func (obj *AutoPing) start(period time.Duration) {
 			case <-obj.ctx.Done():
 				return
 			case <-obj.timer.C:
-				obj.ping.Ping()
+				obj.pinger.Ping(obj.pingData)
+				obj.PingProcess(obj.pingData)
 			}
 		}
 	}()

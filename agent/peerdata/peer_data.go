@@ -58,20 +58,23 @@ type wgPeerWatcher struct {
 	writer      io.Writer
 	wg          *swireguard.Wireguard
 	timeout     time.Duration
+	pinger      *multiping.MultiPing
 	pingClients []multiping.PingClient
 	counter     int
 }
 
-func New(writer io.Writer, wgctl *swireguard.Wireguard, pcl ...multiping.PingClient) common.Service {
+func New(writer io.Writer, wgctl *swireguard.Wireguard,
+	p *multiping.MultiPing, pcl ...multiping.PingClient) common.Service {
 	return &wgPeerWatcher{
 		wg:          wgctl,
 		writer:      writer,
 		timeout:     periodInit,
+		pinger:      p,
 		pingClients: pcl,
 	}
 }
 
-func (ie *ifaceBwEntry) PingProcess(pr *multiping.PingResult) {
+func (ie *ifaceBwEntry) PingProcess(pr *multiping.PingData) {
 	defer ie.wait.Done()
 
 	// PingClients (actually PeerMonitor instance) also needs to process these ping result
@@ -87,8 +90,8 @@ func (ie *ifaceBwEntry) PingProcess(pr *multiping.PingResult) {
 			continue
 		}
 
-		entry.Latency = val.Latency
-		entry.Loss = val.Loss
+		entry.Latency = val.Latency()
+		entry.Loss = val.Loss()
 
 		switch {
 		case entry.Loss >= 1:
@@ -144,7 +147,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			wait:        &wait,
 			pingClients: obj.pingClients,
 		}
-		ping := multiping.New(&ifaceData)
+		pingData := multiping.NewPingData()
 
 		for _, p := range wgdev.Peers() {
 			if len(p.AllowedIPs) == 0 {
@@ -157,7 +160,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			if len(ip) == 0 {
 				continue
 			}
-			ping.AddHost(ip)
+			pingData.Add(ip)
 
 			var lastHandshake string
 			if !p.Stats.LastHandshake.IsZero() {
@@ -178,10 +181,15 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 					TxSpeed:      p.Stats.TxSpeedMbps,
 				})
 		}
-		if len(ifaceData.Peers) > 0 {
-			wait.Add(1)
+		if pingData.Count() > 0 {
 			resp.Data = append(resp.Data, ifaceData)
-			ping.Ping()
+			wait.Add(1)
+			// TODO review and optimise this place.
+			// It should possible to run a single instance of ping
+			go func() {
+				obj.pinger.Ping(pingData)
+				ifaceData.PingProcess(pingData)
+			}()
 		}
 	}
 
