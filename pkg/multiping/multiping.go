@@ -128,7 +128,7 @@ func (mp *MultiPing) Ping(data *PingData) {
 
 	// TODO when GO1.18 will have netip struct, use netip address as index instead of string
 	// And remove this address resolve
-	for host, stats := range data.entries {
+	for host, stats := range mp.pingData.entries {
 		ip, err := net.ResolveIPAddr(mp.network, host)
 		if err != nil {
 			// ResolveIP failed. I should not return here, so instead I increment Tx packet count
@@ -180,9 +180,12 @@ func (mp *MultiPing) Ping(data *PingData) {
 func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 	defer wg.Done()
 
+	var packetsWait sync.WaitGroup
+
 	for {
 		select {
 		case <-mp.done:
+			packetsWait.Wait()
 			return
 		default:
 			bytes := make([]byte, 512)
@@ -212,15 +215,18 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 				return
 			}
 
+			packetsWait.Add(1)
 			recv := &packet{bytes: bytes, nbytes: n, ttl: ttl, proto: proto, src: src}
-			go mp.processPacket(recv)
+			go mp.processPacket(&packetsWait, recv)
 		}
 	}
 }
 
 // This function runs in goroutine and nobody is interested in return errors
 // Discard errors silently
-func (mp *MultiPing) processPacket(recv *packet) {
+func (mp *MultiPing) processPacket(wait *sync.WaitGroup, recv *packet) {
+	defer wait.Done()
+
 	var proto int
 	if recv.proto == ProtocolIpv4 {
 		proto = protocolICMP
