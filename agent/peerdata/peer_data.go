@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
@@ -15,50 +14,12 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
 )
 
-const cmd = "IFACES_PEERS_BW_DATA"
-const pkgName = "Peer_Data. "
-
-const (
-	periodInit           = time.Second
-	periodRun            = time.Second * 5 // ping every 5 seconds
-	controllerSendPeriod = 12              // reduce messages to controller to every minute
-)
-
-type peerDataEntry struct {
-	PublicKey    string  `json:"public_key"`
-	IP           string  `json:"internal_ip"`
-	Handshake    string  `json:"last_handshake,omitempty"`
-	KeepAllive   int     `json:"keep_alive_interval"`
-	Latency      float32 `json:"latency_ms,omitempty"`
-	Loss         float32 `json:"packet_loss"`
-	Status       string  `json:"status"`
-	Reason       string  `json:"status_reason,omitempty"`
-	RxBytes      int64   `json:"rx_bytes"`
-	TxBytes      int64   `json:"tx_bytes"`
-	RxSpeed      float32 `json:"rx_speed_mbps"`
-	TxSpeed      float32 `json:"tx_speed_mbps"`
-	ConnectionID int     `json:"connection_id"`
-	GroupID      int     `json:"connection_group_id"`
-}
-
-type ifaceBwEntry struct {
-	IfName      string           `json:"iface"`
-	PublicKey   string           `json:"iface_public_key"`
-	Peers       []*peerDataEntry `json:"peers"`
-	wait        *sync.WaitGroup  `json:"-"`
-	pingClients []multiping.PingClient
-}
-
-type peerBwData struct {
-	common.MessageHeader
-	Data []ifaceBwEntry `json:"data"`
-}
-
 type wgPeerWatcher struct {
 	writer      io.Writer
 	wg          *swireguard.Wireguard
 	timeout     time.Duration
 	pinger      *multiping.MultiPing
+	pingData    *multiping.PingData
 	pingClients []multiping.PingClient
 	counter     int
 }
@@ -70,42 +31,15 @@ func New(writer io.Writer, wgctl *swireguard.Wireguard,
 		writer:      writer,
 		timeout:     periodInit,
 		pinger:      p,
+		pingData:    multiping.NewPingData(),
 		pingClients: pcl,
 	}
 }
 
-func (ie *ifaceBwEntry) PingProcess(pr *multiping.PingData) {
-	defer ie.wait.Done()
-
+func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 	// PingClients (actually PeerMonitor instance) also needs to process these ping result
-	for _, pc := range ie.pingClients {
+	for _, pc := range obj.pingClients {
 		pc.PingProcess(pr)
-	}
-
-	// format results for controler
-	for _, entry := range ie.Peers {
-		val, ok := pr.Get(entry.IP)
-		if !ok {
-			logger.Error().Println(pkgName, entry.IP, "missing in ping results")
-			continue
-		}
-
-		entry.Latency = val.Latency()
-		entry.Loss = val.Loss()
-
-		switch {
-		case entry.Loss >= 1:
-			entry.Status = "OFFLINE"
-			entry.Reason = "Packet loss 100%"
-		case entry.Loss >= 0.01 && entry.Loss < 1:
-			entry.Status = "WARNING"
-			entry.Reason = "Packet loss higher than 1%"
-		case entry.Latency > 500:
-			entry.Status = "WARNING"
-			entry.Reason = "Latency higher than 500ms"
-		default:
-			entry.Status = "CONNECTED"
-		}
 	}
 }
 
@@ -115,17 +49,15 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 	// Update swireguard cached peers statistics
 	wg.PeerStatsUpdate()
 
-	resp := peerBwData{}
+	resp := newMsg()
 	resp.ID = env.MessageDefaultID
 	resp.MsgType = cmd
 
 	wgdevs := wg.Devices()
 
-	count := len(wgdevs)
-
 	// If no interfaces are created yet - I send nothing to controller and wait a short time
 	// When interfaces are created - switch to less frequently check
-	if count == 0 {
+	if len(wgdevs) == 0 {
 		if obj.timeout != periodInit {
 			obj.timeout = periodInit
 			ticker.Reset(obj.timeout)
@@ -136,18 +68,15 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 		ticker.Reset(obj.timeout)
 	}
 
-	// The pinger runs in background - use a WaitGroup to synchronise
-	wait := sync.WaitGroup{}
+	// Clean residual data from last ping
+	obj.pingData.Flush()
 
 	for _, wgdev := range wgdevs {
 		ifaceData := ifaceBwEntry{
-			IfName:      wgdev.IfName,
-			PublicKey:   wgdev.PublicKey,
-			Peers:       []*peerDataEntry{},
-			wait:        &wait,
-			pingClients: obj.pingClients,
+			IfName:    wgdev.IfName,
+			PublicKey: wgdev.PublicKey,
+			Peers:     []*peerDataEntry{},
 		}
-		pingData := multiping.NewPingData()
 
 		for _, p := range wgdev.Peers() {
 			if len(p.AllowedIPs) == 0 {
@@ -160,7 +89,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			if len(ip) == 0 {
 				continue
 			}
-			pingData.Add(ip)
+			obj.pingData.Add(ip)
 
 			var lastHandshake string
 			if !p.Stats.LastHandshake.IsZero() {
@@ -181,35 +110,41 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 					TxSpeed:      p.Stats.TxSpeedMbps,
 				})
 		}
-		if pingData.Count() > 0 {
-			resp.Data = append(resp.Data, ifaceData)
-			wait.Add(1)
-			// TODO review and optimise this place.
-			// It should possible to run a single instance of ping
-			go func() {
-				obj.pinger.Ping(pingData)
-				ifaceData.PingProcess(pingData)
-			}()
-		}
+		resp.Data = append(resp.Data, ifaceData)
 	}
 
-	wait.Wait()
+	// pingData now contains all connected peers on all interfaces
+	// Perform ping and process results, if I have any connected peers
+	// Do nothing if no peers are configured
+	if obj.pingData.Count() == 0 {
+		return nil
+	}
 
+	// Ping the connected peers
+	obj.pinger.Ping(obj.pingData)
+	// Some other users (e.g. PeerMonitor) are also interested in these results
+	// NOTE: optimisation - ping statistics are not yet added to IFACES_PEERS_BW_DATA message (resp)
+	obj.PingProcess(obj.pingData)
+
+	// I need these ping results in other places as well
+	// SDN rerouting also depends on these pings. Thus I need to ping often
+	// But controller does not need this information so oftern. That's why this throtling is here
 	obj.counter++
-	// TODO: optimise and do not parse results if not sending
 	if obj.counter >= controllerSendPeriod {
 		obj.counter = 0
-		if len(resp.Data) > 0 {
-			resp.Now()
-			raw, err := json.Marshal(resp)
-			if err != nil {
-				logger.Error().Println(pkgName, "json", err)
-				return err
-			}
 
-			logger.Debug().Println(pkgName, "Sending: ", string(raw))
-			obj.writer.Write(raw)
+		resp.Now()
+		// Fill message with ping statistics
+		resp.PingProcess(obj.pingData)
+
+		raw, err := json.Marshal(resp)
+		if err != nil {
+			logger.Error().Println(pkgName, "json", err)
+			return err
 		}
+
+		logger.Debug().Println(pkgName, "Sending: ", string(raw))
+		obj.writer.Write(raw)
 	}
 
 	return nil
