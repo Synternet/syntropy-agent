@@ -15,7 +15,7 @@ type peerInfo struct {
 
 func (node *peerInfo) Add(latency, loss float32) {
 	node.latency[node.index] = latency
-	node.loss[node.index] = loss * lossCoefficient
+	node.loss[node.index] = loss
 	node.index++
 	if node.index >= valuesCount {
 		node.index = 0

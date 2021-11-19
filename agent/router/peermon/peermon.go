@@ -16,9 +16,6 @@ const (
 	// when have an active route and want to change a better route
 	// this new better route must be 10% better, to reduce route change fluctuation
 	betterCoeficient = 0.9
-	// Loss from multipinger is in 0.0 .. 1.0 range.
-	// Convert it to promiles (percent*10) for better debug accurancy
-	lossCoefficient = 1000
 	// internal use
 	invalidBestIndex = -1
 )
