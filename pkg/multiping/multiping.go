@@ -39,8 +39,9 @@ type MultiPing struct {
 	// Tracker: Used to uniquely identify packet when non-priviledged
 	Tracker int64
 
-	done    chan bool          // close channel
-	pingers map[string]*Pinger // TODO in future try to get rid of multipple pingers
+	done     chan bool // close channel
+	pinger   *Pinger
+	pingData *PingData
 
 	id       int
 	sequence int    // ICMP seq number. Incremented on every ping
@@ -64,9 +65,12 @@ func New(privileged bool) (*MultiPing, error) {
 		network:  "ip",
 		protocol: protocol,
 		done:     make(chan bool),
-		pingers:  make(map[string]*Pinger),
 		Tracker:  rand.Int63(),
 	}
+
+	mp.pinger = NewPinger(mp.network, mp.protocol, mp.id)
+	mp.pinger.SetPrivileged(privileged)
+	mp.pinger.Tracker = mp.Tracker
 
 	// ipv4
 	mp.conn4, err = icmp.ListenPacket(ipv4Proto[protocol], "")
@@ -84,12 +88,13 @@ func New(privileged bool) (*MultiPing, error) {
 		mp.conn6.IPv6PacketConn().SetControlMessage(ipv6.FlagHopLimit, true)
 	}
 
+	mp.pinger.SetConns(mp.conn4, mp.conn6)
+
 	return mp, nil
 }
 
 func (mp *MultiPing) reset() {
 	mp.done = make(chan bool)
-	mp.pingers = make(map[string]*Pinger)
 	mp.sequence++
 }
 
@@ -117,18 +122,28 @@ func (mp *MultiPing) Ping(data *PingData) {
 	data.mutex.Lock()
 	defer data.mutex.Unlock()
 
-	for host, _ := range data.entries {
-		// TODO in future try optimise and get rid of this multipple pinger stuff
-		pinger, err := NewPinger(host, mp.network, mp.protocol, mp.id)
+	// Some subfunctions in goroutines will need this pointer to store ping results
+	mp.pingData = data
+	ipAddrs := []*net.IPAddr{}
+
+	// TODO when GO1.18 will have netip struct, use netip address as index instead of string
+	// And remove this address resolve
+	for host, stats := range data.entries {
+		ip, err := net.ResolveIPAddr(mp.network, host)
 		if err != nil {
-			return
+			// ResolveIP failed. I should not return here, so instead I increment Tx packet count
+			// And this (invalid) host will result to ping loss.
+			// Its up to caller to pass me valid addresses
+			stats.tx++
+			stats.rtt = 0
+			continue
 		}
-		pinger.Tracker = mp.Tracker
-		pinger.SetConns(mp.conn4, mp.conn6)
-		mp.pingers[pinger.IPAddr().String()] = pinger
+		ipAddrs = append(ipAddrs, ip)
 	}
 
 	var wg sync.WaitGroup
+	wg.Add(1) // Sender goroutine
+
 	if mp.conn4 != nil {
 		wg.Add(1)
 		go mp.batchRecvICMP(&wg, ProtocolIpv4)
@@ -141,21 +156,25 @@ func (mp *MultiPing) Ping(data *PingData) {
 	timeout := time.NewTimer(mp.Timeout)
 	defer timeout.Stop()
 
-	go mp.batchSendICMP()
+	go func() {
+		defer wg.Done()
+		for _, addr := range ipAddrs {
+			mp.pinger.SetIPAddr(addr)
+			if stats, ok := mp.pingData.entries[addr.IP.String()]; ok {
+				stats.tx++
+			}
+
+			mp.pinger.SendICMP(mp.sequence)
+			time.Sleep(time.Millisecond)
+		}
+	}()
 
 	<-timeout.C
 	close(mp.done)
 	wg.Wait()
 
-	// finally process results from pingers to data
-	mp.processResults(data)
-}
-
-func (mp *MultiPing) batchSendICMP() {
-	for _, pinger := range mp.pingers {
-		pinger.SendICMP(mp.sequence)
-		time.Sleep(time.Millisecond)
-	}
+	// Invalidate pingData pointer (prevent from possible data corruption in future)
+	mp.pingData = nil
 }
 
 func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
@@ -253,24 +272,8 @@ func (mp *MultiPing) processPacket(recv *packet) {
 		ip = recv.src.String()
 	}
 
-	rtt := time.Since(timestamp)
-
-	if pinger, ok := mp.pingers[ip]; ok {
-		pinger.PacketsRecv++
-		pinger.rtts = append(pinger.rtts, rtt)
-	}
-}
-
-func (mp *MultiPing) processResults(data *PingData) {
-	// data is already locked from Ping function
-	for ip, pinger := range mp.pingers {
-		entry, ok := data.entries[ip]
-		if !ok {
-			continue
-		}
-		stats := pinger.Statistics()
-		entry.tx = entry.tx + uint(stats.PacketsSent)
-		entry.rx = entry.rx + uint(stats.PacketsRecv)
-		entry.rtt = stats.AvgRtt
+	if stats, ok := mp.pingData.entries[ip]; ok {
+		stats.rx++
+		stats.rtt = time.Since(timestamp)
 	}
 }

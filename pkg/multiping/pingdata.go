@@ -26,7 +26,10 @@ func (s *PingStats) Reset() {
 
 // Loss returns calculated ping loss
 func (s *PingStats) Loss() float32 {
-	return float32(s.tx-s.rx) / float32(s.tx)
+	if s.tx > 0 {
+		return float32(s.tx-s.rx) / float32(s.tx)
+	}
+	return 0
 }
 
 // Loss returns latency in miliseconds calculated ping loss
