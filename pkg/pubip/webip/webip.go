@@ -25,7 +25,7 @@ func PublicIP() (net.IP, error) {
 	// Trim new lines and remove commas
 	ipStr := strings.Trim(strings.Trim(string(body), "\n"), "\"")
 	ip := net.ParseIP(ipStr)
-	if ip == nil {
+	if ip == nil || ip.To4() == nil {
 		return nil, fmt.Errorf("invalid IP address")
 	}
 
