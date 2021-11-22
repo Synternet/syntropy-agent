@@ -194,7 +194,7 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 			var src net.Addr
 
 			if proto == ProtocolIpv4 {
-				mp.conn4.SetReadDeadline(time.Now().Add(mp.Timeout))
+				mp.conn4.SetReadDeadline(time.Now().Add(mp.Timeout / 10))
 
 				var cm *ipv4.ControlMessage
 				n, cm, src, err = mp.conn4.IPv4PacketConn().ReadFrom(bytes)
@@ -202,7 +202,7 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 					ttl = cm.TTL
 				}
 			} else {
-				mp.conn6.SetReadDeadline(time.Now().Add(mp.Timeout))
+				mp.conn6.SetReadDeadline(time.Now().Add(mp.Timeout / 10))
 
 				var cm *ipv6.ControlMessage
 				n, cm, src, err = mp.conn6.IPv6PacketConn().ReadFrom(bytes)
@@ -212,7 +212,13 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 			}
 			// Error reeading from connection
 			if err != nil {
-				return
+				if neterr, ok := err.(*net.OpError); ok {
+					if neterr.Timeout() {
+						continue
+					} else {
+						return
+					}
+				}
 			}
 
 			packetsWait.Add(1)
