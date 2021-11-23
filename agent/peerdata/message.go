@@ -24,8 +24,6 @@ type peerDataEntry struct {
 	KeepAllive   int     `json:"keep_alive_interval"`
 	Latency      float32 `json:"latency_ms,omitempty"`
 	Loss         float32 `json:"packet_loss"`
-	Status       string  `json:"status"`
-	Reason       string  `json:"status_reason,omitempty"`
 	RxBytes      int64   `json:"rx_bytes"`
 	TxBytes      int64   `json:"tx_bytes"`
 	RxSpeed      float32 `json:"rx_speed_mbps"`
@@ -64,20 +62,6 @@ func (msg *peerBwData) PingProcess(pr *multiping.PingData) {
 			// format results for controler
 			peerEntry.Latency = val.Latency()
 			peerEntry.Loss = val.Loss()
-
-			switch {
-			case peerEntry.Loss >= 1:
-				peerEntry.Status = "OFFLINE"
-				peerEntry.Reason = "Packet loss 100%"
-			case peerEntry.Loss >= 0.01 && peerEntry.Loss < 1:
-				peerEntry.Status = "WARNING"
-				peerEntry.Reason = "Packet loss higher than 1%"
-			case peerEntry.Latency > 500:
-				peerEntry.Status = "WARNING"
-				peerEntry.Reason = "Latency higher than 500ms"
-			default:
-				peerEntry.Status = "CONNECTED"
-			}
 		}
 	}
 }
