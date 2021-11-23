@@ -74,7 +74,7 @@ func initAgentCategory() {
 func initAgentTags() {
 	tags := strings.Split(os.Getenv("SYNTROPY_TAGS"), ",")
 	for _, v := range tags {
-		if len(v) > 3 {
+		if len(v) > 0 {
 			cache.agentTags = append(cache.agentTags, v)
 		}
 	}
