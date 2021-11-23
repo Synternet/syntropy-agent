@@ -51,7 +51,7 @@ func checkStunServer(srv string) (net.IP, error) {
 	}
 
 	// Creating a "connection" to STUN server.
-	// By default we want an IPv4, thus "udp"
+	// By default we want an IPv4, thus "udp4"
 	c, err := stun.Dial("udp4", srv)
 	if err != nil {
 		return ip, err

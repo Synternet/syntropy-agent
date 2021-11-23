@@ -17,7 +17,7 @@ func TestStunServerList(t *testing.T) {
 		} else if !ip.Equal(prevIP) {
 			// Thinking globally in some cases this test MAY fail
 			// But this is not common and generally should not happen.
-			t.Errorf("Public IP change. Is %s, expected %s", ip.String(), prevIP.String())
+			t.Errorf("Public IP change. Is %s, expected %s (%s)", ip.String(), prevIP.String(), srv)
 		}
 	}
 
