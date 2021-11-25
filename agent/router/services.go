@@ -37,7 +37,7 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 			// If route is via other Syntropy interface - change the route to this interface
 			// TODO: in future optimise this, and if existing link is legal - try not to change it
 			logger.Info().Println(pkgName, "Route update ", destination, " via ", netpath.Gateway, "/", netpath.Ifname)
-			routeRes.Error = netcfg.RouteReplace(netpath.Ifname, netpath.Gateway, destination)
+			routeRes.Error = netcfg.RouteReplace(netpath.Ifname, "", destination)
 			if routeRes.Error != nil {
 				logger.Error().Println(pkgName, "route update error:", routeRes.Error)
 				return &routeRes, nil
@@ -53,7 +53,7 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 	} else {
 		// clean case - no route conflict. Simply add the route
 		logger.Info().Println(pkgName, "Route add ", destination, " via ", netpath.Gateway, "/", netpath.Ifname)
-		routeRes.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
+		routeRes.Error = netcfg.RouteAdd(netpath.Ifname, "", destination)
 		if routeRes.Error != nil {
 			logger.Error().Println(pkgName, "route add error:", routeRes.Error)
 			return &routeRes, nil

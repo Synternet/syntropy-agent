@@ -21,7 +21,7 @@ func (r *Router) PeerAdd(netpath *common.SdnNetworkPath, destination string) com
 	parts := strings.Split(destination, "/")
 	pm.AddNode(netpath.Gateway, parts[0])
 
-	entry.Error = netcfg.RouteAdd(netpath.Ifname, netpath.Gateway, destination)
+	entry.Error = netcfg.RouteAdd(netpath.Ifname, "", destination)
 	if entry.Error != nil {
 		logger.Error().Println(pkgName, "route add error:", entry.Error)
 	}
