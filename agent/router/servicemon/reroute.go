@@ -2,17 +2,15 @@ package servicemon
 
 import (
 	"strings"
-	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
-func (sm *ServiceMonitor) Reroute(newgw string) []peeradata.PeerActiveDataEntry {
+func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
 	errIPs := []string{}
-	ret := []peeradata.PeerActiveDataEntry{}
+	ret := []*peeradata.Entry{}
 
 	sm.Lock()
 	defer sm.Unlock()
@@ -35,12 +33,7 @@ func (sm *ServiceMonitor) Reroute(newgw string) []peeradata.PeerActiveDataEntry 
 				err := netcfg.RouteReplace(newRoute.ifname, newgw, dest)
 				if err == nil {
 					ret = append(ret,
-						peeradata.PeerActiveDataEntry{
-							PreviousConnID: oldRoute.connectionID,
-							ConnectionID:   newRoute.connectionID,
-							GroupID:        newRoute.groupID,
-							Timestamp:      time.Now().Format(env.TimeFormat),
-						})
+						peeradata.NewEntry(oldRoute.connectionID, newRoute.connectionID, newRoute.groupID))
 				} else {
 					logger.Error().Println(pkgName, err)
 					errIPs = append(errIPs, dest)

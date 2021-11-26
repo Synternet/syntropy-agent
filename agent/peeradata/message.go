@@ -14,39 +14,32 @@ const (
 	pkgName = "PeersActiveData. "
 )
 
-type PeerActiveDataEntry struct {
-	PreviousConnID int    `json:"prev_connection_id,omitempty"`
-	ConnectionID   int    `json:"connection_id"`
-	GroupID        int    `json:"connection_group_id,omitempty"`
-	Timestamp      string `json:"timestamp"`
-}
-
-type PeersActiveDataMessage struct {
+type Message struct {
 	common.MessageHeader
-	Data []PeerActiveDataEntry `json:"data"`
+	Data []*Entry `json:"data"`
 }
 
-func NewMessage() *PeersActiveDataMessage {
-	resp := PeersActiveDataMessage{
-		Data: []PeerActiveDataEntry{},
+func NewMessage() *Message {
+	resp := &Message{
+		Data: []*Entry{},
 	}
 	resp.ID = env.MessageDefaultID
 	resp.MsgType = cmd
-	return &resp
+	return resp
 }
 
-func (pad *PeersActiveDataMessage) Add(entries ...PeerActiveDataEntry) {
-	pad.Data = append(pad.Data, entries...)
+func (msg *Message) Add(entries ...*Entry) {
+	msg.Data = append(msg.Data, entries...)
 }
 
-func (pad *PeersActiveDataMessage) Send(writer io.Writer) error {
-	if len(pad.Data) == 0 {
-		// controler does not need an empty message
+func (msg *Message) Send(writer io.Writer) error {
+	if len(msg.Data) == 0 {
+		// no need send an empty message
 		return nil
 	}
 
-	pad.Now()
-	raw, err := json.Marshal(pad)
+	msg.Now()
+	raw, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}

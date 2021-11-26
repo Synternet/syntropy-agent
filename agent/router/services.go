@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
@@ -15,7 +14,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
 )
 
-func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) (*routestatus.Entry, *peeradata.PeerActiveDataEntry) {
+func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) (*routestatus.Entry, *peeradata.Entry) {
 	var err error
 	routesGroup := r.findOrCreate(netpath.GroupID)
 	sm := routesGroup.serviceMonitor
@@ -61,12 +60,7 @@ func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) 
 	}
 
 	return routestatus.NewEntry(destination, err),
-		&peeradata.PeerActiveDataEntry{
-			PreviousConnID: 0,
-			ConnectionID:   netpath.ConnectionID,
-			GroupID:        netpath.GroupID,
-			Timestamp:      time.Now().Format(env.TimeFormat),
-		}
+		peeradata.NewEntry(0, netpath.ConnectionID, netpath.GroupID)
 }
 
 func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination string) *routestatus.Entry {

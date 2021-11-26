@@ -23,10 +23,10 @@ import (
  * TODO ^^^^
  **/
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]*routestatus.Connection, []peeradata.PeerActiveDataEntry) {
+func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]*routestatus.Connection, []*peeradata.Entry) {
 	const defaultRouteIP = "0.0.0.0/0"
 	routeStatus := []*routestatus.Connection{}
-	pad := []peeradata.PeerActiveDataEntry{}
+	peerActiveData := []*peeradata.Entry{}
 
 	r.Lock()
 	defer r.Unlock()
@@ -53,12 +53,12 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]*rou
 					netpath.ConnectionID, netpath.GroupID, rsEntry))
 			}
 			if padEntry != nil {
-				pad = append(pad, *padEntry)
+				peerActiveData = append(peerActiveData, padEntry)
 			}
 		}
 	}
 
-	return routeStatus, pad
+	return routeStatus, peerActiveData
 }
 
 func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []*routestatus.Connection {
