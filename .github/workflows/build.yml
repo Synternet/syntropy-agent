@@ -43,7 +43,7 @@ jobs:
           push: true
           tags: |
             syntropynet/agent:sandbox
-            syntropynet/agent:latest
+            syntropynet/agent:alpha
           platforms: linux/amd64
           build-args: |
              AGENT_VERSION=${{ steps.previoustag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
@@ -55,7 +55,10 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: syntropynet/agent:devel
+          tags: |
+            syntropynet/agent:devel
+            syntropynet/agent:beta
+            syntropynet/agent:${{ steps.previoustag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
       -
         name: PROD Build and push
         # BRANCH_STABLE_VERSION
@@ -66,5 +69,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            syntropynet/agent:prod
             syntropynet/agent:stable
+            syntropynet/agent:prod
