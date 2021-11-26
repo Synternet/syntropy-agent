@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
 	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
@@ -22,9 +23,9 @@ import (
  * TODO ^^^^
  **/
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]common.RouteResult, []peeradata.PeerActiveDataEntry) {
+func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]*routestatus.Connection, []peeradata.PeerActiveDataEntry) {
 	const defaultRouteIP = "0.0.0.0/0"
-	res := []common.RouteResult{}
+	routeStatus := []*routestatus.Connection{}
 	pad := []peeradata.PeerActiveDataEntry{}
 
 	r.Lock()
@@ -46,9 +47,10 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]comm
 		if idx == 0 {
 			r.PeerAdd(netpath, ip)
 		} else {
-			resEntry, padEntry := r.ServiceAdd(netpath, ip)
-			if resEntry != nil {
-				res = append(res, *resEntry)
+			rsEntry, padEntry := r.ServiceAdd(netpath, ip)
+			if rsEntry != nil {
+				routeStatus = append(routeStatus, routestatus.NewConnection(
+					netpath.ConnectionID, netpath.GroupID, rsEntry))
 			}
 			if padEntry != nil {
 				pad = append(pad, *padEntry)
@@ -56,11 +58,11 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]comm
 		}
 	}
 
-	return res, pad
+	return routeStatus, pad
 }
 
-func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []common.RouteResult {
-	res := []common.RouteResult{}
+func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []*routestatus.Connection {
+	routeStatus := []*routestatus.Connection{}
 	r.Lock()
 	defer r.Unlock()
 
@@ -72,12 +74,13 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []common
 		if idx == 0 {
 			r.PeerDel(netpath, ip)
 		} else {
-			rres := r.ServiceDel(netpath, ip)
-			if rres != nil {
-				res = append(res, *rres)
+			rsEntry := r.ServiceDel(netpath, ip)
+			if rsEntry != nil {
+				routeStatus = append(routeStatus, routestatus.NewConnection(
+					netpath.ConnectionID, netpath.GroupID, rsEntry))
 			}
 		}
 	}
 
-	return res
+	return routeStatus
 }

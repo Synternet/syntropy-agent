@@ -10,32 +10,18 @@ import (
 )
 
 const (
-	cmd         = "WG_ROUTE_STATUS"
-	pkgName     = "WgRouteStatus. "
-	statusOK    = "OK"
-	statusError = "ERROR"
+	cmd     = "WG_ROUTE_STATUS"
+	pkgName = "WgRouteStatus. "
 )
 
-type wgRouteEntry struct {
-	Status  string `json:"status"`
-	IP      string `json:"ip"`
-	Message string `json:"msg,omitempty"`
-}
-
-type wgConnectionEntry struct {
-	ConnectionID int            `json:"connection_id,omitempty"`
-	GroupID      int            `json:"connection_group_id,omitempty"`
-	RouteStatus  []wgRouteEntry `json:"statuses"`
-}
-
-type wgRouteStatusMsg struct {
+type Message struct {
 	common.MessageHeader
-	Data []wgConnectionEntry `json:"data"`
+	Data []*Connection `json:"data"`
 }
 
-func NewMsg() *wgRouteStatusMsg {
-	msg := wgRouteStatusMsg{
-		Data: []wgConnectionEntry{},
+func New() *Message {
+	msg := Message{
+		Data: []*Connection{},
 	}
 	msg.MsgType = cmd
 	msg.ID = env.MessageDefaultID
@@ -43,7 +29,8 @@ func NewMsg() *wgRouteStatusMsg {
 	return &msg
 }
 
-func (msg *wgRouteStatusMsg) Send(w io.Writer) error {
+// Send message to controller (writer)
+func (msg *Message) Send(w io.Writer) error {
 	if len(msg.Data) == 0 {
 		return nil
 	}
@@ -60,26 +47,19 @@ func (msg *wgRouteStatusMsg) Send(w io.Writer) error {
 	return err
 }
 
-func (msg *wgRouteStatusMsg) Add(connID, grID int, rrs []common.RouteResult) error {
-	ce := wgConnectionEntry{
-		ConnectionID: connID,
-		GroupID:      grID,
-		RouteStatus:  []wgRouteEntry{},
-	}
-
-	for _, rres := range rrs {
-		re := wgRouteEntry{
-			IP: rres.IP,
+// Adds new connections to array.
+// Performs smart merge, if connections have same IDs
+func (msg *Message) Add(connections ...*Connection) {
+	for _, newConn := range connections {
+		merged := false
+		for _, conn := range msg.Data {
+			if conn.ConnectionID == newConn.ConnectionID && conn.GroupID == newConn.GroupID {
+				conn.RouteStatus = append(conn.RouteStatus, newConn.RouteStatus...)
+				merged = true
+			}
 		}
-		if rres.Error == nil {
-			re.Status = statusOK
-		} else {
-			re.Status = statusError
-			re.Message = rres.Error.Error()
+		if !merged {
+			msg.Data = append(msg.Data, newConn)
 		}
-		ce.RouteStatus = append(ce.RouteStatus, re)
 	}
-	msg.Data = append(msg.Data, ce)
-
-	return nil
 }

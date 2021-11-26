@@ -199,7 +199,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 	resp.MsgType = cmdResp
 
-	routeStatus := routestatus.NewMsg()
+	routeStatusMessage := routestatus.New()
 	padMsg := peeradata.NewMessage()
 
 	// CONFIG_INFO message sends me full configuration
@@ -272,7 +272,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
 					}, cmd.Args.AllowedIPs)
-				routeStatus.Add(cmd.Metadata.ConnectionID, cmd.Metadata.GroupID, routeRes)
+				routeStatusMessage.Add(routeRes...)
 				padMsg.Add(peersData...)
 			}
 
@@ -326,7 +326,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.writer.Write(arr)
 
-	routeStatus.Send(obj.writer)
+	routeStatusMessage.Send(obj.writer)
 	padMsg.Send(obj.writer)
 
 	return nil
