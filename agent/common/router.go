@@ -13,8 +13,3 @@ func (sr *SdnNetworkPath) String() string {
 	return fmt.Sprintf(" via %s on %s [%d : %d]", sr.Gateway, sr.Ifname,
 		sr.ConnectionID, sr.GroupID)
 }
-
-type RouteResult struct {
-	IP    string
-	Error error
-}
