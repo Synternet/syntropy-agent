@@ -19,6 +19,7 @@ package multiping
  **/
 
 import (
+	"context"
 	"math/rand"
 	"net"
 	"sync"
@@ -39,7 +40,7 @@ type MultiPing struct {
 	// Tracker: Used to uniquely identify packet when non-priviledged
 	Tracker int64
 
-	done     chan bool // close channel
+	ctx      context.Context // context for timeouting
 	pinger   *Pinger
 	pingData *PingData
 
@@ -64,7 +65,6 @@ func New(privileged bool) (*MultiPing, error) {
 		id:       rand.Intn(0xffff),
 		network:  "ip",
 		protocol: protocol,
-		done:     make(chan bool),
 		Tracker:  rand.Int63(),
 	}
 
@@ -93,11 +93,6 @@ func New(privileged bool) (*MultiPing, error) {
 	return mp, nil
 }
 
-func (mp *MultiPing) reset() {
-	mp.done = make(chan bool)
-	mp.sequence++
-}
-
 func (mp *MultiPing) Close() {
 	if mp.conn4 != nil {
 		mp.conn4.Close()
@@ -116,7 +111,7 @@ func (mp *MultiPing) Ping(data *PingData) {
 	// Lock the pinger - its instance may be reused by several clients
 	mp.Lock()
 	defer mp.Unlock()
-	mp.reset()
+	mp.sequence++
 
 	// lock the results data
 	data.mutex.Lock()
@@ -144,6 +139,8 @@ func (mp *MultiPing) Ping(data *PingData) {
 	var wg sync.WaitGroup
 	wg.Add(1) // Sender goroutine
 
+	mp.ctx, _ = context.WithTimeout(context.Background(), mp.Timeout)
+
 	if mp.conn4 != nil {
 		wg.Add(1)
 		go mp.batchRecvICMP(&wg, ProtocolIpv4)
@@ -153,9 +150,7 @@ func (mp *MultiPing) Ping(data *PingData) {
 		go mp.batchRecvICMP(&wg, ProtocolIpv6)
 	}
 
-	timeout := time.NewTimer(mp.Timeout)
-	defer timeout.Stop()
-
+	// Sender goroutine
 	go func() {
 		defer wg.Done()
 		for _, addr := range ipAddrs {
@@ -169,8 +164,6 @@ func (mp *MultiPing) Ping(data *PingData) {
 		}
 	}()
 
-	<-timeout.C
-	close(mp.done)
 	wg.Wait()
 
 	// Invalidate pingData pointer (prevent from possible data corruption in future)
@@ -184,7 +177,7 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 
 	for {
 		select {
-		case <-mp.done:
+		case <-mp.ctx.Done():
 			packetsWait.Wait()
 			return
 		default:
