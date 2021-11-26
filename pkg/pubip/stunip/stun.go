@@ -47,7 +47,11 @@ func checkStunServer(srv string) (net.IP, error) {
 		if err = xorAddr.GetFrom(res.Message); err != nil {
 			return
 		}
-		ip = xorAddr.IP
+		if xorAddr.IP != nil {
+			ip = xorAddr.IP
+		} else {
+			err = fmt.Errorf("could not parse STUN result")
+		}
 	}
 
 	// Creating a "connection" to STUN server.
@@ -60,7 +64,10 @@ func checkStunServer(srv string) (net.IP, error) {
 	// Building binding request with random transaction id.
 	message := stun.MustBuild(stun.TransactionID, stun.BindingRequest)
 	// Sending request to STUN server, waiting for response message.
-	err = c.Do(message, callback)
+	errDo := c.Do(message, callback)
+	if errDo != nil {
+		return ip, errDo
+	}
 
 	return ip, err
 }
