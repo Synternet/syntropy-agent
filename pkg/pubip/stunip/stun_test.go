@@ -12,6 +12,9 @@ func TestStunServerList(t *testing.T) {
 		if err != nil {
 			t.Errorf("STUN server %s failed %s", srv, err)
 		}
+		if ip == nil {
+			t.Errorf("STUN server %s invalid resolve <nil> %s", srv, err)
+		}
 		if prevIP.IsUnspecified() {
 			prevIP = ip
 		} else if !ip.Equal(prevIP) {

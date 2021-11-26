@@ -62,5 +62,5 @@ func checkStunServer(srv string) (net.IP, error) {
 	// Sending request to STUN server, waiting for response message.
 	err = c.Do(message, callback)
 
-	return ip, nil
+	return ip, err
 }
