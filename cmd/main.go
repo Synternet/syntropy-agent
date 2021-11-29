@@ -6,9 +6,11 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
 	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 	"golang.org/x/sys/unix"
 )
@@ -79,6 +81,7 @@ func main() {
 
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
+	logger.Info().Println(fullAppName, "Local time:", time.Now().Format(env.TimeFormat))
 
 	//Start main agent loop
 	go syntropyNetAgent.Run()
