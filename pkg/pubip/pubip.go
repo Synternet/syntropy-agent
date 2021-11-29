@@ -53,7 +53,9 @@ func GetPublicIp() net.IP {
 		// Try STUN servers first
 		if publicIP.provider == providerStun {
 			ip, err = stunip.PublicIP()
-			if err != nil {
+			if err == nil {
+				logger.Info().Println(pkgName, "Public IP (STUN):", ip.String())
+			} else {
 				// *All* STUN servers failed (internally in stunip package)
 				// Reason may be - some corps have big and strict firewalls
 				// Fallback to Web IP services (most probably 443 port is open)
@@ -61,13 +63,23 @@ func GetPublicIp() net.IP {
 				publicIP.provider = providerWeb
 				// TODO think about configurable logger here and not use agent's logger
 				// This would increase package reusability
-				logger.Warning().Println(pkgName, "STUN failed. Fallback to WebIP getting.")
+				logger.Warning().Println(pkgName, "STUN failed", err, ". Fallback to WebIP getting.")
 			}
 		}
 
 		// Web service is a fallback
 		if publicIP.provider == providerWeb {
 			ip, err = webip.PublicIP()
+			if err == nil {
+				logger.Info().Println(pkgName, "Public IP (Web):", ip.String())
+			} else {
+				// WebIP is a fallback. If it is failing - we may have some serious problems.
+				// Try fallback to STUN again. But chances are low to get it working...
+				publicIP.provider = providerStun
+				// TODO think about configurable logger here and not use agent's logger
+				// This would increase package reusability
+				logger.Error().Println(pkgName, "WebIP failed:", err, ". Will (re)try STUN next time.")
+			}
 		}
 
 		// Lets hope we have some result and parse them
@@ -75,7 +87,6 @@ func GetPublicIp() net.IP {
 			publicIP.cache.ip = ip
 			publicIP.cache.updated = time.Now()
 		} else {
-			logger.Error().Println(pkgName, err)
 			if publicIP.cache.ip == nil {
 				// Fallback to 0.0.0.0, if have no valid older ip (stick to old value, if it is present)
 				// Do not update timestamp, so I will retry asap
