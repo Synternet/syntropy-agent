@@ -3,6 +3,8 @@
 package netfilter
 
 import (
+	"errors"
+
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/vishvananda/netlink"
 )
@@ -112,14 +114,12 @@ func ForwardEnable(ifname string) error {
 	}
 
 	dri := defaultRouteIfname()
-	if dri != "" {
-		masquaradeRule := []string{"-o", defaultRouteIfname(), "-j", "MASQUERADE"}
-		err = ipt.AppendUnique(natTable, "POSTROUTING", masquaradeRule...)
-		if err != nil {
-			return err
-		}
+	if dri == "" {
+		return errors.New("could not parse default route interface")
 	}
-	return nil
+
+	masquaradeRule := []string{"-o", defaultRouteIfname(), "-j", "MASQUERADE"}
+	return ipt.AppendUnique(natTable, "POSTROUTING", masquaradeRule...)
 }
 
 func defaultRouteIfname() string {

@@ -103,7 +103,10 @@ func New(contype int) (*Agent, error) {
 		agent.addService(dockerWatch)
 		dockerHelper = dockerWatch
 		// SYNTROPY_CHAIN iptables rule is created only in Docker case
-		netfilter.CreateChain()
+		err = netfilter.CreateChain()
+		if err != nil {
+			logger.Error().Println(pkgName, "Syntropy chain create:", err)
+		}
 
 	case config.ContainerTypeKubernetes:
 		agent.addService(kubernetes.New(agent.controller))
