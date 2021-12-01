@@ -151,9 +151,6 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return err
 	}
 
-	routeStatusMessage := routestatus.New()
-	padMsg := peeradata.NewMessage()
-
 	resp := wgConfMsg{
 		MessageHeader: req.MessageHeader,
 		Data:          []wgConfEntry{},
@@ -165,15 +162,13 @@ func (obj *wgConf) Exec(raw []byte) error {
 			err = obj.wg.AddPeer(wgp)
 			resp.AddPeerCmd(cmd.Function, wgp)
 			if err == nil {
-				routeRes, peersData := obj.router.RouteAdd(
+				obj.router.RouteAdd(
 					&common.SdnNetworkPath{
 						Ifname:       cmd.Args.IfName,
 						Gateway:      cmd.Args.GatewayIPv4,
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
-					}, cmd.Args.AllowedIPs)
-				routeStatusMessage.Add(routeRes...)
-				padMsg.Add(peersData...)
+					}, cmd.Args.AllowedIPs...)
 			}
 
 		case "remove_peer":
@@ -181,7 +176,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 			obj.router.RouteDel(
 				&common.SdnNetworkPath{
 					Ifname: cmd.Args.IfName,
-				}, cmd.Args.AllowedIPs)
+				}, cmd.Args.AllowedIPs...)
 
 			wgp := cmd.asPeerInfo()
 			err = obj.wg.RemovePeer(wgp)
@@ -231,8 +226,16 @@ func (obj *wgConf) Exec(raw []byte) error {
 	logger.Debug().Println(pkgName, "Sending: ", string(raw))
 	obj.writer.Write(arr)
 
+	routeStatusMessage := routestatus.New()
+	peersActiveDataMessage := peeradata.NewMessage()
+
+	routeRes, peersData := obj.router.Apply()
+	
+	routeStatusMessage.Add(routeRes...)
+	peersActiveDataMessage.Add(peersData...)
+	
 	routeStatusMessage.Send(obj.writer)
-	padMsg.Send(obj.writer)
+	peersActiveDataMessage.Send(obj.writer)
 
 	return nil
 }

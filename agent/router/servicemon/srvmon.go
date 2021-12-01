@@ -1,15 +1,14 @@
 package servicemon
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
+	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
 )
-
-// Not a fatal error, but a message for higher layer (analog to EOF)
-var ErrSdnRouteExists = errors.New("sdn route exists")
 
 const pkgName = "ServiceMonitor. "
 
@@ -39,9 +38,6 @@ func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip string) error {
 		groupID:      netpath.GroupID,
 	})
 
-	if sm.routes[ip].Count() > 1 {
-		return ErrSdnRouteExists
-	}
 	return nil
 }
 
@@ -54,16 +50,41 @@ func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip string) error {
 		return fmt.Errorf("no such address %s", ip)
 	}
 
-	for idx, entry := range sm.routes[ip].list {
-		if entry.gateway == netpath.Gateway {
-			sm.routes[ip].Del(idx)
+	sm.routes[ip].MarkDel(netpath.Gateway)
+
+	return nil
+}
+
+func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
+	var routeStatusCons []*routestatus.Connection
+	var peersActiveData []*peeradata.Entry
+	var routeStatus *routestatus.Connection
+	var padEntry *peeradata.Entry
+	sm.Lock()
+	defer sm.Unlock()
+
+	for ip, rl := range sm.routes {
+		add, del := rl.Pending()
+		count := rl.Count()
+		logger.Info().Printf("%s Apply: add:%d, del:%d, count:%d\n", pkgName,
+			add, del, count)
+		if add == 0 && del == 0 {
+			// nothing to do for this group
+			continue
+		} else if add == count && del == 0 {
+			routeStatus, padEntry = rl.SetRoute(ip)
+		} else if del == count && add == 0 {
+			routeStatus, padEntry = rl.ClearRoute(ip)
+		} else {
+			routeStatus, padEntry = rl.MergeRoutes(ip)
+		}
+		if routeStatus != nil {
+			routeStatusCons = append(routeStatusCons, routeStatus)
+		}
+		if padEntry != nil {
+			peersActiveData = append(peersActiveData, padEntry)
 		}
 	}
 
-	if sm.routes[ip].Count() == 0 {
-		delete(sm.routes, ip)
-		return nil
-	}
-
-	return nil
+	return routeStatusCons, peersActiveData
 }

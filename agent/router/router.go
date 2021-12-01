@@ -23,10 +23,8 @@ import (
  * TODO ^^^^
  **/
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]*routestatus.Connection, []*peeradata.Entry) {
+func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error {
 	const defaultRouteIP = "0.0.0.0/0"
-	routeStatus := []*routestatus.Connection{}
-	peerActiveData := []*peeradata.Entry{}
 
 	r.Lock()
 	defer r.Unlock()
@@ -47,22 +45,14 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest []string) ([]*rou
 		if idx == 0 {
 			r.PeerAdd(netpath, ip)
 		} else {
-			rsEntry, padEntry := r.ServiceAdd(netpath, ip)
-			if rsEntry != nil {
-				routeStatus = append(routeStatus, routestatus.NewConnection(
-					netpath.ConnectionID, netpath.GroupID, rsEntry))
-			}
-			if padEntry != nil {
-				peerActiveData = append(peerActiveData, padEntry)
-			}
+			r.ServiceAdd(netpath, ip)
 		}
 	}
 
-	return routeStatus, peerActiveData
+	return nil
 }
 
-func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []*routestatus.Connection {
-	routeStatus := []*routestatus.Connection{}
+func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -74,13 +64,16 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips []string) []*route
 		if idx == 0 {
 			r.PeerDel(netpath, ip)
 		} else {
-			rsEntry := r.ServiceDel(netpath, ip)
-			if rsEntry != nil {
-				routeStatus = append(routeStatus, routestatus.NewConnection(
-					netpath.ConnectionID, netpath.GroupID, rsEntry))
-			}
+			r.ServiceDel(netpath, ip)
 		}
 	}
 
-	return routeStatus
+	return nil
+}
+
+func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
+	r.Lock()
+	defer r.Unlock()
+
+	return r.serviceApply()
 }

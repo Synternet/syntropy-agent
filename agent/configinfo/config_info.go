@@ -199,9 +199,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 	resp.MsgType = cmdResp
 
-	routeStatusMessage := routestatus.New()
-	padMsg := peeradata.NewMessage()
-
 	// CONFIG_INFO message sends me full configuration
 	// Drop old cache and will build a new cache from zero
 	obj.wg.Flush()
@@ -265,15 +262,13 @@ func (obj *configInfo) Exec(raw []byte) error {
 		case "add_peer":
 			err = obj.wg.AddPeer(cmd.asPeerInfo())
 			if err == nil {
-				routeRes, peersData := obj.router.RouteAdd(
+				obj.router.RouteAdd(
 					&common.SdnNetworkPath{
 						Ifname:       cmd.Args.IfName,
 						Gateway:      cmd.Args.GatewayIPv4,
 						ConnectionID: cmd.Metadata.ConnectionID,
 						GroupID:      cmd.Metadata.GroupID,
-					}, cmd.Args.AllowedIPs)
-				routeStatusMessage.Add(routeRes...)
-				padMsg.Add(peersData...)
+					}, cmd.Args.AllowedIPs...)
 			}
 
 		case "create_interface":
@@ -326,8 +321,16 @@ func (obj *configInfo) Exec(raw []byte) error {
 	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.writer.Write(arr)
 
+	routeStatusMessage := routestatus.New()
+	peersActiveDataMessage := peeradata.NewMessage()
+
+	routeRes, peersData := obj.router.Apply()
+
+	routeStatusMessage.Add(routeRes...)
+	peersActiveDataMessage.Add(peersData...)
+
 	routeStatusMessage.Send(obj.writer)
-	padMsg.Send(obj.writer)
+	peersActiveDataMessage.Send(obj.writer)
 
 	return nil
 }
