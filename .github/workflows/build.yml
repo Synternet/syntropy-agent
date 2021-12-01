@@ -71,3 +71,5 @@ jobs:
           tags: |
             syntropynet/agent:stable
             syntropynet/agent:prod
+            syntropynet/agent:0.2.0
+
