@@ -17,7 +17,7 @@ import (
 
 const (
 	fullAppName = "Syntropy Stack Agent. "
-	lockFile    = "/var/lock/syntropy"
+	lockFile    = "/var/lock/syntropy/agent.lock"
 )
 
 func requireRoot() {
