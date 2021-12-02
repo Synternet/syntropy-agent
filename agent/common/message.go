@@ -3,7 +3,7 @@ package common
 import (
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
 
 // Generic message struct (common part for all messages)

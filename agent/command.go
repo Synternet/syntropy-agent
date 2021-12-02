@@ -3,8 +3,8 @@ package agent
 import (
 	"encoding/json"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 func (a *Agent) addCommand(cmd common.Command) error {

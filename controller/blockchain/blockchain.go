@@ -3,7 +3,7 @@ package blockchain
 import (
 	"errors"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
+	"github.com/SyntropyNet/syntropy-agent/controller"
 )
 
 // Blockchain controller. To be implemented in future

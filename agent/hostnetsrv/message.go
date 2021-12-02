@@ -1,6 +1,6 @@
 package hostnetsrv
 
-import "github.com/SyntropyNet/syntropy-agent-go/agent/common"
+import "github.com/SyntropyNet/syntropy-agent/agent/common"
 
 type hostNetworkServicesMessage struct {
 	common.MessageHeader

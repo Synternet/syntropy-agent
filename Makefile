@@ -33,8 +33,8 @@ agent-go:
 	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
 # build the agent
 	go build -o $(APPNAME) -ldflags \
-		"-X github.com/SyntropyNet/syntropy-agent-go/internal/config.version=$(VERSION) \
-		-X github.com/SyntropyNet/syntropy-agent-go/internal/config.subversion=$(SUBVERSION) -s -w" \
+		"-X github.com/SyntropyNet/syntropy-agent/internal/config.version=$(VERSION) \
+		-X github.com/SyntropyNet/syntropy-agent/internal/config.subversion=$(SUBVERSION) -s -w" \
 		./cmd/main.go
 
 test:

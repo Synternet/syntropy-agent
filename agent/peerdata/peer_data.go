@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
 type wgPeerWatcher struct {

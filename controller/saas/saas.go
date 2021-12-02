@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/controller"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/state"
+	"github.com/SyntropyNet/syntropy-agent/controller"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
+	"github.com/SyntropyNet/syntropy-agent/pkg/state"
 	"github.com/gorilla/websocket"
 )
 

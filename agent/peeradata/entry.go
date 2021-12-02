@@ -3,7 +3,7 @@ package peeradata
 import (
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
 
 type Entry struct {

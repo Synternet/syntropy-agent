@@ -4,8 +4,8 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 func isPortInRange(port int) bool {

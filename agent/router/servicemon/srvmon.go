@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const pkgName = "ServiceMonitor. "

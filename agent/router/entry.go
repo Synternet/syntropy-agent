@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router/peermon"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router/servicemon"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/servicemon"
 )
 
 type routerGroupEntry struct {

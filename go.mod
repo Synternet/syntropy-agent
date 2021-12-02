@@ -1,4 +1,4 @@
-module github.com/SyntropyNet/syntropy-agent-go
+module github.com/SyntropyNet/syntropy-agent
 
 go 1.16
 

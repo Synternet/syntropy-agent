@@ -3,10 +3,10 @@ package servicemon
 import (
 	"fmt"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
+	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
 // Group or routes. Destination will be map key

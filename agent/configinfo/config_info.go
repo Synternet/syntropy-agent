@@ -6,15 +6,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/agent/docker"
+	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/router"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/routestatus"
-	"github.com/SyntropyNet/syntropy-agent-go/agent/swireguard"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/router"
+	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
+	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (

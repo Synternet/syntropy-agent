@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip/stunip"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip/webip"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/stunip"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/webip"
 )
 
 const (

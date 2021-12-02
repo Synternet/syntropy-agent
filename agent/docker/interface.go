@@ -1,6 +1,6 @@
 package docker
 
-import "github.com/SyntropyNet/syntropy-agent-go/agent/common"
+import "github.com/SyntropyNet/syntropy-agent/agent/common"
 
 type DockerHelper interface {
 	NetworkInfo() []DockerNetworkInfoEntry

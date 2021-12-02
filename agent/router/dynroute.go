@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (

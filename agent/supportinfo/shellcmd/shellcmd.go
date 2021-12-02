@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"os/exec"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
 )
 
 type shellCommandSupportInfo struct {

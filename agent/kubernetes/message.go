@@ -1,6 +1,6 @@
 package kubernetes
 
-import "github.com/SyntropyNet/syntropy-agent-go/agent/common"
+import "github.com/SyntropyNet/syntropy-agent/agent/common"
 
 type kubernetesInfoMessage struct {
 	common.MessageHeader
