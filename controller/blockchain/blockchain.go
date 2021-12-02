@@ -63,19 +63,19 @@ func New() (controller.Controller, error) {
 	if _, err := os.Stat(mnemonicPath); err == nil {
 		content, err := os.ReadFile(mnemonicPath)
 		if err != nil {
-			logger.Error().Printf(pkgName, err)
+			logger.Error().Println(pkgName, err)
 		}
 		mnemonic = string(content)
 	} else if errors.Is(err, os.ErrNotExist) {
 
 		err := os.Mkdir("/etc/syntropy", 0600)
 		if err != nil {
-			logger.Error().Printf(pkgName, err)
+			logger.Error().Println(pkgName, err)
 		}
 
 		mnemonicFile, err := os.OpenFile(mnemonicPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
-			logger.Error().Printf(pkgName, err)
+			logger.Error().Println(pkgName, err)
 		}
 		entropy, _ := bip39.NewEntropy(256)
 		mnemonic, _ := bip39.NewMnemonic(entropy)
@@ -85,13 +85,13 @@ func New() (controller.Controller, error) {
 	}
 	bc.keyringPair, err = signature.KeyringPairFromSecret(mnemonic, 42)
 	if err != nil {
-		logger.Error().Printf(pkgName, err)
+		logger.Error().Println(pkgName, err)
 	}
 
 	// Always update address file with latest content.
 	addressFile, err := os.OpenFile(addressPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		logger.Error().Printf(pkgName, err)
+		logger.Error().Println(pkgName, err)
 	}
 	addressFile.WriteString(bc.keyringPair.Address)
 	addressFile.Close()
@@ -114,7 +114,7 @@ func (bc *BlockchainController) connect() (err error) {
 			// Add some randomised sleep, so if controller was down
 			// the reconnecting agents could DDOS the controller
 			delay := time.Duration(rand.Int31n(reconnectDelay)) * time.Millisecond
-			logger.Warning().Printf(pkgName, "Reconnecting in ", delay)
+			logger.Warning().Println(pkgName, "Reconnecting in ", delay)
 			time.Sleep(delay)
 			continue
 		}
@@ -131,7 +131,7 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 	}
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
-		logger.Error().Printf(pkgName, err)
+		logger.Error().Println(pkgName, err)
 	}
 
 	// In this application we have only one reader, so no need to lock here
@@ -142,7 +142,7 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 	for {
 		key, err := types.CreateStorageKey(meta, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
 		if err != nil {
-			logger.Error().Printf(pkgName, err)
+			logger.Error().Println(pkgName, err)
 		}
 		type Commodity struct {
 			ID      types.Hash
@@ -174,7 +174,7 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 
 	if controllerState := bc.GetState(); controllerState != running {
-		logger.Warning().Printf(pkgName, "Controller is not running. Current state: ", controllerState)
+		logger.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
 		return 0, ErrNotRunning
 	}
 
@@ -197,7 +197,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	}
 	sub, err := bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
-		logger.Error().Printf(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "Send error: ", err)
 	}
 	defer sub.Unsubscribe()
 	sub.Chan()
