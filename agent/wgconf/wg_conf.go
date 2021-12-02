@@ -151,16 +151,11 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return err
 	}
 
-	resp := wgConfMsg{
-		MessageHeader: req.MessageHeader,
-		Data:          []wgConfEntry{},
-	}
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
 			wgp := cmd.asPeerInfo()
 			err = obj.wg.AddPeer(wgp)
-			resp.AddPeerCmd(cmd.Function, wgp)
 			if err == nil {
 				obj.router.RouteAdd(
 					&common.SdnNetworkPath{
@@ -180,17 +175,14 @@ func (obj *wgConf) Exec(raw []byte) error {
 
 			wgp := cmd.asPeerInfo()
 			err = obj.wg.RemovePeer(wgp)
-			resp.AddPeerCmd(cmd.Function, wgp)
 
 		case "create_interface":
 			wgi := cmd.asInterfaceInfo()
 			err = obj.wg.CreateInterface(wgi)
-			resp.AddInterfaceCmd(cmd.Function, wgi)
 
 		case "remove_interface":
 			wgi := cmd.asInterfaceInfo()
 			err = obj.wg.RemoveInterface(wgi)
-			resp.AddInterfaceCmd(cmd.Function, wgi)
 		}
 		if err != nil {
 			errorCount++
@@ -218,22 +210,14 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return nil
 	}
 
-	resp.Now()
-	arr, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	logger.Debug().Println(pkgName, "Sending: ", string(raw))
-	obj.writer.Write(arr)
-
 	routeStatusMessage := routestatus.New()
 	peersActiveDataMessage := peeradata.NewMessage()
 
 	routeRes, peersData := obj.router.Apply()
-	
+
 	routeStatusMessage.Add(routeRes...)
 	peersActiveDataMessage.Add(peersData...)
-	
+
 	routeStatusMessage.Send(obj.writer)
 	peersActiveDataMessage.Send(obj.writer)
 
