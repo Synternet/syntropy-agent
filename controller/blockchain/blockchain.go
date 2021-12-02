@@ -20,6 +20,7 @@ import (
 
 const pkgName = "Blockchain Controller. "
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
+const waitForMsg = 1000      // 10 seconds (in milliseconds)
 const (
 	// State machine constants
 	stopped = iota
@@ -33,15 +34,15 @@ var ErrNotRunning = errors.New("substrate api is not running")
 type BlockchainController struct {
 	sync.Mutex
 	state.StateMachine
-	log          *logger.Logger
 	substrateApi *gsrpc.SubstrateAPI
 	keyringPair  signature.KeyringPair
 
-	url      string
-	token    string
-	version  string
-	address  string
-	mnemonic string
+	url           string
+	token         string
+	version       string
+	address       string
+	mnemonic      string
+	lastCommodity []byte
 }
 
 var err = errors.New("blockchain controller not yet implemented")
@@ -54,21 +55,20 @@ func New() (controller.Controller, error) {
 		token:   config.GetAgentToken(),
 		version: config.GetVersion(),
 	}
-	bc.log = logger.New(nil, config.GetDebugLevel(), os.Stdout)
 	var (
 		mnemonic string
 	)
 	if _, err := os.Stat("mnemonic"); err == nil {
 		content, err := os.ReadFile("mnemonic")
 		if err != nil {
-			bc.log.Error().Println(pkgName, err)
+			logger.Error().Printf(pkgName, err)
 		}
 		mnemonic = string(content)
 	} else if errors.Is(err, os.ErrNotExist) {
 
 		mnemonicFile, err := os.OpenFile("mnemonic", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
-			bc.log.Error().Println(pkgName, err)
+			logger.Error().Printf(pkgName, err)
 		}
 		entropy, _ := bip39.NewEntropy(256)
 		mnemonic, _ := bip39.NewMnemonic(entropy)
@@ -78,16 +78,21 @@ func New() (controller.Controller, error) {
 	}
 	bc.keyringPair, err = signature.KeyringPairFromSecret(mnemonic, 42)
 	if err != nil {
-		bc.log.Error().Println(pkgName, err)
+		logger.Error().Printf(pkgName, err)
 	}
 
 	// Always update address file with latest content.
 	addressFile, err := os.OpenFile("address", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		bc.log.Error().Println(pkgName, err)
+		logger.Error().Printf(pkgName, err)
 	}
 	addressFile.WriteString(bc.keyringPair.Address)
 	addressFile.Close()
+
+	err = bc.connect()
+	if err != nil {
+		return nil, err
+	}
 
 	return &bc, nil
 }
@@ -96,12 +101,13 @@ func (bc *BlockchainController) connect() (err error) {
 	bc.SetState(connecting)
 	for {
 		bc.substrateApi, err = gsrpc.NewSubstrateAPI(bc.url)
+		logger.Info().Println("CONNECTED TO SUBSTRATE API")
 		if err != nil {
-			bc.log.Error().Printf("%s ConnectionError: %s\n", pkgName, err.Error())
+			logger.Error().Printf("%s ConnectionError: %s\n", pkgName, err.Error())
 			// Add some randomised sleep, so if controller was down
 			// the reconnecting agents could DDOS the controller
 			delay := time.Duration(rand.Int31n(reconnectDelay)) * time.Millisecond
-			bc.log.Warning().Println(pkgName, "Reconnecting in ", delay)
+			logger.Warning().Printf(pkgName, "Reconnecting in ", delay)
 			time.Sleep(delay)
 			continue
 		}
@@ -118,18 +124,18 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 	}
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
-		bc.log.Error().Printf(pkgName, err)
+		logger.Error().Printf(pkgName, err)
 	}
 
 	// In this application we have only one reader, so no need to lock here
-	var (
-		lastCommodity []byte
-	)
+	//var (
+	//	lastCommodity []byte
+	//)
 
 	for {
 		key, err := types.CreateStorageKey(meta, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
 		if err != nil {
-			bc.log.Error().Printf(pkgName, err)
+			logger.Error().Printf(pkgName, err)
 		}
 		type Commodity struct {
 			ID      types.Hash
@@ -142,11 +148,14 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 			bc.connect()
 			continue
 		}
-		if bytes.Equal(lastCommodity, res[len(res)-1].Payload) {
+		logger.Info().Println("before ", bc.lastCommodity, res[len(res)-1].Payload)
+		if bytes.Equal(bc.lastCommodity, res[len(res)-1].Payload) {
+			delay := time.Duration(waitForMsg) * time.Millisecond
+			time.Sleep(delay)
 			continue
 		}
-		lastCommodity = res[len(res)-1].Payload
-		return lastCommodity, nil
+		bc.lastCommodity = res[len(res)-1].Payload
+		return bc.lastCommodity, nil
 
 	}
 }
@@ -154,7 +163,7 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 
 	if controllerState := bc.GetState(); controllerState != running {
-		bc.log.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
+		logger.Warning().Printf(pkgName, "Controller is not running. Current state: ", controllerState)
 		return 0, ErrNotRunning
 	}
 
@@ -177,7 +186,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	}
 	sub, err := bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
-		bc.log.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Printf(pkgName, "Send error: ", err)
 	}
 	defer sub.Unsubscribe()
 	sub.Chan()

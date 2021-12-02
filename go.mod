@@ -6,6 +6,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.2
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/coreos/go-iptables v0.6.0
+	github.com/cosmos/go-bip39 v1.0.0
 	github.com/docker/docker v20.10.10+incompatible
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/google/go-cmp v0.5.6
