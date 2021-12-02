@@ -58,9 +58,15 @@ func New(contype int) (*Agent, error) {
 	var err error
 	var controller controller.Controller
 
+	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
 	switch contype {
 	case config.ControllerSaas:
 		controller, err = saas.New()
+		if controller != nil {
+			// Config loggers early - to get more info logged
+			// Setup remote logger only for saas controller
+			logger.SetupGlobalLoger(controller, config.GetDebugLevel(), os.Stdout)
+		}
 	case config.ControllerScript:
 		controller, err = script.New()
 	case config.ControllerBlockchain:
@@ -71,9 +77,6 @@ func New(contype int) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Config loggers early - to get more info logged
-	logger.SetupGlobalLoger(controller, config.GetDebugLevel(), os.Stdout)
 
 	agent := &Agent{
 		controller: controller,
