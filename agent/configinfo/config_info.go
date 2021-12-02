@@ -7,11 +7,9 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/docker"
-	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/router"
-	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -25,8 +23,7 @@ const (
 
 type configInfo struct {
 	writer io.Writer
-	wg     *swireguard.Wireguard
-	router *router.Router
+	mole   *mole.Mole
 	docker docker.DockerHelper
 }
 
@@ -36,11 +33,10 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port,omitempty"`
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard, r *router.Router, d docker.DockerHelper) common.Command {
+func New(w io.Writer, m *mole.Mole, d docker.DockerHelper) common.Command {
 	return &configInfo{
 		writer: w,
-		wg:     wg,
-		router: r,
+		mole:   m,
 		docker: d,
 	}
 }
@@ -201,11 +197,11 @@ func (obj *configInfo) Exec(raw []byte) error {
 
 	// CONFIG_INFO message sends me full configuration
 	// Drop old cache and will build a new cache from zero
-	obj.wg.Flush()
+	obj.mole.Flush()
 
 	// create missing interfaces
 	wgi := req.Data.Network.Public.asInterfaceInfo("PUBLIC")
-	err = obj.wg.CreateInterface(wgi)
+	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
 		errorCount++
@@ -216,7 +212,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	wgi = req.Data.Network.Sdn1.asInterfaceInfo("SDN1")
-	err = obj.wg.CreateInterface(wgi)
+	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
 		errorCount++
@@ -227,7 +223,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	wgi = req.Data.Network.Sdn2.asInterfaceInfo("SDN2")
-	err = obj.wg.CreateInterface(wgi)
+	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
 		errorCount++
@@ -238,7 +234,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	wgi = req.Data.Network.Sdn3.asInterfaceInfo("SDN3")
-	err = obj.wg.CreateInterface(wgi)
+	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
 		errorCount++
@@ -260,20 +256,16 @@ func (obj *configInfo) Exec(raw []byte) error {
 	for _, cmd := range req.Data.VPN {
 		switch cmd.Function {
 		case "add_peer":
-			err = obj.wg.AddPeer(cmd.asPeerInfo())
-			if err == nil {
-				obj.router.RouteAdd(
-					&common.SdnNetworkPath{
-						Ifname:       cmd.Args.IfName,
-						Gateway:      cmd.Args.GatewayIPv4,
-						ConnectionID: cmd.Metadata.ConnectionID,
-						GroupID:      cmd.Metadata.GroupID,
-					}, cmd.Args.AllowedIPs...)
-			}
+			err = obj.mole.AddPeer(cmd.asPeerInfo(), &common.SdnNetworkPath{
+				Ifname:       cmd.Args.IfName,
+				Gateway:      cmd.Args.GatewayIPv4,
+				ConnectionID: cmd.Metadata.ConnectionID,
+				GroupID:      cmd.Metadata.GroupID,
+			})
 
 		case "create_interface":
 			wgi = cmd.asInterfaceInfo()
-			err = obj.wg.CreateInterface(wgi)
+			err = obj.mole.CreateInterface(wgi)
 			if err == nil &&
 				cmd.Args.PublicKey != wgi.PublicKey ||
 				cmd.Args.ListenPort != wgi.Port {
@@ -284,14 +276,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 			logger.Error().Println(pkgName, cmd.Function, err)
 			errorCount++
 		}
-	}
-
-	// CONFIG_INFO message sends me full configuration
-	// Now sync and merge everything between controller and OS
-	// (mostly for cleanup residual obsolete configuration)
-	err = obj.wg.Apply()
-	if err != nil {
-		logger.Error().Println(pkgName, "wireguard apply", err)
 	}
 
 	if errorCount > 0 {
@@ -321,16 +305,10 @@ func (obj *configInfo) Exec(raw []byte) error {
 	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.writer.Write(arr)
 
-	routeStatusMessage := routestatus.New()
-	peersActiveDataMessage := peeradata.NewMessage()
-
-	routeRes, peersData := obj.router.Apply()
-
-	routeStatusMessage.Add(routeRes...)
-	peersActiveDataMessage.Add(peersData...)
-
-	routeStatusMessage.Send(obj.writer)
-	peersActiveDataMessage.Send(obj.writer)
+	// CONFIG_INFO message sends me full configuration
+	// Finally sync and merge everything between controller and OS
+	// (mostly for cleanup residual obsolete configuration)
+	obj.mole.Apply()
 
 	return nil
 }

@@ -7,9 +7,7 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/router"
-	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -22,8 +20,7 @@ const (
 
 type wgConf struct {
 	writer io.Writer
-	wg     *swireguard.Wireguard
-	router *router.Router
+	mole   *mole.Mole
 }
 
 // This struct is not used in Linux agent
@@ -131,11 +128,10 @@ func (msg *wgConfMsg) AddInterfaceCmd(cmd string, ii *swireguard.InterfaceInfo) 
 	msg.Data = append(msg.Data, e)
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard, r *router.Router) common.Command {
+func New(w io.Writer, m *mole.Mole) common.Command {
 	return &wgConf{
 		writer: w,
-		wg:     wg,
-		router: r,
+		mole:   m,
 	}
 }
 
@@ -155,35 +151,20 @@ func (obj *wgConf) Exec(raw []byte) error {
 		switch cmd.Function {
 		case "add_peer":
 			wgp := cmd.asPeerInfo()
-			err = obj.wg.AddPeer(wgp)
-			if err == nil {
-				obj.router.RouteAdd(
-					&common.SdnNetworkPath{
-						Ifname:       cmd.Args.IfName,
-						Gateway:      cmd.Args.GatewayIPv4,
-						ConnectionID: cmd.Metadata.ConnectionID,
-						GroupID:      cmd.Metadata.GroupID,
-					}, cmd.Args.AllowedIPs...)
-			}
+			err = obj.mole.AddPeer(wgp, &common.SdnNetworkPath{
+				Ifname:       cmd.Args.IfName,
+				Gateway:      cmd.Args.GatewayIPv4,
+				ConnectionID: cmd.Metadata.ConnectionID,
+				GroupID:      cmd.Metadata.GroupID,
+			})
 
 		case "remove_peer":
-			// Nobody is interested in RouteDel results
-			obj.router.RouteDel(
-				&common.SdnNetworkPath{
-					Ifname: cmd.Args.IfName,
-				}, cmd.Args.AllowedIPs...)
-
 			wgp := cmd.asPeerInfo()
-			err = obj.wg.RemovePeer(wgp)
-
-		case "create_interface":
-			wgi := cmd.asInterfaceInfo()
-			err = obj.wg.CreateInterface(wgi)
-
-		case "remove_interface":
-			wgi := cmd.asInterfaceInfo()
-			err = obj.wg.RemoveInterface(wgi)
+			err = obj.mole.RemovePeer(wgp, &common.SdnNetworkPath{
+				Ifname: cmd.Args.IfName,
+			})
 		}
+
 		if err != nil {
 			errorCount++
 			logger.Error().Println(pkgName, cmd.Function, err)
@@ -210,16 +191,8 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return nil
 	}
 
-	routeStatusMessage := routestatus.New()
-	peersActiveDataMessage := peeradata.NewMessage()
-
-	routeRes, peersData := obj.router.Apply()
-
-	routeStatusMessage.Add(routeRes...)
-	peersActiveDataMessage.Add(peersData...)
-
-	routeStatusMessage.Send(obj.writer)
-	peersActiveDataMessage.Send(obj.writer)
+	// sync and merge everything between controller and OS
+	obj.mole.Apply()
 
 	return nil
 }

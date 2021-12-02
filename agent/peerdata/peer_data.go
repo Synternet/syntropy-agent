@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -15,36 +16,31 @@ import (
 )
 
 type wgPeerWatcher struct {
-	writer      io.Writer
-	wg          *swireguard.Wireguard
-	timeout     time.Duration
-	pinger      *multiping.MultiPing
-	pingData    *multiping.PingData
-	pingClients []multiping.PingClient
-	counter     int
+	writer   io.Writer
+	mole     *mole.Mole
+	timeout  time.Duration
+	pinger   *multiping.MultiPing
+	pingData *multiping.PingData
+	counter  int
 }
 
-func New(writer io.Writer, wgctl *swireguard.Wireguard,
-	p *multiping.MultiPing, pcl ...multiping.PingClient) common.Service {
+func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing) common.Service {
 	return &wgPeerWatcher{
-		wg:          wgctl,
-		writer:      writer,
-		timeout:     periodInit,
-		pinger:      p,
-		pingData:    multiping.NewPingData(),
-		pingClients: pcl,
+		mole:     m,
+		writer:   writer,
+		timeout:  periodInit,
+		pinger:   p,
+		pingData: multiping.NewPingData(),
 	}
 }
 
 func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
-	// PingClients (actually PeerMonitor instance) also needs to process these ping result
-	for _, pc := range obj.pingClients {
-		pc.PingProcess(pr)
-	}
+	// PeerMonitor instance (member of Router) also needs to process these ping result
+	obj.mole.Router().PingProcess(pr)
 }
 
 func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) error {
-	wg := obj.wg
+	wg := obj.mole.Wireguard()
 
 	// Update swireguard cached peers statistics
 	wg.PeerStatsUpdate()

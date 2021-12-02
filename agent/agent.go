@@ -14,11 +14,10 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/hostnetsrv"
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerdata"
-	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
-	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent/controller"
 	"github.com/SyntropyNet/syntropy-agent/controller/blockchain"
@@ -43,9 +42,8 @@ type Agent struct {
 	cancel context.CancelFunc
 
 	// various helpers, used crossed-services
-	wg     *swireguard.Wireguard
-	router *router.Router
 	pinger *multiping.MultiPing
+	mole   *mole.Mole
 
 	// services and commands slice/map
 	commands map[string]common.Command
@@ -82,18 +80,17 @@ func New(contype int) (*Agent, error) {
 	}
 	agent.ctx, agent.cancel = context.WithCancel(context.Background())
 
-	agent.router = router.New(agent.controller)
+	agent.mole, err = mole.New(agent.controller)
+	if err != nil {
+		return nil, err
+	}
 
 	agent.pinger, err = multiping.New(true)
 	if err != nil {
 		return nil, err
 	}
 
-	agent.wg, err = swireguard.New()
-	if err != nil {
-		return nil, err
-	}
-	agent.wg.LogInfo()
+	agent.mole.Wireguard().LogInfo()
 
 	var dockerHelper docker.DockerHelper
 
@@ -122,15 +119,15 @@ func New(contype int) (*Agent, error) {
 		dockerHelper = &docker.DockerNull{}
 	}
 
-	agent.addCommand(configinfo.New(agent.controller, agent.wg, agent.router, dockerHelper))
-	agent.addCommand(wgconf.New(agent.controller, agent.wg, agent.router))
+	agent.addCommand(configinfo.New(agent.controller, agent.mole, dockerHelper))
+	agent.addCommand(wgconf.New(agent.controller, agent.mole))
 
 	autoping := autoping.New(agent.controller, agent.pinger)
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerdata.New(agent.controller, agent.wg, agent.pinger, agent.router))
-	agent.addService(agent.router)
+	agent.addService(peerdata.New(agent.controller, agent.mole, agent.pinger))
+	agent.addService(agent.mole.Router())
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 	agent.addCommand(supportinfo.New(agent.controller,
@@ -182,10 +179,10 @@ func (agent *Agent) Close() error {
 		logger.Warning().Println(pkgName, "Failed stopping the controller: ", err)
 	}
 
-	// Wireguard cleanup on exit
-	err = agent.wg.Close()
+	// cleanup on exit (craftman mole knows what to cleanup)
+	err = agent.mole.Close()
 	if err != nil {
-		logger.Error().Println(pkgName, "wireguard helper cleanup:", err)
+		logger.Error().Println(pkgName, "mole cleanup:", err)
 	}
 
 	return nil
