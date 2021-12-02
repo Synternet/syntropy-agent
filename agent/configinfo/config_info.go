@@ -2,7 +2,6 @@ package configinfo
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 
@@ -183,7 +182,6 @@ func (msg *updateAgentConfigMsg) AddPeer(data *swireguard.PeerInfo) {
 
 func (obj *configInfo) Exec(raw []byte) error {
 	var req configInfoMsg
-	var errorCount int
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
 		return err
@@ -204,7 +202,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
 	}
 	if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Public.Port != wgi.Port {
@@ -215,7 +212,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
 	}
 	if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn1.Port != wgi.Port {
@@ -226,7 +222,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
 	}
 	if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn2.Port != wgi.Port {
@@ -237,7 +232,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	err = obj.mole.CreateInterface(wgi)
 	if err != nil {
 		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
 	}
 	if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
 		req.Data.Network.Sdn3.Port != wgi.Port {
@@ -274,27 +268,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		}
 		if err != nil {
 			logger.Error().Println(pkgName, cmd.Function, err)
-			errorCount++
 		}
-	}
-
-	if errorCount > 0 {
-		errResp := common.ErrorResponse{
-			MessageHeader: req.MessageHeader,
-		}
-		errResp.Data.Type = cmd + "_ERROR"
-		errResp.Data.Message = fmt.Sprintf("There were %d errors while performing %s request %s",
-			errorCount, req.MsgType, req.ID)
-		errResp.Now()
-		arr, err := json.Marshal(errResp)
-		if err != nil {
-			return err
-		}
-		// Tricky here: I have errors, and I send them back to controller
-		// But they are not internal application errors
-		logger.Debug().Println(pkgName, "Sending: ", string(arr))
-		obj.writer.Write(arr)
-		return nil
 	}
 
 	resp.Now()

@@ -2,7 +2,6 @@ package wgconf
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -33,7 +32,6 @@ func (obj *wgConf) Name() string {
 
 func (obj *wgConf) Exec(raw []byte) error {
 	var req wgConfMsg
-	var errorCount int
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
 		return err
@@ -58,29 +56,8 @@ func (obj *wgConf) Exec(raw []byte) error {
 		}
 
 		if err != nil {
-			errorCount++
 			logger.Error().Println(pkgName, cmd.Function, err)
 		}
-
-	}
-
-	if errorCount > 0 {
-		errResp := common.ErrorResponse{
-			MessageHeader: req.MessageHeader,
-		}
-		errResp.Data.Type = cmd + "_ERROR"
-		errResp.Data.Message = fmt.Sprintf("There were %d errors while performing %s request %s",
-			errorCount, req.MsgType, req.ID)
-		errResp.Now()
-		arr, err := json.Marshal(errResp)
-		if err != nil {
-			return err
-		}
-		// Tricky here: I have errors, and I send them back to controller
-		// But they are not internal application errors
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
-		obj.writer.Write(arr)
-		return nil
 	}
 
 	// sync and merge everything between controller and OS
