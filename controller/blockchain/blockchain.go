@@ -21,8 +21,10 @@ import (
 )
 
 const pkgName = "Blockchain Controller. "
+const mnemonicPath = "/etc/syntropy/mnemonic"
+const addressPath = "/etc/syntropy/address"
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
-const waitForMsg = 1000      // 10 seconds (in milliseconds)
+const waitForMsg = time.Duration(1000) * time.Millisecond
 const (
 	// State machine constants
 	stopped = iota
@@ -60,15 +62,20 @@ func New() (controller.Controller, error) {
 	var (
 		mnemonic string
 	)
-	if _, err := os.Stat("mnemonic"); err == nil {
-		content, err := os.ReadFile("mnemonic")
+	if _, err := os.Stat(mnemonicPath); err == nil {
+		content, err := os.ReadFile(mnemonicPath)
 		if err != nil {
 			logger.Error().Printf(pkgName, err)
 		}
 		mnemonic = string(content)
 	} else if errors.Is(err, os.ErrNotExist) {
 
-		mnemonicFile, err := os.OpenFile("mnemonic", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+		err := os.Mkdir("/etc/syntropy", 0600)
+		if err != nil {
+			logger.Error().Printf(pkgName, err)
+		}
+
+		mnemonicFile, err := os.OpenFile(mnemonicPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			logger.Error().Printf(pkgName, err)
 		}
@@ -84,7 +91,7 @@ func New() (controller.Controller, error) {
 	}
 
 	// Always update address file with latest content.
-	addressFile, err := os.OpenFile("address", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	addressFile, err := os.OpenFile(addressPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		logger.Error().Printf(pkgName, err)
 	}
@@ -150,10 +157,14 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 			bc.connect()
 			continue
 		}
-		logger.Info().Println("before ", bc.lastCommodity, res[len(res)-1].Payload)
+
+		if len(res) == 0 {
+			time.Sleep(waitForMsg)
+			continue
+		}
+
 		if bytes.Equal(bc.lastCommodity, res[len(res)-1].Payload) {
-			delay := time.Duration(waitForMsg) * time.Millisecond
-			time.Sleep(delay)
+			time.Sleep(waitForMsg)
 			continue
 		}
 		bc.lastCommodity = res[len(res)-1].Payload
