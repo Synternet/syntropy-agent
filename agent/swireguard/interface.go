@@ -3,10 +3,10 @@ package swireguard
 import (
 	"fmt"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/netfilter"
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/netcfg"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/internal/netfilter"
+	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 

@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/pkg/pubip"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
 )
 
 func initDeviceID() {

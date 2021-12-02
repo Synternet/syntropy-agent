@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (

@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent-go/agent/common"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
 
 const (

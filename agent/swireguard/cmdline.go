@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/vishvananda/netlink"
 )
 

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/config"
-	"github.com/SyntropyNet/syntropy-agent-go/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"golang.zx2c4.com/wireguard/wgctrl"
 )
 

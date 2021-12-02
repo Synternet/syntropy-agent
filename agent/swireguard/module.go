@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent-go/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"pault.ag/go/modprobe"
 )
 
