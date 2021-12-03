@@ -110,11 +110,9 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
 	}
-	if !netcfg.InterfaceHasIP(ii.IfName, ii.IP) {
-		err = netcfg.InterfaceIPAdd(ii.IfName, ii.IP)
-		if err != nil {
-			logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
-		}
+	err = netcfg.InterfaceIPSet(ii.IfName, ii.IP)
+	if err != nil {
+		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
 	// Why this config variale configures only forward, and does not impact other iptables rules ???
 	if config.CreateIptablesRules() {
