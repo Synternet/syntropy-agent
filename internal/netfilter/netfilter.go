@@ -7,6 +7,7 @@ import (
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 )
 
 // TODO: review `-nft` and `-legacy` usage
@@ -125,9 +126,8 @@ func ForwardEnable(ifname string) error {
 func defaultRouteIfname() string {
 	var ifname string
 	var defaultRoute *netlink.Route
-	const AF_INET = 2 // from include/linux/socket.h. Is there a better way to use constant ?
 
-	routes, err := netlink.RouteList(nil, AF_INET)
+	routes, err := netlink.RouteList(nil, unix.AF_INET)
 	if err != nil {
 		return ifname
 	}
