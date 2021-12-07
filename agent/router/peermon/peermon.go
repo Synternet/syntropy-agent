@@ -66,6 +66,10 @@ func (pm *PeerMonitor) DelNode(endpoint string) {
 			// Remove from slice in more effective way
 			pm.peerList[idx] = pm.peerList[len(pm.peerList)-1]
 			pm.peerList = pm.peerList[:len(pm.peerList)-1]
+			// Check and invalidate last best path index
+			if idx == pm.lastBest {
+				pm.lastBest = invalidBestIndex
+			}
 			return
 		}
 	}
@@ -145,7 +149,7 @@ func (pm *PeerMonitor) BestPath() string {
 }
 
 func (pm *PeerMonitor) checkNewBest(idx int) {
-	if pm.lastBest == invalidBestIndex {
+	if pm.lastBest == invalidBestIndex || pm.lastBest >= len(pm.peerList) {
 		// No previous best route yet - choose the best
 		pm.changeReason = reasonNewRoute
 		pm.lastBest = idx
