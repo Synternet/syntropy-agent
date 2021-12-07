@@ -183,18 +183,55 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
-		panic(err)
+		logger.Error().Println(pkgName, "Send error: ", err)
 	}
 
-	c, err := types.NewCall(meta, "Commodity.mint", bc.keyringPair.Address, b)
+	genesisHash, err := bc.substrateApi.RPC.Chain.GetBlockHash(0)
 	if err != nil {
-		panic(err)
+		logger.Error().Println(pkgName, "Send error: ", err)
 	}
+
+	key, err := types.CreateStorageKey(meta, "System", "Account", bc.keyringPair.PublicKey, nil)
+	if err != nil {
+		logger.Error().Println(pkgName, "Send error: ", err)
+	}
+
+	var accountInfo types.AccountInfo
+	ok, err := bc.substrateApi.RPC.State.GetStorageLatest(key, &accountInfo)
+	if err != nil || !ok {
+		logger.Error().Println(pkgName, "Send error: ", err)
+	}
+
+	nonce := uint32(accountInfo.Nonce)
+
+	rv, err := bc.substrateApi.RPC.State.GetRuntimeVersionLatest()
+	if err != nil {
+		logger.Error().Println(pkgName, "Send error: ", err)
+	}
+
+	type CommodityInfo struct {
+		Info []byte
+	}
+
+	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(bc.keyringPair.PublicKey), b)
+	if err != nil {
+		logger.Error().Println(pkgName, "Send error: ", err)
+	}
+
 	ext := types.NewExtrinsic(c)
-	err = ext.Sign(bc.keyringPair, types.SignatureOptions{})
+	err = ext.Sign(bc.keyringPair, types.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                types.ExtrinsicEra{IsMortalEra: false},
+		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+		GenesisHash:        genesisHash,
+		SpecVersion:        rv.SpecVersion,
+		Tip:                types.NewUCompactFromUInt(0),
+		TransactionVersion: rv.TransactionVersion,
+	})
 	if err != nil {
-		panic(err)
+		logger.Error().Println(pkgName, "Send error: ", err)
 	}
+
 	sub, err := bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
