@@ -20,6 +20,7 @@ type configCache struct {
 	apiKey         string // aka AGENT_TOKEN
 	cloudURL       string
 	deviceID       string
+	ownerAddress   string // aka OWNER_ADDRESS
 	controllerType int
 
 	agentName      string

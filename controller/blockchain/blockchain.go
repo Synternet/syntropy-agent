@@ -195,7 +195,6 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
-
 	var accountInfo types.AccountInfo
 	ok, err := bc.substrateApi.RPC.State.GetStorageLatest(key, &accountInfo)
 	if err != nil || !ok {
@@ -213,7 +212,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		Info []byte
 	}
 
-	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(bc.keyringPair.PublicKey), b)
+	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID([]byte(config.GetOwnerAddress())), b)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
