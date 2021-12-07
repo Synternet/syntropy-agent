@@ -24,6 +24,11 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 }
 
 func (m *Mole) RemovePeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) error {
+	entry, ok := m.cache[makeKey(pi)]
+	if ok {
+		netpath.ConnectionID = entry.connectionID
+		netpath.GroupID = entry.groupID
+	}
 	// Nobody is interested in RouteDel results
 	m.router.RouteDel(netpath, pi.AllowedIPs...)
 
