@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent-go/agent/docker"
@@ -140,10 +141,10 @@ type configInfoMsg struct {
 	Data struct {
 		AgentID int `json:"agent_id"`
 		Network struct {
-			Public configInfoNetworkEntry `json:"PUBLIC"`
-			Sdn1   configInfoNetworkEntry `json:"SDN1"`
-			Sdn2   configInfoNetworkEntry `json:"SDN2"`
-			Sdn3   configInfoNetworkEntry `json:"SDN3"`
+			Public *configInfoNetworkEntry `json:"PUBLIC,omitempty"`
+			Sdn1   *configInfoNetworkEntry `json:"SDN1,omitempty"`
+			Sdn2   *configInfoNetworkEntry `json:"SDN2,omitempty"`
+			Sdn3   *configInfoNetworkEntry `json:"SDN3,omitempty"`
 		}
 		VPN         []configInfoVpnEntry         `json:"vpn,omitempty"`
 		Subnetworks []configInfoSubnetworksEntry `json:"subnetworks,omitempty"`
@@ -202,53 +203,78 @@ func (obj *configInfo) Exec(raw []byte) error {
 	routeStatus := routestatus.NewMsg()
 	padMsg := peeradata.NewMessage()
 
+	// Network section is empty is a special case
+	// agent is deleted in the UI
+	if req.Data.Network.Public == nil &&
+		req.Data.Network.Sdn1 == nil &&
+		req.Data.Network.Sdn2 == nil &&
+		req.Data.Network.Sdn3 == nil {
+		logger.Info().Println(pkgName, "Platform Agent deletion in progress.")
+		for _, ii := range obj.wg.Devices() {
+			obj.wg.RemoveInterface(ii)
+		}
+		// TODO: implement graceful exit
+		logger.Info().Println(pkgName, "Platform Agent exit.")
+		os.Exit(0)
+	}
+
 	// CONFIG_INFO message sends me full configuration
 	// Drop old cache and will build a new cache from zero
 	obj.wg.Flush()
 
+	var wgi *swireguard.InterfaceInfo
+
 	// create missing interfaces
-	wgi := req.Data.Network.Public.asInterfaceInfo("PUBLIC")
-	err = obj.wg.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
-	}
-	if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Public.Port != wgi.Port {
-		resp.AddInterface(wgi)
-	}
-
-	wgi = req.Data.Network.Sdn1.asInterfaceInfo("SDN1")
-	err = obj.wg.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
-	}
-	if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Sdn1.Port != wgi.Port {
-		resp.AddInterface(wgi)
+	if req.Data.Network.Public != nil {
+		wgi = req.Data.Network.Public.asInterfaceInfo("PUBLIC")
+		err = obj.wg.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+			errorCount++
+		}
+		if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Public.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
 
-	wgi = req.Data.Network.Sdn2.asInterfaceInfo("SDN2")
-	err = obj.wg.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
-	}
-	if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Sdn2.Port != wgi.Port {
-		resp.AddInterface(wgi)
+	if req.Data.Network.Sdn1 != nil {
+		wgi = req.Data.Network.Sdn1.asInterfaceInfo("SDN1")
+		err = obj.wg.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+			errorCount++
+		}
+		if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Sdn1.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
 
-	wgi = req.Data.Network.Sdn3.asInterfaceInfo("SDN3")
-	err = obj.wg.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		errorCount++
+	if req.Data.Network.Sdn2 != nil {
+		wgi = req.Data.Network.Sdn2.asInterfaceInfo("SDN2")
+		err = obj.wg.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+			errorCount++
+		}
+		if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Sdn2.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
-	if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Sdn3.Port != wgi.Port {
-		resp.AddInterface(wgi)
+
+	if req.Data.Network.Sdn3 != nil {
+		wgi = req.Data.Network.Sdn3.asInterfaceInfo("SDN3")
+		err = obj.wg.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+			errorCount++
+		}
+		if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Sdn3.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
 
 	for _, subnetwork := range req.Data.Subnetworks {
