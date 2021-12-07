@@ -24,10 +24,10 @@ func requireRoot() {
 	user, err := user.Current()
 	if err != nil {
 		logger.Error().Println(fullAppName, "current user", err)
-		os.Exit(-14) // errno.h -EFAULT
+		os.Exit(-int(unix.EFAULT))
 	} else if user.Uid != "0" {
 		logger.Error().Println(fullAppName, "insufficient permitions. Please run with `sudo` or as root.")
-		os.Exit(-13) // errno.h -EACCES
+		os.Exit(-int(unix.EACCES))
 	}
 }
 
@@ -52,7 +52,7 @@ func main() {
 	f, err := os.Create(lockFile)
 	if err != nil {
 		logger.Error().Println(fullAppName, lockFile, err)
-		exitCode = -2 // errno.h ENOENT
+		exitCode = -int(unix.ENOENT)
 		return
 	}
 	err = unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB)
@@ -60,7 +60,7 @@ func main() {
 		// Another agent instance is running. Exit.
 		logger.Error().Println(fullAppName, "Another agent instance is running")
 		logger.Error().Println(fullAppName, "Lock file residual", lockFile)
-		exitCode = -16 // errno.h -EBUSY
+		exitCode = -int(unix.EBUSY)
 		return
 	}
 	defer func() {
@@ -75,7 +75,7 @@ func main() {
 	syntropyNetAgent, err := agent.New(config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
-		exitCode = -12 // errno.h -ENOMEM
+		exitCode = -int(unix.ENOMEM)
 		return
 	}
 

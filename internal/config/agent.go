@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -30,7 +31,7 @@ func initAgentDirs() {
 	err := os.MkdirAll(AgentConfigDir, 0700)
 	if err != nil {
 		logger.Error().Printf("%s Config dir %s: %s\n", pkgName, AgentConfigDir, err.Error())
-		os.Exit(-20) // errno.h -ENOTDIR
+		os.Exit(-int(unix.ENOTDIR))
 	}
 
 	// Cleanup previously cached private & public key files
