@@ -136,14 +136,15 @@ func (wg *Wireguard) RemoveInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("invalid parameters to RemoveInterface")
 	}
 
+	// Delete from cache
 	dev := wg.Device(ii.IfName)
-	if dev == nil {
-		logger.Warning().Println(pkgName, "Cannot remove non-existing interface ", ii.IfName)
-		return nil
+	if dev != nil {
+		logger.Info().Println(pkgName, "Remove interface", ii.IfName)
+		wg.interfaceCacheDel(dev)
+	} else {
+		logger.Warning().Println(pkgName, "Remove interface", ii.IfName, "not found in cache.")
 	}
 
-	// Delete from cache
-	wg.interfaceCacheDel(dev)
 	// delete from OS
 	return wg.deleteInterface(ii.IfName)
 }
