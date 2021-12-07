@@ -42,6 +42,10 @@ func GetCloudURL() string {
 	return cache.cloudURL
 }
 
+func GetOwnerAddress() string {
+	return cache.ownerAddress
+}
+
 func GetAgentName() string {
 	return cache.agentName
 }

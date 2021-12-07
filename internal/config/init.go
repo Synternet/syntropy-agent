@@ -16,6 +16,7 @@ func Init() {
 	initDeviceID()
 	initControllerType()
 	initDebugLevel()
+	initOwnerAddress()
 
 	initAgentName()
 	initAgentProvider()

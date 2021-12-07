@@ -88,6 +88,13 @@ func initAgentToken() {
 	}
 }
 
+func initOwnerAddress() {
+	cache.ownerAddress = os.Getenv("SYNTROPY_OWNER_ADDRESS")
+	if cache.apiKey == "" {
+		cache.ownerAddress = os.Getenv("SYNTROPY_OWNER_ADDRESS")
+	}
+}
+
 func initCloudURL() {
 	cache.cloudURL = "controller-prod-platform-agents.syntropystack.com"
 	url := os.Getenv("SYNTROPY_CONTROLLER_URL")
