@@ -25,7 +25,7 @@ const (
 )
 
 type configInfo struct {
-	writer io.Writer
+	writer io.WriteCloser
 	wg     *swireguard.Wireguard
 	router *router.Router
 	docker docker.DockerHelper
@@ -37,7 +37,7 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port,omitempty"`
 }
 
-func New(w io.Writer, wg *swireguard.Wireguard, r *router.Router, d docker.DockerHelper) common.Command {
+func New(w io.WriteCloser, wg *swireguard.Wireguard, r *router.Router, d docker.DockerHelper) common.Command {
 	return &configInfo{
 		writer: w,
 		wg:     wg,
@@ -213,9 +213,15 @@ func (obj *configInfo) Exec(raw []byte) error {
 		for _, ii := range obj.wg.Devices() {
 			obj.wg.RemoveInterface(ii)
 		}
-		// TODO: implement graceful exit
-		logger.Info().Println(pkgName, "Platform Agent exit.")
-		os.Exit(0)
+		process, err := os.FindProcess(os.Getpid())
+		if err != nil {
+			logger.Info().Println(pkgName, "Platform Agent exit.")
+			logger.Error().Println(pkgName, "failed getting self pid", err)
+			logger.Error().Println(pkgName, "exit anyway")
+			os.Exit(0)
+		}
+		process.Signal(os.Interrupt)
+		return nil
 	}
 
 	// CONFIG_INFO message sends me full configuration
