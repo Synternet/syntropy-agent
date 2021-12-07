@@ -11,7 +11,7 @@ import (
 func (wg *Wireguard) deleteInterface(ifname string) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
-		return fmt.Errorf("failed to lookup interface %v", ifname)
+		return fmt.Errorf("failed to lookup interface %s", ifname)
 	}
 
 	// ip link del dev <interface> works for both - kernel and userspace WG implementations.
