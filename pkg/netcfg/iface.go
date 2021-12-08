@@ -114,7 +114,7 @@ func InterfaceIPSet(ifname, ip string) error {
 		addr.IPNet.IP = ipaddr
 	}
 	if addr.IPNet == nil || addr.IPNet.IP == nil {
-		return fmt.Errorf("error parsing IP address %s", ip)
+		return fmt.Errorf("error parsing IP address '%s'", ip)
 	}
 
 	return netlink.AddrAdd(iface, &addr)
