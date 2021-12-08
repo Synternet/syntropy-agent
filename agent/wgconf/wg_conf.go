@@ -40,19 +40,10 @@ func (obj *wgConf) Exec(raw []byte) error {
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
-			wgp := cmd.asPeerInfo()
-			err = obj.mole.AddPeer(wgp, &common.SdnNetworkPath{
-				Ifname:       cmd.Args.IfName,
-				Gateway:      cmd.Args.GatewayIPv4,
-				ConnectionID: cmd.Metadata.ConnectionID,
-				GroupID:      cmd.Metadata.GroupID,
-			})
+			err = obj.mole.AddPeer(cmd.asPeerInfo(), cmd.asNetworkPath())
 
 		case "remove_peer":
-			wgp := cmd.asPeerInfo()
-			err = obj.mole.RemovePeer(wgp, &common.SdnNetworkPath{
-				Ifname: cmd.Args.IfName,
-			})
+			err = obj.mole.RemovePeer(cmd.asPeerInfo(), cmd.asNetworkPath())
 		}
 
 		if err != nil {

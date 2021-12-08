@@ -66,6 +66,15 @@ func (e *wgConfEntry) asPeerInfo() *swireguard.PeerInfo {
 	}
 }
 
+func (e *wgConfEntry) asNetworkPath() *common.SdnNetworkPath {
+	return &common.SdnNetworkPath{
+		Ifname:       e.Args.IfName,
+		Gateway:      e.Args.GatewayIPv4,
+		ConnectionID: e.Metadata.ConnectionID,
+		GroupID:      e.Metadata.GroupID,
+	}
+}
+
 type wgConfMsg struct {
 	common.MessageHeader
 	Data []wgConfEntry `json:"data"`
