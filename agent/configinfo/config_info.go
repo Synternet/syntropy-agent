@@ -3,9 +3,11 @@ package configinfo
 import (
 	"encoding/json"
 	"io"
+	"os"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
+	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -42,6 +44,28 @@ func (obj *configInfo) Exec(raw []byte) error {
 		return err
 	}
 
+	// Network section is empty is a special case
+	// agent is deleted in the UI
+	if req.Data.Network.Public == nil &&
+		req.Data.Network.Sdn1 == nil &&
+		req.Data.Network.Sdn2 == nil &&
+		req.Data.Network.Sdn3 == nil {
+		logger.Info().Println(pkgName, "Platform Agent deletion in progress.")
+		for _, ii := range obj.mole.Wireguard().Devices() {
+			// TODO review this later
+			// use mole or delete directly (breaks mole concept).
+			obj.mole.Wireguard().RemoveInterface(ii)
+		}
+		process, err := os.FindProcess(os.Getpid())
+		if err != nil {
+			logger.Error().Println(pkgName, "Platform Agent exit failed getting self pid", err)
+			logger.Error().Println(pkgName, "exit anyway")
+			os.Exit(0)
+		}
+		process.Signal(os.Interrupt)
+		return nil
+	}
+
 	resp := updateAgentConfigMsg{
 		MessageHeader: req.MessageHeader,
 		Data:          []updateAgentConfigEntry{},
@@ -53,44 +77,53 @@ func (obj *configInfo) Exec(raw []byte) error {
 	obj.mole.Flush()
 
 	// create missing interfaces
-	wgi := req.Data.Network.Public.asInterfaceInfo("PUBLIC")
-	err = obj.mole.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-	}
-	if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Public.Port != wgi.Port {
-		resp.AddInterface(wgi)
-	}
-
-	wgi = req.Data.Network.Sdn1.asInterfaceInfo("SDN1")
-	err = obj.mole.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-	}
-	if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Sdn1.Port != wgi.Port {
-		resp.AddInterface(wgi)
+	var wgi *swireguard.InterfaceInfo
+	if req.Data.Network.Public != nil {
+		wgi = req.Data.Network.Public.asInterfaceInfo("PUBLIC")
+		err = obj.mole.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+		}
+		if req.Data.Network.Public.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Public.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
 
-	wgi = req.Data.Network.Sdn2.asInterfaceInfo("SDN2")
-	err = obj.mole.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-	}
-	if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Sdn2.Port != wgi.Port {
-		resp.AddInterface(wgi)
+	if req.Data.Network.Sdn1 != nil {
+		wgi = req.Data.Network.Sdn1.asInterfaceInfo("SDN1")
+		err = obj.mole.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+		}
+		if req.Data.Network.Sdn1.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Sdn1.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
 
-	wgi = req.Data.Network.Sdn3.asInterfaceInfo("SDN3")
-	err = obj.mole.CreateInterface(wgi)
-	if err != nil {
-		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+	if req.Data.Network.Sdn2 != nil {
+		wgi = req.Data.Network.Sdn2.asInterfaceInfo("SDN2")
+		err = obj.mole.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+		}
+		if req.Data.Network.Sdn2.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Sdn2.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
-	if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
-		req.Data.Network.Sdn3.Port != wgi.Port {
-		resp.AddInterface(wgi)
+
+	if req.Data.Network.Sdn3 != nil {
+		wgi = req.Data.Network.Sdn3.asInterfaceInfo("SDN3")
+		err = obj.mole.CreateInterface(wgi)
+		if err != nil {
+			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+		}
+		if req.Data.Network.Sdn3.PublicKey != wgi.PublicKey ||
+			req.Data.Network.Sdn3.Port != wgi.Port {
+			resp.AddInterface(wgi)
+		}
 	}
 
 	for _, subnetwork := range req.Data.Subnetworks {

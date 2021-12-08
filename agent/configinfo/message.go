@@ -105,10 +105,10 @@ type configInfoMsg struct {
 	Data struct {
 		AgentID int `json:"agent_id"`
 		Network struct {
-			Public configInfoNetworkEntry `json:"PUBLIC"`
-			Sdn1   configInfoNetworkEntry `json:"SDN1"`
-			Sdn2   configInfoNetworkEntry `json:"SDN2"`
-			Sdn3   configInfoNetworkEntry `json:"SDN3"`
+			Public *configInfoNetworkEntry `json:"PUBLIC,omitempty"`
+			Sdn1   *configInfoNetworkEntry `json:"SDN1,omitempty"`
+			Sdn2   *configInfoNetworkEntry `json:"SDN2,omitempty"`
+			Sdn3   *configInfoNetworkEntry `json:"SDN3,omitempty"`
 		}
 		VPN         []configInfoVpnEntry         `json:"vpn,omitempty"`
 		Subnetworks []configInfoSubnetworksEntry `json:"subnetworks,omitempty"`
