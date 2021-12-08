@@ -3,9 +3,7 @@ package swireguard
 import (
 	"fmt"
 
-	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -88,13 +86,6 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		}
 	}
 
-	if mtu := config.GetInterfaceMTU(); mtu > 0 {
-		err = netcfg.InterfaceSetMTU(ii.IfName, mtu)
-		if err != nil {
-			logger.Error().Println(pkgName, "MTU error: ", ii.IfName, mtu, err)
-		}
-	}
-
 	wgconf := wgtypes.Config{
 		PrivateKey: &privKey,
 		ListenPort: &port,
@@ -103,15 +94,6 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	err = wg.wgc.ConfigureDevice(ii.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
-	}
-
-	err = netcfg.InterfaceUp(ii.IfName)
-	if err != nil {
-		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
-	}
-	err = netcfg.InterfaceIPSet(ii.IfName, ii.IP)
-	if err != nil {
-		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
 
 	// Reread OS configuration and update cache for params, that may have changed
