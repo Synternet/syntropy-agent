@@ -9,6 +9,9 @@ import (
 )
 
 func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
+	m.Lock()
+	defer m.Unlock()
+
 	err := m.wg.CreateInterface(ii)
 
 	if err != nil {
@@ -41,12 +44,19 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
 
+	m.cache.ifaces[ii.IfName] = ii.IP
+
 	// I return nil (no error), because all non-critical errors are already in log
 	return nil
 }
 
 func (m *Mole) RemoveInterface(ii *swireguard.InterfaceInfo) error {
+	m.Lock()
+	defer m.Unlock()
+
 	err := m.wg.RemoveInterface(ii)
+
+	delete(m.cache.ifaces, ii.IfName)
 
 	return err
 }

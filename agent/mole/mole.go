@@ -6,6 +6,7 @@ package mole
 
 import (
 	"io"
+	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
@@ -16,10 +17,11 @@ const (
 )
 
 type Mole struct {
+	sync.Mutex
 	writer io.Writer
 	wg     *swireguard.Wireguard
 	router *router.Router
-	cache  map[string]entry
+	cache  storage
 }
 
 func New(w io.Writer) (*Mole, error) {
@@ -27,8 +29,9 @@ func New(w io.Writer) (*Mole, error) {
 	m := &Mole{
 		writer: w,
 		router: router.New(w),
-		cache:  make(map[string]entry),
 	}
+	m.cache.init()
+
 	m.wg, err = swireguard.New()
 	if err != nil {
 		return nil, err
