@@ -30,7 +30,7 @@ func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
 				logger.Info().Printf("%s SDN route change to %s via %s [%s:%d]\n",
 					pkgName, dest, newgw, newRoute.ifname, newRoute.groupID)
 				routes.active = idx
-				err := netcfg.RouteReplace(newRoute.ifname, newgw, dest)
+				err := netcfg.RouteReplace(newRoute.ifname, "", dest)
 				if err == nil {
 					ret = append(ret,
 						peeradata.NewEntry(oldRoute.connectionID, newRoute.connectionID, newRoute.groupID))

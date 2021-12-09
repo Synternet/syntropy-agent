@@ -111,7 +111,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *pee
 	defer rl.clearFlags()
 
 	routeConflict, conflictIfName := netcfg.RouteConflict(destination)
-	logger.Debug().Println(pkgName, "Apply-SetRoute ", destination)
+	logger.Debug().Println(pkgName, "Apply/SetRoute ", destination)
 
 	if !routeConflict {
 		// clean case - no route conflict. Simply add the route
@@ -120,7 +120,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *pee
 			return nil, nil
 		}
 		logger.Info().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
-		err := netcfg.RouteAdd(route.ifname, route.gateway, destination)
+		err := netcfg.RouteAdd(route.ifname, "", destination)
 		routeRes := routestatus.NewEntry(destination, err)
 
 		if err != nil {
@@ -154,7 +154,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *pee
 func (rl *routeList) ClearRoute(destination string) (*routestatus.Connection, *peeradata.Entry) {
 	defer rl.clearFlags()
 
-	logger.Debug().Println(pkgName, "Apply-ClearRoute ", destination)
+	logger.Debug().Println(pkgName, "Apply/ClearRoute ", destination)
 	route := rl.list[rl.active]
 
 	err := netcfg.RouteDel(route.ifname, destination)
@@ -169,7 +169,7 @@ func (rl *routeList) ClearRoute(destination string) (*routestatus.Connection, *p
 func (rl *routeList) MergeRoutes(destination string) (*routestatus.Connection, *peeradata.Entry) {
 	defer rl.clearFlags()
 
-	logger.Debug().Println(pkgName, "Apply-MergeRoute ", destination, "Not Implemented Yet !")
+	logger.Debug().Println(pkgName, "Apply/MergeRoute ", destination, "Not Implemented Yet !")
 	// TODO implement me
 	return nil, nil
 }
