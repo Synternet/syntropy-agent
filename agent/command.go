@@ -21,7 +21,8 @@ func (a *Agent) processCommand(raw []byte) {
 
 	cmd, ok := a.commands[req.MsgType]
 	if !ok {
-		logger.Error().Printf("%s Command '%s' not found\n", pkgName, req.MsgType)
+		logger.Warning().Printf("%s Command '%s' not found\n", pkgName, req.MsgType)
+		logger.Debug().Println(pkgName, "Received:", string(raw))
 		return
 	}
 
