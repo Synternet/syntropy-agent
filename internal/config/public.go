@@ -114,6 +114,11 @@ func IsVPNClient() bool {
 	return cache.vpnClient
 }
 
+func SetRerouteThresholds(diff, ratio float32) {
+	cache.rerouteThresholds.diff = diff
+	cache.rerouteThresholds.ratio = ratio
+}
+
 func RerouteThresholds() (float32, float32) {
 	return cache.rerouteThresholds.diff, cache.rerouteThresholds.ratio
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerdata"
+	"github.com/SyntropyNet/syntropy-agent/agent/settings"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
 	"github.com/SyntropyNet/syntropy-agent/agent/wgconf"
@@ -130,6 +131,7 @@ func New(contype int) (*Agent, error) {
 	agent.addService(agent.mole.Router())
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
+	agent.addCommand(settings.New())
 	agent.addCommand(supportinfo.New(agent.controller,
 		shellcmd.New("wg_info", "wg", "show"),
 		shellcmd.New("routes", "route", "-n"),
