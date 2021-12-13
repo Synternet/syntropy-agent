@@ -1,16 +1,13 @@
 package servicemon
 
 import (
-	"strings"
-
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
 func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
-	errIPs := []string{}
-	ret := []*peeradata.Entry{}
+	peersActiveData := []*peeradata.Entry{}
 
 	sm.Lock()
 	defer sm.Unlock()
@@ -21,31 +18,37 @@ func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
 			continue
 		}
 
-		for idx, newRoute := range routes.list {
-			if newgw == newRoute.gateway {
-				if idx == routes.active {
-					break
-				}
-				oldRoute := routes.list[routes.active]
-				logger.Info().Printf("%s SDN route change to %s via %s [%s:%d]\n",
-					pkgName, dest, newgw, newRoute.ifname, newRoute.groupID)
-				routes.active = idx
-				err := netcfg.RouteReplace(newRoute.ifname, "", dest)
-				if err == nil {
-					ret = append(ret,
-						peeradata.NewEntry(oldRoute.connectionID, newRoute.connectionID, newRoute.groupID))
-				} else {
-					logger.Error().Println(pkgName, err)
-					errIPs = append(errIPs, dest)
-				}
-			}
+		ret := routes.Reroute(newgw, dest)
+		if ret != nil {
+			peersActiveData = append(peersActiveData, ret)
 		}
 	}
 
-	if len(errIPs) > 0 {
-		logger.Error().Printf("%s could not change routes to %s via %s\n",
-			pkgName, strings.Join(errIPs, ","), newgw)
+	return peersActiveData
+}
+
+// Reroute one routeList (aka Service Group)
+func (rl *routeList) Reroute(newGw, destination string) *peeradata.Entry {
+	newRoute := rl.Find(newGw)
+	activeRoute := rl.GetActive()
+
+	if newRoute == nil || activeRoute == nil {
+		logger.Error().Println(pkgName, "No new or old active route is present.")
+		return nil
+	}
+	if newRoute == activeRoute {
+		return nil
 	}
 
-	return ret
+	// Change the route to new active
+	err := netcfg.RouteReplace(newRoute.ifname, "", destination)
+	if err != nil {
+		logger.Error().Println(pkgName, "could not change routes to", destination, "via", newGw)
+	}
+	// reset active flags
+	newRoute.SetFlag(rfActive)
+	activeRoute.ClearFlags(rfActive)
+
+	// Return route change
+	return peeradata.NewEntry(activeRoute.connectionID, newRoute.connectionID, newRoute.groupID)
 }

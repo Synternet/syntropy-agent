@@ -11,10 +11,10 @@ type routerGroupEntry struct {
 }
 
 func newRouteGroupEntry() *routerGroupEntry {
-	return &routerGroupEntry{
-		peerMonitor:    &peermon.PeerMonitor{},
-		serviceMonitor: servicemon.New(),
-	}
+	rge := &routerGroupEntry{}
+	rge.peerMonitor = &peermon.PeerMonitor{}
+	rge.serviceMonitor = servicemon.New(rge.peerMonitor)
+	return rge
 }
 
 func (r *Router) findOrCreate(groupID int) *routerGroupEntry {

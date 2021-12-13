@@ -5,21 +5,24 @@ import (
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
-	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const pkgName = "ServiceMonitor. "
 
-type ServiceMonitor struct {
-	sync.Mutex
-	routes map[string]*routeList
+type PathSelector interface {
+	BestPath() string
 }
 
-func New() *ServiceMonitor {
+type ServiceMonitor struct {
+	sync.Mutex
+	routes      map[string]*routeList
+	reroutePath PathSelector
+}
+
+func New(ps PathSelector) *ServiceMonitor {
 	return &ServiceMonitor{
-		routes: make(map[string]*routeList),
+		routes:      make(map[string]*routeList),
+		reroutePath: ps,
 	}
 }
 
@@ -53,38 +56,4 @@ func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip string) error {
 	sm.routes[ip].MarkDel(netpath.Gateway)
 
 	return nil
-}
-
-func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
-	var routeStatusCons []*routestatus.Connection
-	var peersActiveData []*peeradata.Entry
-	var routeStatus *routestatus.Connection
-	var padEntry *peeradata.Entry
-	sm.Lock()
-	defer sm.Unlock()
-
-	for ip, rl := range sm.routes {
-		add, del := rl.Pending()
-		count := rl.Count()
-		logger.Info().Printf("%s Apply: add:%d, del:%d, count:%d\n", pkgName,
-			add, del, count)
-		if add == 0 && del == 0 {
-			// nothing to do for this group
-			continue
-		} else if add == count && del == 0 {
-			routeStatus, padEntry = rl.SetRoute(ip)
-		} else if del == count && add == 0 {
-			routeStatus, padEntry = rl.ClearRoute(ip)
-		} else {
-			routeStatus, padEntry = rl.MergeRoutes(ip)
-		}
-		if routeStatus != nil {
-			routeStatusCons = append(routeStatusCons, routeStatus)
-		}
-		if padEntry != nil {
-			peersActiveData = append(peersActiveData, padEntry)
-		}
-	}
-
-	return routeStatusCons, peersActiveData
 }
