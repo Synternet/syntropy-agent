@@ -113,3 +113,7 @@ func GetHostAllowedIPs() []AllowedIPEntry {
 func IsVPNClient() bool {
 	return cache.vpnClient
 }
+
+func RerouteThresholds() (float32, float32) {
+	return cache.rerouteThresholds.diff, cache.rerouteThresholds.ratio
+}

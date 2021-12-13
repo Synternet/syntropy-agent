@@ -33,6 +33,8 @@ func Init() {
 	initContainer()
 	initCleanupOnExit()
 	initVPNClient()
+
+	initThresholds()
 }
 
 func Close() {
@@ -75,4 +77,11 @@ func initDebugLevel() {
 	default:
 		cache.debugLevel = logger.InfoLevel
 	}
+}
+
+func initThresholds() {
+	// reroute thresholds used to compare better latency.
+	// Default values: diff >= 10ms and at least 10% better
+	cache.rerouteThresholds.diff = 10
+	cache.rerouteThresholds.ratio = 1.1
 }

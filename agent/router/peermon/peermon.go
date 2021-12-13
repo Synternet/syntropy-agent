@@ -3,6 +3,7 @@ package peermon
 import (
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
@@ -13,9 +14,6 @@ const (
 	// this value is like multiplicator for peerdata.periodRun
 	// if peerdata.periodRun=5secs, then 5*24=2 minutes average
 	valuesCount = 24
-	// when have an active route and want to change a better route
-	// this new better route must be 10% better, to reduce route change fluctuation
-	betterCoeficient = 0.9
 	// internal use
 	invalidBestIndex = -1
 )
@@ -149,20 +147,25 @@ func (pm *PeerMonitor) BestPath() string {
 }
 
 func (pm *PeerMonitor) checkNewBest(idx int) {
+	// No previous best route yet - choose the best
 	if pm.lastBest == invalidBestIndex || pm.lastBest >= len(pm.peerList) {
-		// No previous best route yet - choose the best
 		pm.changeReason = reasonNewRoute
 		pm.lastBest = idx
-	} else {
-		switch {
-		case pm.peerList[idx].Loss() < pm.peerList[pm.lastBest].Loss():
-			// lower loss is a must
-			pm.changeReason = reasonLoss
-			pm.lastBest = idx
-		case pm.peerList[idx].Latency() < pm.peerList[pm.lastBest].Latency()*betterCoeficient:
-			// reduce too much reroutes and move to other route only if it is xx% better
-			pm.changeReason = reasonLatency
-			pm.lastBest = idx
-		}
+		return
+	}
+
+	// lower loss is a must
+	if pm.peerList[idx].Loss() < pm.peerList[pm.lastBest].Loss() {
+		pm.changeReason = reasonLoss
+		pm.lastBest = idx
+		return
+	}
+
+	// apply thresholds
+	diff, ratio := config.RerouteThresholds()
+	if pm.peerList[idx].Latency()*ratio < pm.peerList[pm.lastBest].Latency() &&
+		pm.peerList[idx].Latency()-pm.peerList[pm.lastBest].Latency() > diff {
+		pm.changeReason = reasonLatency
+		pm.lastBest = idx
 	}
 }

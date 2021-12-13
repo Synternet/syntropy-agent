@@ -43,6 +43,11 @@ type configCache struct {
 	vpnClient     bool
 
 	allowedIPs []AllowedIPEntry
+
+	rerouteThresholds struct {
+		diff  float32
+		ratio float32
+	}
 }
 
 var cache configCache
