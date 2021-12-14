@@ -278,7 +278,8 @@ func (mp *MultiPing) processPacket(wait *sync.WaitGroup, recv *packet) {
 	}
 
 	if stats, ok := mp.pingData.entries[ip]; ok {
-		stats.rx++
 		stats.rtt = time.Since(timestamp)
+		stats.avgRtt = (time.Duration(stats.rx)*stats.avgRtt + stats.rtt) / time.Duration(stats.rx+1)
+		stats.rx++
 	}
 }

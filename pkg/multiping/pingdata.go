@@ -12,9 +12,10 @@ type PingClient interface {
 
 // A single host ping statistics
 type PingStats struct {
-	tx  uint
-	rx  uint
-	rtt time.Duration
+	tx     uint
+	rx     uint
+	rtt    time.Duration
+	avgRtt time.Duration
 }
 
 // Reset statistics to zero values
@@ -32,9 +33,14 @@ func (s *PingStats) Loss() float32 {
 	return 0
 }
 
-// Loss returns latency in miliseconds calculated ping loss
+// Latency returns average latency in miliseconds
 func (s *PingStats) Latency() float32 {
-	return float32(s.rtt.Microseconds()) / 1000
+	return float32(s.avgRtt.Microseconds()) / 1000
+}
+
+// Rtt returns last packet rtt
+func (s *PingStats) Rtt() time.Duration {
+	return s.rtt
 }
 
 // Ping data. Holds host information and ping statistics.
