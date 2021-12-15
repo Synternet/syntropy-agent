@@ -49,7 +49,7 @@ jobs:
              AGENT_VERSION=${{ steps.previoustag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
       -
         name: DEVEL Build and push
-        if: contains(github.ref, 'refs/tags/')
+        if: contains(github.ref, 'beta')
         uses: docker/build-push-action@v2
         with:
           context: .
