@@ -40,16 +40,10 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 }
 
 func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) error {
-	wg := obj.mole.Wireguard()
-
 	// Update swireguard cached peers statistics
-	wg.PeerStatsUpdate()
-
+	obj.mole.Wireguard().PeerStatsUpdate()
+	wgdevs := obj.mole.Wireguard().Devices()
 	resp := newMsg()
-	resp.ID = env.MessageDefaultID
-	resp.MsgType = cmd
-
-	wgdevs := wg.Devices()
 
 	// If no interfaces are created yet - I send nothing to controller and wait a short time
 	// When interfaces are created - switch to less frequently check
@@ -64,9 +58,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 		ticker.Reset(obj.timeout)
 	}
 
-	// Clean residual data from last ping
-	obj.pingData.Flush()
-
+	// prepare peers ping list and message to controller
 	for _, wgdev := range wgdevs {
 		ifaceData := ifaceBwEntry{
 			IfName:    wgdev.IfName,
@@ -80,12 +72,16 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			}
 
 			// AllowedIPs has cidr notation. I need only the address for pinging.
-			// TODO: research usable IP address struct
 			ip := strings.Split(p.AllowedIPs[0], "/")[0]
 			if len(ip) == 0 {
 				continue
 			}
-			obj.pingData.Add(ip)
+
+			// add missing peers to ping list
+			_, ok := obj.pingData.Get(ip)
+			if !ok {
+				obj.pingData.Add(ip)
+			}
 
 			var lastHandshake string
 			if !p.Stats.LastHandshake.IsZero() {
@@ -109,6 +105,30 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 		resp.Data = append(resp.Data, ifaceData)
 	}
 
+	// One more iteration to remove deleted wireguard peers IP addresses
+	removeIPs := []string{}
+	obj.pingData.Iterate(func(ip string, val multiping.PingStats) {
+		found := false
+		for _, iface := range resp.Data {
+			for _, peer := range iface.Peers {
+				if ip == peer.IP {
+					// This peer is still present
+					found = true
+					break // internal (peer) loop break, continue on external (interfaces loop)
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			// peer not found - add to remove list
+			removeIPs = append(removeIPs, ip)
+		}
+	})
+	// Remove deleted peers
+	obj.pingData.Del(removeIPs...)
+
 	// pingData now contains all connected peers on all interfaces
 	// Perform ping and process results, if I have any connected peers
 	// Do nothing if no peers are configured
@@ -129,10 +149,14 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 	if obj.counter >= controllerSendPeriod {
 		obj.counter = 0
 
-		resp.Now()
 		// Fill message with ping statistics
 		resp.PingProcess(obj.pingData)
 
+		// Reset statistics for the next ping period
+		obj.pingData.Reset()
+
+		// Send peers statistics to controller
+		resp.Now()
 		raw, err := json.Marshal(resp)
 		if err != nil {
 			logger.Error().Println(pkgName, "json", err)

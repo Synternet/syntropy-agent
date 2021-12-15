@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
@@ -44,9 +45,13 @@ type peerBwData struct {
 }
 
 func newMsg() *peerBwData {
-	return &peerBwData{
+	msg := &peerBwData{
 		Data: []ifaceBwEntry{},
 	}
+	msg.ID = env.MessageDefaultID
+	msg.MsgType = cmd
+
+	return msg
 }
 
 // Parse ping result and fill statistics for connected peers
