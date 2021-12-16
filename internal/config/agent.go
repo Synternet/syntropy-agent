@@ -95,6 +95,15 @@ func initOwnerAddress() {
 	}
 }
 
+func initIpfsURL() {
+	cache.ipfsURL = "localhost:5001"
+	url := os.Getenv("SYNTROPY_IPFS_URL")
+
+	if url != "" {
+		cache.ipfsURL = url
+	}
+}
+
 func initCloudURL() {
 	cache.cloudURL = "controller-prod-platform-agents.syntropystack.com"
 	url := os.Getenv("SYNTROPY_CONTROLLER_URL")

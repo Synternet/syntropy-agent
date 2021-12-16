@@ -21,8 +21,10 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.2
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/cosmos/go-bip39 v1.0.0
+	github.com/decred/base58 v1.0.3
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/ipfs/go-ipfs-api v0.3.0
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
