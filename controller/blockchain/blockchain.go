@@ -2,15 +2,19 @@ package blockchain
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 	"os"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/ipfs"
 	"github.com/SyntropyNet/syntropy-agent/pkg/state"
 	"github.com/cosmos/go-bip39"
+	"github.com/decred/base58"
 
 	"time"
 
@@ -18,6 +22,8 @@ import (
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
+
+	ipfsApi "github.com/ipfs/go-ipfs-api"
 )
 
 const pkgName = "Blockchain Controller. "
@@ -40,6 +46,7 @@ type BlockchainController struct {
 	state.StateMachine
 	substrateApi *gsrpc.SubstrateAPI
 	keyringPair  signature.KeyringPair
+	ipfsShell    *ipfsApi.Shell
 
 	url           string
 	token         string
@@ -47,6 +54,11 @@ type BlockchainController struct {
 	address       string
 	mnemonic      string
 	lastCommodity []byte
+}
+
+type BlockchainMsg struct {
+	Url string `json:"url"`
+	Cid string `json:"cid"`
 }
 
 var err = errors.New("blockchain controller not yet implemented")
@@ -121,6 +133,8 @@ func (bc *BlockchainController) connect() (err error) {
 			continue
 		}
 
+		bc.ipfsShell = ipfsApi.NewShell(config.GetIpfsUrl())
+
 		bc.SetState(running)
 		break
 	}
@@ -135,11 +149,6 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 	if err != nil {
 		logger.Error().Println(pkgName, err)
 	}
-
-	// In this application we have only one reader, so no need to lock here
-	//var (
-	//	lastCommodity []byte
-	//)
 
 	for {
 		key, err := types.CreateStorageKey(meta, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
@@ -167,8 +176,20 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 			time.Sleep(waitForMsg)
 			continue
 		}
+
 		bc.lastCommodity = res[len(res)-1].Payload
-		return bc.lastCommodity, nil
+
+		msg := &BlockchainMsg{}
+		json.Unmarshal(bc.lastCommodity, &msg)
+
+		data, err := ipfs.GetIpfsPayload(msg.Url)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s", err)
+			os.Exit(1)
+		}
+
+		return data, nil
 
 	}
 }
@@ -182,6 +203,16 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 
 	bc.Lock()
 	defer bc.Unlock()
+
+	reader := bytes.NewReader(b)
+
+	cid, err := bc.ipfsShell.Add(reader)
+	ipfsUrl := "https://ipfs.io/ipfs/" + cid
+
+	msg, _ := json.Marshal(BlockchainMsg{
+		Url: ipfsUrl,
+		Cid: cid,
+	})
 
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
@@ -213,8 +244,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	type CommodityInfo struct {
 		Info []byte
 	}
-
-	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID([]byte(config.GetOwnerAddress())), b)
+	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())), msg)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
