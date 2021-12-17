@@ -133,10 +133,13 @@ func (pm *PeerMonitor) BestPath() string {
 	// find currently best route
 	bestIdx := 0
 	for i := bestIdx + 1; i < len(pm.peerList); i++ {
-		if pm.peerList[i].Loss() < pm.peerList[bestIdx].Loss() {
+		switch {
+		case pm.peerList[i].Loss() > pm.peerList[bestIdx].Loss():
+			continue
+		case pm.peerList[i].Loss() < pm.peerList[bestIdx].Loss():
 			bestIdx = i
-		} else if pm.peerList[i].Latency() > 0 &&
-			pm.peerList[i].Latency() < pm.peerList[bestIdx].Latency() {
+		case pm.peerList[i].Latency() > 0 &&
+			pm.peerList[i].Latency() < pm.peerList[bestIdx].Latency():
 			bestIdx = i
 		}
 	}
@@ -146,26 +149,26 @@ func (pm *PeerMonitor) BestPath() string {
 	return pm.peerList[pm.lastBest].gateway
 }
 
-func (pm *PeerMonitor) checkNewBest(idx int) {
+func (pm *PeerMonitor) checkNewBest(newIdx int) {
 	// No previous best route yet - choose the best
 	if pm.lastBest == invalidBestIndex || pm.lastBest >= len(pm.peerList) {
 		pm.changeReason = reasonNewRoute
-		pm.lastBest = idx
+		pm.lastBest = newIdx
 		return
 	}
 
 	// lower loss is a must
-	if pm.peerList[idx].Loss() < pm.peerList[pm.lastBest].Loss() {
+	if pm.peerList[newIdx].Loss() < pm.peerList[pm.lastBest].Loss() {
 		pm.changeReason = reasonLoss
-		pm.lastBest = idx
+		pm.lastBest = newIdx
 		return
 	}
 
 	// apply thresholds
 	diff, ratio := config.RerouteThresholds()
-	if pm.peerList[idx].Latency()*ratio < pm.peerList[pm.lastBest].Latency() &&
-		pm.peerList[idx].Latency()-pm.peerList[pm.lastBest].Latency() > diff {
+	if pm.peerList[pm.lastBest].Latency()/pm.peerList[newIdx].Latency() >= ratio &&
+		pm.peerList[pm.lastBest].Latency()-pm.peerList[newIdx].Latency() >= diff {
 		pm.changeReason = reasonLatency
-		pm.lastBest = idx
+		pm.lastBest = newIdx
 	}
 }
