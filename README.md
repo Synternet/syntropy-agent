@@ -24,7 +24,7 @@ Full, constantly maintained documentation can be found [here](https://docs.syntr
 * Running plain binary on bare-metal:
  ```syntropy-agent -version```
 * Running Docker container:
- ```docker logs `docker ps | grep syntropy_agent | cut -b1-10` | grep started```
+ ```docker logs `docker ps | grep syntropynet\/agent | cut -b1-10` | grep started```
 
 ### Why GO
 Every programming language has pros and cons, but motivation for GO is:
