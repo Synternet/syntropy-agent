@@ -6,7 +6,7 @@ var (
 )
 
 func GetVersion() string {
-	return version
+	return GetFullVersion()
 }
 
 func GetFullVersion() string {
