@@ -15,6 +15,6 @@ FROM alpine
 
 RUN apk update && apk add --no-cache --update iptables wireguard-tools
 COPY --from=builder /usr/bin/wireguard-go /usr/bin/wg* /usr/bin/
-COPY --from=builder ./app/syntropy_agent /syntropy_agent
+COPY --from=builder ./app/syntropy_agent /usr/bin/syntropy_agent
 
-ENTRYPOINT [ "./syntropy_agent"]
+ENTRYPOINT [ "/usr/bin/syntropy_agent"]
