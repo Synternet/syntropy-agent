@@ -50,6 +50,16 @@ func (node *peerInfo) Loss() float32 {
 	return 0
 }
 
+func (node *peerInfo) StatsIncomplete() bool {
+	count := 0
+	for _, val := range node.latency {
+		if val > 0 {
+			count++
+		}
+	}
+	return count != valuesCount
+}
+
 func (node *peerInfo) String() string {
 	return fmt.Sprintf("%s via %s loss: %f latency %f",
 		node.endpoint, node.gateway, node.Loss(), node.Latency())

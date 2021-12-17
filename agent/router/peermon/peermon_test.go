@@ -63,4 +63,11 @@ func TestPeerMonitor(t *testing.T) {
 		t.Errorf("Test with correct threshold %s", best)
 	}
 
+	// test incomplete statistics
+	pm.lastBest = 0
+	pm.peerList[3].Add(0, 0)
+	best = pm.BestPath()
+	if best != "1.1.1.1" {
+		t.Errorf("Test with incomplete statistics %s", best)
+	}
 }

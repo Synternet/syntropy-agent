@@ -164,6 +164,11 @@ func (pm *PeerMonitor) checkNewBest(newIdx int) {
 		return
 	}
 
+	// cannot compare latencies, if one does not have full statistics yet
+	if pm.peerList[newIdx].StatsIncomplete() {
+		return
+	}
+
 	// apply thresholds
 	diff, ratio := config.RerouteThresholds()
 	if pm.peerList[pm.lastBest].Latency()/pm.peerList[newIdx].Latency() >= ratio &&
