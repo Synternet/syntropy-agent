@@ -135,6 +135,16 @@ func InterfaceHasIP(ifname, ip string) bool {
 	return false
 }
 
+func HostHasIP(ip string) bool {
+	ifaceAddrs, _ := netlink.AddrList(nil, nl.FAMILY_ALL)
+	for _, addr := range ifaceAddrs {
+		if addr.IP.String() == ip {
+			return true
+		}
+	}
+	return false
+}
+
 func InterfaceSetMTU(ifname string, mtu uint32) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {

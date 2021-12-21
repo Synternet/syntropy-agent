@@ -1,12 +1,19 @@
 package mole
 
 import (
+	"strings"
+
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/webip"
 )
+
+func isSdnInterface(ifname string) bool {
+	return strings.Contains(ifname, "SDN")
+}
 
 func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	m.Lock()
@@ -45,6 +52,19 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	}
 
 	m.cache.ifaces[ii.IfName] = ii.IP
+
+	// If a host is behind NAT - its port after NAT may change.
+	// And in most cases this will cause problems for SDN agent.
+	// Try detecting NAT and send port as 0 - this way SDN agent will try guessing my port.
+	// NOTE: this increases load on SDN agent so use this only when necessary.
+	pubip, err := webip.PublicIP()
+	if err != nil {
+		logger.Error().Println(pkgName, "Error getting public IP", err)
+	} else {
+		if isSdnInterface(ii.IfName) && !netcfg.HostHasIP(pubip.String()) {
+			ii.Port = 0
+		}
+	}
 
 	// I return nil (no error), because all non-critical errors are already in log
 	return nil
