@@ -3,8 +3,8 @@ name: build
 on:
   push:
     branches:
-      - main
-      - v0.1.0
+      - 'main'
+      - 'releases/v*'
     tags:
       - '*'
 
@@ -24,6 +24,13 @@ jobs:
       - name: Set vars for commit id
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        # Stable release is a tag `X.Y.Z` without any metadata
+      - name: Check stable release
+        uses: actions-ecosystem/action-regex-match@v2
+        id: stablerelease
+        with:
+          text: ${{ github.ref }}
+          regex: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -61,8 +68,7 @@ jobs:
             syntropynet/agent:${{ steps.previoustag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
       -
         name: PROD Build and push
-        # BRANCH_STABLE_VERSION
-        if: github.ref == 'refs/heads/v0.1.0'
+        if: ${{ steps.stablerelease.outputs.match != '' }}
         uses: docker/build-push-action@v2
         with:
           context: .
