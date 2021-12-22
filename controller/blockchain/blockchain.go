@@ -5,18 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
+	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/ipfs"
 	"github.com/SyntropyNet/syntropy-agent/pkg/state"
 	"github.com/cosmos/go-bip39"
 	"github.com/decred/base58"
-
-	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/controller"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
@@ -30,7 +30,7 @@ const pkgName = "Blockchain Controller. "
 const mnemonicPath = "/etc/syntropy/mnemonic"
 const addressPath = "/etc/syntropy/address"
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
-const waitForMsg = time.Duration(1000) * time.Millisecond
+const waitForMsg = time.Second
 const (
 	// State machine constants
 	stopped = iota
@@ -61,7 +61,31 @@ type BlockchainMsg struct {
 	Cid string `json:"cid"`
 }
 
+type Commodity struct {
+	ID      types.Hash
+	Payload []byte
+}
+
+type CommodityInfo struct {
+	Info []byte
+}
+
 var err = errors.New("blockchain controller not yet implemented")
+
+func GetIpfsPayload(url string) ([]byte, error) {
+	println("sveiki", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
 
 func New() (controller.Controller, error) {
 	url := config.GetCloudURL()
@@ -74,13 +98,9 @@ func New() (controller.Controller, error) {
 	var (
 		mnemonic string
 	)
-	if _, err := os.Stat(mnemonicPath); err == nil {
-		content, err := os.ReadFile(mnemonicPath)
-		if err != nil {
-			logger.Error().Println(pkgName, err)
-		}
-		mnemonic = string(content)
-	} else if errors.Is(err, os.ErrNotExist) {
+	content, err := os.ReadFile(mnemonicPath)
+	if err != nil {
+		logger.Error().Println(pkgName, err)
 
 		err := os.Mkdir("/etc/syntropy", 0600)
 		if err != nil {
@@ -90,12 +110,16 @@ func New() (controller.Controller, error) {
 		mnemonicFile, err := os.OpenFile(mnemonicPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			logger.Error().Println(pkgName, err)
+			os.Exit(1)
+		} else {
+			entropy, _ := bip39.NewEntropy(256)
+			mnemonic, _ := bip39.NewMnemonic(entropy)
+			mnemonicFile.WriteString(mnemonic)
+			mnemonicFile.Close()
 		}
-		entropy, _ := bip39.NewEntropy(256)
-		mnemonic, _ := bip39.NewMnemonic(entropy)
-		mnemonicFile.WriteString(mnemonic)
-		mnemonicFile.Close()
 
+	} else {
+		mnemonic = string(content)
 	}
 	bc.keyringPair, err = signature.KeyringPairFromSecret(mnemonic, 42)
 	if err != nil {
@@ -155,10 +179,6 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 		if err != nil {
 			logger.Error().Println(pkgName, err)
 		}
-		type Commodity struct {
-			ID      types.Hash
-			Payload []byte
-		}
 		var res []Commodity
 
 		_, err = bc.substrateApi.RPC.State.GetStorageLatest(key, &res)
@@ -181,8 +201,7 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 
 		msg := &BlockchainMsg{}
 		json.Unmarshal(bc.lastCommodity, &msg)
-
-		data, err := ipfs.GetIpfsPayload(msg.Url)
+		data, err := GetIpfsPayload(msg.Url)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s", err)
@@ -241,10 +260,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
 
-	type CommodityInfo struct {
-		Info []byte
-	}
-	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())), msg)
+	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())[1:33]), msg)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
