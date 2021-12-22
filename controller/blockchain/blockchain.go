@@ -27,8 +27,8 @@ import (
 )
 
 const pkgName = "Blockchain Controller. "
-const mnemonicPath = "/etc/syntropy/mnemonic"
-const addressPath = "/etc/syntropy/address"
+const mnemonicPath = config.AgentConfigDir + "/mnemonic"
+const addressPath = config.AgentConfigDir + "/address"
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
 const waitForMsg = time.Second
 const (
@@ -73,7 +73,6 @@ type CommodityInfo struct {
 var err = errors.New("blockchain controller not yet implemented")
 
 func GetIpfsPayload(url string) ([]byte, error) {
-	println("sveiki", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -102,7 +101,7 @@ func New() (controller.Controller, error) {
 	if err != nil {
 		logger.Error().Println(pkgName, err)
 
-		err := os.Mkdir("/etc/syntropy", 0600)
+		err := os.Mkdir(config.AgentConfigDir, 0600)
 		if err != nil {
 			logger.Error().Println(pkgName, err)
 		}
@@ -279,12 +278,10 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
 
-	sub, err := bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
+	_, err = bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
 	}
-	defer sub.Unsubscribe()
-	sub.Chan()
 
 	n = len(b)
 	return n, err

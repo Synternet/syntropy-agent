@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	AgentConfigDir  = "/etc/syntropy-agent"
+	AgentConfigDir  = "/etc/syntropy/platform"
 	AgentConfigFile = AgentConfigDir + "/config.yaml"
 	AgentTempDir    = AgentConfigDir + "/tmp"
 )
