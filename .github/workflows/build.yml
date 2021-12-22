@@ -18,9 +18,7 @@ jobs:
           fetch-depth: 0
       - name: 'Get Previous tag'
         id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v1"
-        with:
-          fallback: 0.0.0
+        run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 --candidates=1 main)"
       - name: Set vars for commit id
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
