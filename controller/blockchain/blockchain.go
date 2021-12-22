@@ -26,6 +26,7 @@ import (
 )
 
 const pkgName = "Blockchain Controller. "
+const ipfsUrl = "https://ipfs.io/ipfs/"
 const mnemonicPath = config.AgentConfigDir + "/mnemonic"
 const addressPath = config.AgentConfigDir + "/address"
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
@@ -223,7 +224,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	reader := bytes.NewReader(b)
 
 	cid, err := bc.ipfsShell.Add(reader)
-	ipfsUrl := "https://ipfs.io/ipfs/" + cid
+	ipfsUrl := ipfsUrl + cid
 
 	msg, err := json.Marshal(BlockchainMsg{
 		Url: ipfsUrl,
