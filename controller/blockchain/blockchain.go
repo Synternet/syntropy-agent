@@ -108,7 +108,7 @@ func New() (controller.Controller, error) {
 		mnemonicFile, err := os.OpenFile(mnemonicPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			logger.Error().Println(pkgName, err)
-			os.Exit(1)
+			return nil, err
 		} else {
 			entropy, _ := bip39.NewEntropy(256)
 			mnemonic, _ := bip39.NewMnemonic(entropy)
@@ -170,12 +170,14 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
 		logger.Error().Println(pkgName, err)
+		return nil, err
 	}
 
 	for {
 		key, err := types.CreateStorageKey(meta, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
 		if err != nil {
 			logger.Error().Println(pkgName, err)
+			return nil, err
 		}
 		var res []Commodity
 
@@ -203,7 +205,7 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s", err)
-			os.Exit(1)
+			return nil, err
 		}
 
 		return data, nil
@@ -218,37 +220,43 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		return 0, ErrNotRunning
 	}
 
-	bc.Lock()
-	defer bc.Unlock()
-
 	reader := bytes.NewReader(b)
 
 	cid, err := bc.ipfsShell.Add(reader)
 	ipfsUrl := "https://ipfs.io/ipfs/" + cid
 
-	msg, _ := json.Marshal(BlockchainMsg{
+	msg, err := json.Marshal(BlockchainMsg{
 		Url: ipfsUrl,
 		Cid: cid,
 	})
 
+	if err != nil {
+		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
+	}
+
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	genesisHash, err := bc.substrateApi.RPC.Chain.GetBlockHash(0)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	key, err := types.CreateStorageKey(meta, "System", "Account", bc.keyringPair.PublicKey, nil)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 	var accountInfo types.AccountInfo
 	ok, err := bc.substrateApi.RPC.State.GetStorageLatest(key, &accountInfo)
 	if err != nil || !ok {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	nonce := uint32(accountInfo.Nonce)
@@ -256,11 +264,13 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	rv, err := bc.substrateApi.RPC.State.GetRuntimeVersionLatest()
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())[1:33]), msg)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	ext := types.NewExtrinsic(c)
@@ -275,11 +285,13 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 	})
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	_, err = bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
 		logger.Error().Println(pkgName, "Send error: ", err)
+		return 0, err
 	}
 
 	n = len(b)
