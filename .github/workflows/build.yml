@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
       - name: 'Get Previous tag'
         id: previoustag
-        run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 --candidates=1 main)"
+        run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 --candidates=1)"
       - name: Set vars for commit id
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
@@ -28,7 +28,7 @@ jobs:
         id: stablerelease
         with:
           text: ${{ github.ref }}
-          regex: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$
+          regex: ^refs\/tags\/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -63,7 +63,7 @@ jobs:
           tags: |
             syntropynet/agent:devel
             syntropynet/agent:beta
-            syntropynet/agent:${{ steps.previoustag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
+            syntropynet/agent:${{ steps.previoustag.outputs.tag }}
       -
         name: PROD Build and push
         if: ${{ steps.stablerelease.outputs.match != '' }}
@@ -75,3 +75,4 @@ jobs:
           tags: |
             syntropynet/agent:stable
             syntropynet/agent:prod
+            syntropynet/agent:${{ steps.previoustag.outputs.tag }}
