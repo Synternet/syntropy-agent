@@ -85,47 +85,49 @@ func GetIpfsPayload(url string) ([]byte, error) {
 	return body, nil
 }
 
+func getMnemonic() (string, error) {
+	content, err := os.ReadFile(mnemonicPath)
+	if err == nil {
+		return string(content), nil
+	}
+
+	// Mnemonic cache does not exist - create new
+	entropy, _ := bip39.NewEntropy(256)
+	mnemonic, _ := bip39.NewMnemonic(entropy)
+	err = os.WriteFile(mnemonicPath, []byte(mnemonic), 0600)
+	if err != nil {
+		// cannot reuse wallet in future
+		logger.Error().Println(pkgName, "Mnemonic cache", err)
+		return "", err
+	}
+
+	return mnemonic, nil
+}
+
 func New() (controller.Controller, error) {
 	bc := BlockchainController{
 		url: config.GetCloudURL(),
 	}
 
-	var mnemonic string
-	content, err := os.ReadFile(mnemonicPath)
+	mnemonic, err := getMnemonic()
 	if err != nil {
-		logger.Error().Println(pkgName, err)
-
-		err := os.Mkdir(config.AgentConfigDir, 0600)
-		if err != nil {
-			logger.Error().Println(pkgName, err)
-		}
-
-		mnemonicFile, err := os.OpenFile(mnemonicPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-		if err != nil {
-			logger.Error().Println(pkgName, err)
-			return nil, err
-		} else {
-			entropy, _ := bip39.NewEntropy(256)
-			mnemonic, _ = bip39.NewMnemonic(entropy)
-			mnemonicFile.WriteString(mnemonic)
-			mnemonicFile.Close()
-		}
-
-	} else {
-		mnemonic = string(content)
+		return nil, err
 	}
+
 	bc.keyringPair, err = signature.KeyringPairFromSecret(mnemonic, 42)
 	if err != nil {
-		logger.Error().Println(pkgName, err)
+		logger.Error().Println(pkgName, "Keyring from secret", err)
+		return nil, err
 	}
 
 	// Always update address file with latest content.
-	addressFile, err := os.OpenFile(addressPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	// NOTE: other scripts need this address to put tokens there
+	err = os.WriteFile(addressPath, []byte(bc.keyringPair.Address), 0600)
 	if err != nil {
-		logger.Error().Println(pkgName, err)
+		// Cannot work with blockchain, since other scripts cannot put tokens to wallet
+		logger.Error().Println(pkgName, "Wallet address cache", err)
+		return nil, err
 	}
-	addressFile.WriteString(bc.keyringPair.Address)
-	addressFile.Close()
 
 	err = bc.connect()
 	if err != nil {
