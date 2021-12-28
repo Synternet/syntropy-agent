@@ -51,6 +51,7 @@ type BlockchainController struct {
 	substrateApi *gsrpc.SubstrateAPI
 	keyringPair  signature.KeyringPair
 	ipfsShell    *ipfsApi.Shell
+	genesisHash  types.Hash
 
 	url           string
 	lastCommodity []byte
@@ -149,6 +150,12 @@ func (bc *BlockchainController) connect() (err error) {
 		break
 	}
 
+	// genesisHash does not change. Use it from stored value.
+	bc.genesisHash, err = bc.substrateApi.RPC.Chain.GetBlockHash(0)
+	if err != nil {
+		return err
+	}
+
 	bc.ipfsShell = ipfsApi.NewShell(config.GetIpfsUrl())
 	bc.SetState(running)
 
@@ -213,82 +220,74 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		return 0, ErrNotRunning
 	}
 
-	reader := bytes.NewReader(b)
-
-	cid, err := bc.ipfsShell.Add(reader)
+	cid, err := bc.ipfsShell.Add(bytes.NewReader(b))
+	if err != nil {
+		logger.Error().Println(pkgName, "IPFS file hash", err)
+		return 0, err
+	}
 	ipfsUrl := ipfsUrl + cid
 
 	msg, err := json.Marshal(BlockchainMsg{
 		Url: ipfsUrl,
 		Cid: cid,
 	})
-
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "JSON marshal error", err)
 		return 0, err
 	}
 
 	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
-		return 0, err
-	}
-
-	genesisHash, err := bc.substrateApi.RPC.Chain.GetBlockHash(0)
-	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "metadata latest", err)
 		return 0, err
 	}
 
 	key, err := types.CreateStorageKey(meta, "System", "Account", bc.keyringPair.PublicKey, nil)
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "storage key", err)
 		return 0, err
 	}
 	var accountInfo types.AccountInfo
 	ok, err := bc.substrateApi.RPC.State.GetStorageLatest(key, &accountInfo)
 	if err != nil || !ok {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "account info", err)
 		return 0, err
 	}
 
-	nonce := uint32(accountInfo.Nonce)
-
 	rv, err := bc.substrateApi.RPC.State.GetRuntimeVersionLatest()
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "runtime version", err)
 		return 0, err
 	}
 
 	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())[1:33]), msg)
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "commodity mint", err)
 		return 0, err
 	}
 
 	ext := types.NewExtrinsic(c)
 	err = ext.Sign(bc.keyringPair, types.SignatureOptions{
-		BlockHash:          genesisHash,
+		BlockHash:          bc.genesisHash,
 		Era:                types.ExtrinsicEra{IsMortalEra: false},
-		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
-		GenesisHash:        genesisHash,
+		Nonce:              types.NewUCompactFromUInt(uint64(accountInfo.Nonce)),
+		GenesisHash:        bc.genesisHash,
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
 		TransactionVersion: rv.TransactionVersion,
 	})
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "signing", err)
 		return 0, err
 	}
 
 	_, err = bc.substrateApi.RPC.Author.SubmitAndWatchExtrinsic(ext)
 	if err != nil {
-		logger.Error().Println(pkgName, "Send error: ", err)
+		logger.Error().Println(pkgName, "submit", err)
 		return 0, err
 	}
 
-	n = len(b)
-	return n, err
+	return len(b), err
 }
 
 func (bc *BlockchainController) Close() error {
