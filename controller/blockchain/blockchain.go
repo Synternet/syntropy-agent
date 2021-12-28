@@ -129,19 +129,14 @@ func New() (controller.Controller, error) {
 		return nil, err
 	}
 
-	err = bc.connect()
-	if err != nil {
-		return nil, err
-	}
-
-	return &bc, nil
+	return &bc, bc.connect()
 }
 
 func (bc *BlockchainController) connect() (err error) {
+	logger.Debug().Println(pkgName, "Connecting to Substrate API...")
 	bc.SetState(connecting)
 	for {
 		bc.substrateApi, err = gsrpc.NewSubstrateAPI(bc.url)
-		logger.Info().Println("CONNECTED TO SUBSTRATE API")
 		if err != nil {
 			logger.Error().Printf("%s ConnectionError: %s\n", pkgName, err.Error())
 			// Add some randomised sleep, so if controller was down
@@ -151,12 +146,13 @@ func (bc *BlockchainController) connect() (err error) {
 			time.Sleep(delay)
 			continue
 		}
-
-		bc.ipfsShell = ipfsApi.NewShell(config.GetIpfsUrl())
-
-		bc.SetState(running)
+		logger.Info().Println(pkgName, "Connected to Substrate API")
 		break
 	}
+
+	bc.ipfsShell = ipfsApi.NewShell(config.GetIpfsUrl())
+	bc.SetState(running)
+
 	return nil
 }
 
@@ -302,6 +298,7 @@ func (bc *BlockchainController) Close() error {
 		return ErrNotRunning
 	}
 	bc.SetState(stopped)
+
 	// Maybe notify blockchain about closing?
 	return nil
 }
