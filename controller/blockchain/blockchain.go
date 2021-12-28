@@ -71,7 +71,7 @@ type CommodityInfo struct {
 	Info []byte
 }
 
-func GetIpfsPayload(url string) ([]byte, error) {
+func getIpfsPayload(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -198,7 +198,8 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 
 		msg := &BlockchainMsg{}
 		json.Unmarshal(bc.lastCommodity, &msg)
-		data, err := GetIpfsPayload(msg.Url)
+		data, err := getIpfsPayload(msg.Url)
+		// TODO: signature and encryption
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s", err)
