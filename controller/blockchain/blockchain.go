@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -53,6 +52,9 @@ type BlockchainController struct {
 	keyringPair  signature.KeyringPair
 	ipfsShell    *ipfsApi.Shell
 	genesisHash  types.Hash
+	metadata     *types.Metadata
+	comodityKey  types.StorageKey
+	systemKey    types.StorageKey
 
 	url           string
 	lastCommodity []byte
@@ -115,6 +117,7 @@ func New() (controller.Controller, error) {
 		return nil, err
 	}
 
+	// TODO: what is 42 here ???
 	bc.keyringPair, err = signature.KeyringPairFromSecret(mnemonic, 42)
 	if err != nil {
 		logger.Error().Println(pkgName, "Keyring from secret", err)
@@ -133,13 +136,14 @@ func New() (controller.Controller, error) {
 	return &bc, bc.connect()
 }
 
-func (bc *BlockchainController) connect() (err error) {
+func (bc *BlockchainController) connect() error {
+	var err error
 	logger.Debug().Println(pkgName, "Connecting to Substrate API...")
 	bc.SetState(connecting)
 	for {
 		bc.substrateApi, err = gsrpc.NewSubstrateAPI(bc.url)
 		if err != nil {
-			logger.Error().Printf("%s ConnectionError: %s\n", pkgName, err.Error())
+			logger.Error().Println(pkgName, "ConnectionError", err)
 			// Add some randomised sleep, so if controller was down
 			// the reconnecting agents could DDOS the controller
 			delay := time.Duration(rand.Int31n(reconnectDelay)) * time.Millisecond
@@ -151,13 +155,34 @@ func (bc *BlockchainController) connect() (err error) {
 		break
 	}
 
-	// genesisHash does not change. Use it from stored value.
+	// Get and store values that do not change
 	bc.genesisHash, err = bc.substrateApi.RPC.Chain.GetBlockHash(0)
 	if err != nil {
 		return err
 	}
 
+	bc.metadata, err = bc.substrateApi.RPC.State.GetMetadataLatest()
+	if err != nil {
+		logger.Error().Println(pkgName, "metadata latest", err)
+		return err
+	}
+
+	bc.systemKey, err = types.CreateStorageKey(bc.metadata, "System", "Account", bc.keyringPair.PublicKey, nil)
+	if err != nil {
+		logger.Error().Println(pkgName, "storage key", err)
+		return err
+	}
+
+	bc.systemKey, err = types.CreateStorageKey(bc.metadata, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
+	if err != nil {
+		logger.Error().Println(pkgName, "comodity key", err)
+		return err
+	}
+
+	// Init IPFS
 	bc.ipfsShell = ipfsApi.NewShell(config.GetIpfsUrl())
+
+	// Mark running (do I need this state in this controller ?)
 	bc.SetState(running)
 
 	return nil
@@ -167,27 +192,19 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 	if bc.GetState() == stopped {
 		return nil, ErrNotRunning
 	}
-	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
-	if err != nil {
-		logger.Error().Println(pkgName, err)
-		return nil, err
-	}
 
+	var res []Commodity
+	var msg BlockchainMsg
+
+	// TODO: change this to some listener (I bet the substrate package has one)
 	for {
-		key, err := types.CreateStorageKey(meta, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
+		ok, err := bc.substrateApi.RPC.State.GetStorageLatest(bc.comodityKey, &res)
 		if err != nil {
-			logger.Error().Println(pkgName, err)
-			return nil, err
-		}
-		var res []Commodity
-
-		_, err = bc.substrateApi.RPC.State.GetStorageLatest(key, &res)
-		if err != nil {
-			bc.connect()
+			logger.Error().Println(pkgName, "get comodity", err)
 			continue
 		}
 
-		if len(res) == 0 {
+		if !ok || len(res) == 0 {
 			time.Sleep(waitForMsg)
 			continue
 		}
@@ -199,28 +216,30 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 
 		bc.lastCommodity = res[len(res)-1].Payload
 
-		msg := &BlockchainMsg{}
-		json.Unmarshal(bc.lastCommodity, &msg)
-		data, err := getIpfsPayload(msg.Url)
-		// TODO: signature and encryption
-
+		err = json.Unmarshal(bc.lastCommodity, &msg)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s", err)
-			return nil, err
+			logger.Error().Println(pkgName, "substrate comodity unmarshal", err)
+			continue
+		}
+		// Extract the payload from IPFS
+		// TODO: signature and encryption ?
+		data, err := getIpfsPayload(msg.Url)
+		if err != nil {
+			logger.Error().Println(pkgName, "IPFS payload", err)
+			continue
 		}
 
 		return data, nil
-
 	}
 }
 
 func (bc *BlockchainController) Write(b []byte) (n int, err error) {
-
 	if controllerState := bc.GetState(); controllerState != running {
 		logger.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
 		return 0, ErrNotRunning
 	}
 
+	// TODO: signature and encryption ?
 	cid, err := bc.ipfsShell.Add(bytes.NewReader(b))
 	if err != nil {
 		logger.Error().Println(pkgName, "IPFS file hash", err)
@@ -237,19 +256,8 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		return 0, err
 	}
 
-	meta, err := bc.substrateApi.RPC.State.GetMetadataLatest()
-	if err != nil {
-		logger.Error().Println(pkgName, "metadata latest", err)
-		return 0, err
-	}
-
-	key, err := types.CreateStorageKey(meta, "System", "Account", bc.keyringPair.PublicKey, nil)
-	if err != nil {
-		logger.Error().Println(pkgName, "storage key", err)
-		return 0, err
-	}
 	var accountInfo types.AccountInfo
-	ok, err := bc.substrateApi.RPC.State.GetStorageLatest(key, &accountInfo)
+	ok, err := bc.substrateApi.RPC.State.GetStorageLatest(bc.systemKey, &accountInfo)
 	if err != nil || !ok {
 		logger.Error().Println(pkgName, "account info", err)
 		return 0, err
@@ -261,7 +269,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		return 0, err
 	}
 
-	c, err := types.NewCall(meta, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())[1:33]), msg)
+	c, err := types.NewCall(bc.metadata, "Commodity.mint", types.NewAccountID(base58.Decode(config.GetOwnerAddress())[1:33]), msg)
 	if err != nil {
 		logger.Error().Println(pkgName, "commodity mint", err)
 		return 0, err
