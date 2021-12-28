@@ -18,6 +18,14 @@ import (
 	"github.com/cosmos/go-bip39"
 	"github.com/decred/base58"
 
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/state"
+	"github.com/cosmos/go-bip39"
+	"github.com/decred/base58"
+
+	"time"
+
 	"github.com/SyntropyNet/syntropy-agent/controller"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
@@ -26,12 +34,15 @@ import (
 	ipfsApi "github.com/ipfs/go-ipfs-api"
 )
 
-const pkgName = "Blockchain Controller. "
-const ipfsUrl = "https://ipfs.io/ipfs/"
-const mnemonicPath = config.AgentConfigDir + "/mnemonic"
-const addressPath = config.AgentConfigDir + "/address"
-const reconnectDelay = 10000 // 10 seconds (in milliseconds)
-const waitForMsg = time.Second
+const (
+	pkgName        = "Blockchain Controller. "
+	ipfsUrl        = "https://ipfs.io/ipfs/"
+	mnemonicPath   = config.AgentConfigDir + "/mnemonic"
+	addressPath    = config.AgentConfigDir + "/address"
+	reconnectDelay = 10000 // 10 seconds (in milliseconds)
+	waitForMsg     = time.Second
+)
+
 const (
 	// State machine constants
 	stopped = iota
@@ -50,10 +61,6 @@ type BlockchainController struct {
 	ipfsShell    *ipfsApi.Shell
 
 	url           string
-	token         string
-	version       string
-	address       string
-	mnemonic      string
 	lastCommodity []byte
 }
 
@@ -71,8 +78,6 @@ type CommodityInfo struct {
 	Info []byte
 }
 
-var err = errors.New("blockchain controller not yet implemented")
-
 func GetIpfsPayload(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -88,16 +93,11 @@ func GetIpfsPayload(url string) ([]byte, error) {
 }
 
 func New() (controller.Controller, error) {
-	url := config.GetCloudURL()
-
 	bc := BlockchainController{
-		url:     url,
-		token:   config.GetAgentToken(),
-		version: config.GetVersion(),
+		url: config.GetCloudURL(),
 	}
-	var (
-		mnemonic string
-	)
+
+	var mnemonic string
 	content, err := os.ReadFile(mnemonicPath)
 	if err != nil {
 		logger.Error().Println(pkgName, err)
@@ -113,7 +113,7 @@ func New() (controller.Controller, error) {
 			return nil, err
 		} else {
 			entropy, _ := bip39.NewEntropy(256)
-			mnemonic, _ := bip39.NewMnemonic(entropy)
+			mnemonic, _ = bip39.NewMnemonic(entropy)
 			mnemonicFile.WriteString(mnemonic)
 			mnemonicFile.Close()
 		}
