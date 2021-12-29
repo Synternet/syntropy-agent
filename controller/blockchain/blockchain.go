@@ -172,7 +172,7 @@ func (bc *BlockchainController) connect() error {
 		return err
 	}
 
-	bc.systemKey, err = types.CreateStorageKey(bc.metadata, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
+	bc.comodityKey, err = types.CreateStorageKey(bc.metadata, "Commodity", "CommoditiesForAccount", bc.keyringPair.PublicKey, nil)
 	if err != nil {
 		logger.Error().Println(pkgName, "comodity key", err)
 		return err
@@ -214,8 +214,8 @@ func (bc *BlockchainController) Recv() ([]byte, error) {
 		}
 
 		bc.lastCommodity = res[len(res)-1].Payload
-
 		err = json.Unmarshal(bc.lastCommodity, &msg)
+
 		if err != nil {
 			logger.Error().Println(pkgName, "substrate comodity unmarshal", err)
 			continue
