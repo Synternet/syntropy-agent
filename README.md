@@ -28,7 +28,7 @@ Full, constantly maintained documentation can be found [here](https://docs.syntr
 
 ### Why GO
 Every programming language has pros and cons, but motivation for GO is:
-* allows quickly and easily refactor code and make big changes fast. That's a hudge benefit for projects that are in active development stage;
+* allows quickly and easily refactor code and make big changes fast. That's a huge benefit for projects that are in active development stage;
 * is very effective and uses less resources if compared with scriptable languages;
 * compiles to single binary without dependencies;
 * is quite simple language and in this project we like [KISS principle](https://en.wikipedia.org/wiki/KISS_principle).
