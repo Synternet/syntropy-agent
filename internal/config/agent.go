@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	AgentConfigDir  = "/etc/syntropy-agent"
+	AgentConfigDir  = "/etc/syntropy/platform"
 	AgentConfigFile = AgentConfigDir + "/config.yaml"
 	AgentTempDir    = AgentConfigDir + "/tmp"
 )
@@ -85,6 +85,19 @@ func initAgentToken() {
 	cache.apiKey = os.Getenv("SYNTROPY_AGENT_TOKEN")
 	if cache.apiKey == "" {
 		cache.apiKey = os.Getenv("SYNTROPY_API_KEY")
+	}
+}
+
+func initOwnerAddress() {
+	cache.ownerAddress = os.Getenv("SYNTROPY_OWNER_ADDRESS")
+}
+
+func initIpfsURL() {
+	cache.ipfsURL = "localhost:5001"
+	url := os.Getenv("SYNTROPY_IPFS_URL")
+
+	if url != "" {
+		cache.ipfsURL = url
 	}
 }
 
