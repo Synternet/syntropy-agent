@@ -16,8 +16,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Set up Go
-        run: snap install go --classic && go version 
       - name: 'Get Previous tag'
         id: previoustag
         run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 --candidates=1)"
