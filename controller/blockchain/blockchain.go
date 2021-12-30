@@ -80,11 +80,7 @@ func getIpfsPayload(url string) ([]byte, error) {
 	}
 
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
+	return io.ReadAll(resp.Body)
 }
 
 func getMnemonic() (string, error) {
@@ -94,8 +90,19 @@ func getMnemonic() (string, error) {
 	}
 
 	// Mnemonic cache does not exist - create new
-	entropy, _ := bip39.NewEntropy(256)
-	mnemonic, _ := bip39.NewMnemonic(entropy)
+	entropy, err := bip39.NewEntropy(256)
+	if err != nil {
+		// cannot reuse wallet in future
+		logger.Error().Println(pkgName, "Could not generate new entropy", err)
+		return "", err
+	}
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		// cannot reuse wallet in future
+		logger.Error().Println(pkgName, "Could not generate new mnemonic", err)
+		return "", err
+	}
+
 	err = os.WriteFile(mnemonicPath, []byte(mnemonic), 0600)
 	if err != nil {
 		// cannot reuse wallet in future
@@ -295,7 +302,7 @@ func (bc *BlockchainController) Write(b []byte) (n int, err error) {
 		return 0, err
 	}
 
-	return len(b), err
+	return len(b), nil
 }
 
 func (bc *BlockchainController) Close() error {
