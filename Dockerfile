@@ -13,7 +13,10 @@ RUN make
 
 FROM alpine
 
-RUN apk update && apk add --no-cache --update iptables wireguard-tools
+# Allow adding additional packages without modifying Dockefile
+# e.g. # docker build --build-arg packages="vim bird" ./
+ARG packages
+RUN apk update && apk add --no-cache --update iptables wireguard-tools $packages
 COPY --from=builder /usr/bin/wireguard-go /usr/bin/wg* /usr/bin/
 COPY --from=builder ./app/syntropy_agent /usr/bin/syntropy_agent
 
