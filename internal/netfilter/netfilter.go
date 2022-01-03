@@ -5,9 +5,8 @@ package netfilter
 import (
 	"errors"
 
+	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/vishvananda/netlink"
-	"golang.org/x/sys/unix"
 )
 
 // TODO: review `-nft` and `-legacy` usage
@@ -114,39 +113,11 @@ func ForwardEnable(ifname string) error {
 		return err
 	}
 
-	dri := defaultRouteIfname()
+	_, dri, _ := netcfg.DefaultRoute()
 	if dri == "" {
 		return errors.New("could not parse default route interface")
 	}
 
-	masquaradeRule := []string{"-o", defaultRouteIfname(), "-j", "MASQUERADE"}
+	masquaradeRule := []string{"-o", dri, "-j", "MASQUERADE"}
 	return ipt.AppendUnique(natTable, "POSTROUTING", masquaradeRule...)
-}
-
-func defaultRouteIfname() string {
-	var ifname string
-	var defaultRoute *netlink.Route
-
-	routes, err := netlink.RouteList(nil, unix.AF_INET)
-	if err != nil {
-		return ifname
-	}
-
-	for _, r := range routes {
-		if r.Dst == nil {
-			if defaultRoute == nil || defaultRoute.Priority > r.Priority {
-				defaultRoute = &r
-			}
-
-		}
-	}
-
-	if defaultRoute != nil {
-		l, err := netlink.LinkByIndex(defaultRoute.LinkIndex)
-		if err == nil && l != nil {
-			ifname = l.Attrs().Name
-		}
-	}
-
-	return ifname
 }
