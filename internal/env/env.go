@@ -12,4 +12,13 @@ const (
 	InterfaceNamePrefix = "SYNTROPY_"
 	// Default value for agent initiated messages to controller
 	MessageDefaultID = "-"
+
+	// Agent config directory
+	SyntropyConfigDir = "/etc/syntropy"
+	AgentConfigDir    = SyntropyConfigDir + "/platform"
+	AgentConfigFile   = AgentConfigDir + "/config.yaml"
+	AgentTempDir      = AgentConfigDir + "/tmp"
+
+	// Locking agent to prevent several instances running
+	LockFile = "/var/lock/syntropy"
 )

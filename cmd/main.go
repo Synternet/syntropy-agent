@@ -17,7 +17,6 @@ import (
 
 const (
 	fullAppName = "Syntropy Stack Agent. "
-	lockFile    = "/var/lock/syntropy"
 )
 
 func requireRoot() {
@@ -49,9 +48,9 @@ func main() {
 
 	// Perform locking using Flock.
 	// If running from docker - it is recommended to use `-v /var/lock/syntropy:/var/lock/syntropy`
-	f, err := os.Create(lockFile)
+	f, err := os.Create(env.LockFile)
 	if err != nil {
-		logger.Error().Println(fullAppName, lockFile, err)
+		logger.Error().Println(fullAppName, env.LockFile, err)
 		exitCode = -int(unix.ENOENT)
 		return
 	}
@@ -59,14 +58,14 @@ func main() {
 	if err != nil {
 		// Another agent instance is running. Exit.
 		logger.Error().Println(fullAppName, "Another agent instance is running")
-		logger.Error().Println(fullAppName, "Lock file residual", lockFile)
+		logger.Error().Println(fullAppName, "Lock file residual", env.LockFile)
 		exitCode = -int(unix.EBUSY)
 		return
 	}
 	defer func() {
 		unix.Flock(int(f.Fd()), unix.LOCK_UN)
 		f.Close()
-		os.Remove(lockFile)
+		os.Remove(env.LockFile)
 	}()
 
 	config.Init()

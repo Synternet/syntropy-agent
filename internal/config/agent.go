@@ -2,45 +2,9 @@ package config
 
 import (
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"golang.org/x/sys/unix"
 )
-
-const (
-	AgentConfigDir  = "/etc/syntropy/platform"
-	AgentConfigFile = AgentConfigDir + "/config.yaml"
-	AgentTempDir    = AgentConfigDir + "/tmp"
-)
-
-func cleanupObsoleteFiles(patern string) {
-	fileNames, err := filepath.Glob(patern)
-	if err == nil {
-		for _, f := range fileNames {
-			os.Remove(f)
-		}
-	}
-}
-
-func initAgentDirs() {
-	// MkdirAll is equivalent of mkdir -p, so it will not recreate existing dirs
-	// And I can simplify my code and do not check if dirs already exist
-	err := os.MkdirAll(AgentConfigDir, 0700)
-	if err != nil {
-		logger.Error().Printf("%s Config dir %s: %s\n", pkgName, AgentConfigDir, err.Error())
-		os.Exit(-int(unix.ENOTDIR))
-	}
-
-	// Cleanup previously cached private & public key files
-	// We no longer rely on them
-	// (maybe some day this code should also be removed?)
-	cleanupObsoleteFiles(AgentConfigDir + "/privatekey-*")
-	cleanupObsoleteFiles(AgentConfigDir + "/publickey-*")
-	cleanupObsoleteFiles(AgentTempDir + "/config_dump")
-}
 
 func initAgentName() {
 	var err error

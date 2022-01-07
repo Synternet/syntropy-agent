@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/state"
 	"github.com/cosmos/go-bip39"
@@ -28,8 +29,8 @@ import (
 const (
 	pkgName        = "Blockchain Controller. "
 	ipfsUrl        = "https://ipfs.io/ipfs/"
-	mnemonicPath   = config.AgentConfigDir + "/mnemonic"
-	addressPath    = config.AgentConfigDir + "/address"
+	mnemonicPath   = env.AgentConfigDir + "/mnemonic"
+	addressPath    = env.AgentConfigDir + "/address"
 	reconnectDelay = 10000 // 10 seconds (in milliseconds)
 	waitForMsg     = time.Second
 )

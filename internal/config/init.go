@@ -9,8 +9,6 @@ import (
 )
 
 func Init() {
-	initAgentDirs()
-
 	initAgentToken()
 	initCloudURL()
 	initDeviceID()

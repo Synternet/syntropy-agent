@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/controller"
-	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -25,7 +25,7 @@ type ScriptController struct {
 	cancel  context.CancelFunc
 }
 
-const scriptPath = config.AgentConfigDir + "/script"
+const scriptPath = env.AgentConfigDir + "/script"
 
 // NewAgent allocates instance of agent struct
 // Parses shell environment and setups internal variables
