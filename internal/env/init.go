@@ -7,7 +7,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func init() {
+func Init() {
 	initAgentDirs()
 }
 

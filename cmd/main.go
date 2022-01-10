@@ -68,6 +68,9 @@ func main() {
 		os.Remove(env.LockFile)
 	}()
 
+	// Create required directories
+	env.Init()
+	// Parse configuration environment variables
 	config.Init()
 	defer config.Close()
 
