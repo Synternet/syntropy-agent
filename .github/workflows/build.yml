@@ -46,8 +46,8 @@ jobs:
         id: agentbuild
         run: |
           make deps
-          GOARCH=amd64 CGO_ENABLED=0 make syntropy_agent && cp syntropy_agent ./target/x86_64 && make clean
-          GOARCH=arm64 CGO_ENABLED=0 make syntropy_agent && cp syntropy_agent ./target/arm64 && make clean
+          GOARCH=amd64 make syntropy_agent && cp syntropy_agent ./target/x86_64 && make clean
+          GOARCH=arm64 make syntropy_agent && cp syntropy_agent ./target/arm64 && make clean
       # GitHub action limit checkout to github subrepos only
       # Thus we are using wireguard-go mirror in github
       - name: Checkout wireguard-go

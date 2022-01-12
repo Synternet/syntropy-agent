@@ -36,7 +36,7 @@ destdir:
 syntropy_agent:
 	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
 # build the agent
-	go build -o $(APPNAME) -ldflags \
+	CGO_ENABLED=0 go build -o $(APPNAME) -ldflags \
 		"-X github.com/SyntropyNet/syntropy-agent/internal/config.version=$(VERSION) \
 		-X github.com/SyntropyNet/syntropy-agent/internal/config.subversion=$(SUBVERSION) -s -w" \
 		./cmd/main.go
@@ -45,7 +45,7 @@ $(destdir)/wireguard-go: destdir
 	git clone https://git.zx2c4.com/wireguard-go && \
 	cd wireguard-go && \
 	git checkout $(git describe --tags $(git rev-list --tags --max-count=1)) && \
-	pwd && make && \
+	CGO_ENABLED=0 make && \
 	cp wireguard-go ../$(destdir)
 	rm -rf wireguard-go
 
