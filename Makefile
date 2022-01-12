@@ -53,7 +53,7 @@ wireguard: $(destdir)/wireguard-go
 
 docker: destdir deps syntropy_agent wireguard
 	cp $(APPNAME) $(destdir)
-	docker build . -t syntropynet/agent
+	docker build --build-arg packages="$(packages)" . -t syntropynet/agent
 
 
 test:
