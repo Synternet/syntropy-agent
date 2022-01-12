@@ -44,3 +44,18 @@ Thanks. Create a fork of this project, fix a bug and submit a *Merge Request* fo
 
 ### I've found a bug and don't have a fix for it
 Thanks. Submit a bug report in [issues](https://github.com/SyntropyNet/syntropy-agent/issues).
+
+### I want to compile this software myself
+No problem. Do a `git clone` and run `make` inside project directory. Run `make docker` if you want to run this application in docker container.
+Note - project versioning relies on git tags and if you remove git information or download tar.gz from GitHub, then it will result in 0.0.0 agent version. Thus proper `git clone` is recommended.
+
+### I want additional software in docker container
+No problem. The recommended way is to use `syntropynet/agent` docker image as a base. Create Dockerfile:
+```
+FROM  syntropynet/agent:stable
+RUN apk update && apk add --no-cache --update brctl vim <other required packages>
+```
+and run `docker build -t <your desired image name>`
+
+Alternative approach would be to checkout source code (also read [I want to compile this software myself](#I-want-to-compile-this-software-myself)) and run 
+```packages="brctl bird vim <other packages>" make docker```
