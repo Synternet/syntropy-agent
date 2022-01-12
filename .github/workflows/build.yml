@@ -10,12 +10,22 @@ on:
 
 jobs:
   create-container:
+    strategy:
+      matrix:
+        go-version: 
+          - 1.17.x
+        wireguard-version:
+          - 0.0.20211016
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
       - name: 'Get Previous tag'
         id: previoustag
         run: echo "::set-output name=tag::$(git describe --tags --abbrev=0 --candidates=1)"
@@ -29,6 +39,30 @@ jobs:
         with:
           text: ${{ github.ref }}
           regex: ^refs\/tags\/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$
+      - name: Prepare target directories
+        id: bindir
+        run: mkdir -p ./target/x86_64 ./target/arm64
+      - name: Crosscompile syntropy-agent for all architectures
+        id: agentbuild
+        run: |
+          make deps
+          GOARCH=amd64 CGO_ENABLED=0 make syntropy_agent && cp syntropy_agent ./target/x86_64 && make clean
+          GOARCH=arm64 CGO_ENABLED=0 make syntropy_agent && cp syntropy_agent ./target/arm64 && make clean
+      # GitHub action limit checkout to github subrepos only
+      # Thus we are using wireguard-go mirror in github
+      - name: Checkout wireguard-go
+        uses: actions/checkout@v2
+        with:
+          repository: WireGuard/wireguard-go
+          ref: ${{matrix.wireguard-version}}
+          path: wireguard-go
+          fetch-depth: 0
+      - name: Crosscompile wireguard-go for all architectures
+        id: wireguard
+        working-directory: wireguard-go
+        run: |
+          GOARCH=amd64 CGO_ENABLED=0 make && cp wireguard-go ./../target/x86_64 && make clean
+          GOARCH=arm64 CGO_ENABLED=0 make && cp wireguard-go ./../target/arm64 && make clean
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -50,8 +84,6 @@ jobs:
           tags: |
             syntropynet/agent:sandbox
             syntropynet/agent:alpha
-          build-args: |
-             AGENT_VERSION=${{ steps.previoustag.outputs.tag }}-${{ steps.vars.outputs.sha_short }}
       -
         name: DEVEL Build and push
         if: contains(github.ref, 'beta')

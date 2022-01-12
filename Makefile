@@ -23,13 +23,13 @@ VERSION:=0.0.0
 endif
 
 
-all: deps agent-go
+all: deps syntropy_agent
 
 deps:
 	@echo Fetching dependencies:
 	go get -d ./...
 
-agent-go:
+syntropy_agent:
 	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
 # build the agent
 	go build -o $(APPNAME) -ldflags \
