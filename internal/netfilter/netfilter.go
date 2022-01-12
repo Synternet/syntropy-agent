@@ -132,10 +132,10 @@ func defaultRouteIfname() string {
 		return ifname
 	}
 
-	for _, r := range routes {
+	for idx, r := range routes {
 		if r.Dst == nil {
 			if defaultRoute == nil || defaultRoute.Priority > r.Priority {
-				defaultRoute = &r
+				defaultRoute = &routes[idx]
 			}
 
 		}
