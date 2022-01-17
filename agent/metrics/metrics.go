@@ -29,7 +29,10 @@ func New(port uint16) (common.Service, error) {
 		port: port,
 	}
 	obj.reg = prometheus.NewRegistry()
-	obj.reg.MustRegister(obj.collector)
+	err := obj.reg.Register(obj.collector)
+	if err != nil {
+		return nil, err
+	}
 
 	return &obj, nil
 }
