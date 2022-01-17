@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/ipfs/go-ipfs-api v0.3.0
 	github.com/pion/stun v0.3.5
+	github.com/prometheus/client_golang v1.7.1
 	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 	golang.org/x/net v0.0.0-20220105145211-5b0dc2dfae98
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
@@ -25,7 +26,9 @@ require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
+	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
+	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -53,6 +56,7 @@ require (
 	github.com/libp2p/go-flow-metrics v0.0.3 // indirect
 	github.com/libp2p/go-libp2p-core v0.13.0 // indirect
 	github.com/libp2p/go-openssl v0.0.7 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mdlayher/genetlink v1.1.0 // indirect
 	github.com/mdlayher/netlink v1.5.0 // indirect
 	github.com/mdlayher/socket v0.1.1 // indirect
@@ -75,6 +79,9 @@ require (
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/common v0.10.0 // indirect
+	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect

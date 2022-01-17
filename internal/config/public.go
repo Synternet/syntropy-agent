@@ -130,3 +130,11 @@ func SetRerouteThresholds(diff, ratio float32) {
 func RerouteThresholds() (float32, float32) {
 	return cache.rerouteThresholds.diff, cache.rerouteThresholds.ratio
 }
+
+func MetricsExporterEnabled() bool {
+	return cache.exporterPort > 0
+}
+
+func MetricsExporterPort() uint16 {
+	return cache.exporterPort
+}

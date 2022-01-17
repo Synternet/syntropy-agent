@@ -14,6 +14,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/hostnetsrv"
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
+	"github.com/SyntropyNet/syntropy-agent/agent/metrics"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerdata"
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
@@ -139,6 +140,15 @@ func New(contype int) (*Agent, error) {
 		shellcmd.New("wg_info", "wg", "show"),
 		shellcmd.New("routes", "route", "-n"),
 		autoping))
+
+	if config.MetricsExporterEnabled() {
+		metrics, err := metrics.New(config.MetricsExporterPort())
+		if err != nil {
+			logger.Error().Println(pkgName, "metrics exporter create", err)
+		} else {
+			agent.addService(metrics)
+		}
+	}
 
 	return agent, nil
 }

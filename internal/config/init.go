@@ -16,6 +16,7 @@ func Init() {
 	initDebugLevel()
 	initOwnerAddress()
 	initIpfsURL()
+	initExporterPort()
 
 	initAgentName()
 	initAgentProvider()

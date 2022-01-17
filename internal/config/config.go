@@ -23,6 +23,7 @@ type configCache struct {
 	ownerAddress   string // aka OWNER_ADDRESS
 	ipfsURL        string
 	controllerType int
+	exporterPort   uint16
 
 	agentName      string
 	agentProvider  int

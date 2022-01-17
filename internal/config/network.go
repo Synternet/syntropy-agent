@@ -85,3 +85,11 @@ func initIptables() {
 		cache.createIptablesRules = false
 	}
 }
+
+func initExporterPort() {
+	port, err := strconv.Atoi(os.Getenv("EXPORTER_PORT"))
+	if err != nil {
+		return
+	}
+	cache.exporterPort = uint16(port)
+}
