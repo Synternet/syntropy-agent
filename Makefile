@@ -24,7 +24,7 @@ endif
 
 destdir = target/$(shell uname -m)
 
-all: deps syntropy_agent
+all: deps app
 
 deps:
 	@echo Fetching dependencies:
@@ -33,7 +33,7 @@ deps:
 destdir:
 	mkdir -p $(destdir)
 
-syntropy_agent:
+app:
 	@echo Building $(APPNAME)  $(VERSION) - $(SUBVERSION)
 # build the agent
 	CGO_ENABLED=0 go build -o $(APPNAME) -ldflags \
