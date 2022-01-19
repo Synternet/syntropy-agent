@@ -26,7 +26,7 @@ type configCache struct {
 	exporterPort   uint16
 
 	agentName      string
-	agentProvider  int
+	agentProvider  uint
 	agentCategory  string
 	servicesStatus bool
 	agentTags      []string
@@ -36,7 +36,7 @@ type configCache struct {
 		start uint16
 		end   uint16
 	}
-	mtu                 uint32
+	mtu                 uint
 	createIptablesRules bool
 
 	debugLevel    int

@@ -36,7 +36,7 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	}
 
 	if mtu := config.GetInterfaceMTU(); mtu > 0 {
-		err = netcfg.InterfaceSetMTU(ii.IfName, mtu)
+		err = netcfg.InterfaceSetMTU(ii.IfName, uint32(mtu))
 		if err != nil {
 			logger.Error().Println(pkgName, "MTU error: ", ii.IfName, mtu, err)
 		}

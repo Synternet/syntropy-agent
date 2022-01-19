@@ -8,46 +8,56 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
+const maxPort = 65535
+
 func Init() {
-	initAgentToken()
-	initCloudURL()
+	var tmpval uint
+
+	initString(&cache.apiKey, "SYNTROPY_AGENT_TOKEN", "")
+	if cache.apiKey == "" {
+		// Fallback. This was used on older agent versions
+		initString(&cache.apiKey, "SYNTROPY_API_KEY", "")
+	}
+	initString(&cache.cloudURL, "SYNTROPY_CONTROLLER_URL",
+		"controller-prod-platform-agents.syntropystack.com")
+
 	initDeviceID()
 	initControllerType()
 	initDebugLevel()
-	initOwnerAddress()
-	initIpfsURL()
-	initExporterPort()
+
+	initString(&cache.ownerAddress, "SYNTROPY_OWNER_ADDRESS", "")
+	initString(&cache.ipfsURL, "SYNTROPY_IPFS_URL", "localhost:5001")
+
+	initUint(&tmpval, "SYNTROPY_EXPORTER_PORT", 0)
+	if tmpval <= maxPort {
+		cache.exporterPort = uint16(tmpval)
+	}
+	initUint(&cache.mtu, "SYNTROPY_MTU", 0)
 
 	initAgentName()
-	initAgentProvider()
-	initAgentCategory()
-	initServicesStatus()
+	initUint(&cache.agentProvider, "SYNTROPY_PROVIDER", 0)
+	cache.agentCategory = os.Getenv("SYNTROPY_CATEGORY")
+	initBool(&cache.servicesStatus, "SYNTROPY_SERVICES_STATUS", false)
 	initAgentTags()
-	initNetworkIDs()
+	cache.networkIDs = strings.Split(os.Getenv("SYNTROPY_NETWORK_IDS"), ",")
 
 	initPortsRange()
 	initAllowedIPs()
-	initMTU()
 	initIptables()
 
 	initLocation()
-	initContainer()
-	initCleanupOnExit()
-	initVPNClient()
+	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
+	initBool(&cache.cleanupOnExit, "SYNTROPY_CLEANUP_ON_EXIT", false)
+	initBool(&cache.vpnClient, "VPN_CLIENT", false)
 
-	initThresholds()
+	// reroute thresholds used to compare better latency.
+	// Default values: diff >= 10ms and at least 10% better
+	cache.rerouteThresholds.diff = 10
+	cache.rerouteThresholds.ratio = 1.1
 }
 
 func Close() {
 	// Anything needed to be closed or destroyed at the end of program, goes here
-}
-
-func initServicesStatus() {
-	cache.servicesStatus = false
-	str := os.Getenv("SYNTROPY_SERVICES_STATUS")
-	if strings.ToLower(str) == "true" {
-		cache.servicesStatus = true
-	}
 }
 
 func initLocation() {
@@ -59,10 +69,6 @@ func initLocation() {
 	if err == nil {
 		cache.location.Longitude = float32(val)
 	}
-}
-
-func initContainer() {
-	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
 }
 
 func initDebugLevel() {
@@ -78,11 +84,4 @@ func initDebugLevel() {
 	default:
 		cache.debugLevel = logger.InfoLevel
 	}
-}
-
-func initThresholds() {
-	// reroute thresholds used to compare better latency.
-	// Default values: diff >= 10ms and at least 10% better
-	cache.rerouteThresholds.diff = 10
-	cache.rerouteThresholds.ratio = 1.1
 }

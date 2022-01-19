@@ -24,7 +24,7 @@ type getInfoRequest struct {
 type getInfoResponse struct {
 	common.MessageHeader
 	Data struct {
-		Provider          int      `json:"agent_provider,omitempty"` // 0 is not used and do not send
+		Provider          uint     `json:"agent_provider,omitempty"` // 0 is not used and do not send
 		Status            bool     `json:"service_status"`
 		Tags              []string `json:"agent_tags"`
 		ExternalIP        string   `json:"external_ip"`

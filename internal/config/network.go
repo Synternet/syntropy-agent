@@ -8,13 +8,7 @@ import (
 	"strings"
 )
 
-func initNetworkIDs() {
-	cache.networkIDs = strings.Split(os.Getenv("SYNTROPY_NETWORK_IDS"), ",")
-}
-
 func initPortsRange() {
-	const maxPort = 65535
-
 	cache.portsRange.start = 0
 	cache.portsRange.end = 0
 
@@ -66,30 +60,10 @@ func initAllowedIPs() {
 	}
 }
 
-func initMTU() {
-	cache.mtu = 0 // default value - auto
-	mtu, err := strconv.Atoi(os.Getenv("SYNTROPY_MTU"))
-	if err != nil {
-		return
-	}
-	if mtu < 0 {
-		return
-	}
-	cache.mtu = uint32(mtu)
-}
-
 func initIptables() {
 	cache.createIptablesRules = true
 
 	if strings.ToLower(os.Getenv("SYNTROPY_CREATE_IPTABLES_RULES")) == "disabled" {
 		cache.createIptablesRules = false
 	}
-}
-
-func initExporterPort() {
-	port, err := strconv.Atoi(os.Getenv("EXPORTER_PORT"))
-	if err != nil {
-		return
-	}
-	cache.exporterPort = uint16(port)
 }

@@ -54,7 +54,7 @@ func GetAgentName() string {
 	return cache.agentName
 }
 
-func GetAgentProvider() int {
+func GetAgentProvider() uint {
 	return cache.agentProvider
 }
 
@@ -86,7 +86,7 @@ func GetPortsRange() (uint16, uint16) {
 	return cache.portsRange.start, cache.portsRange.end
 }
 
-func GetInterfaceMTU() uint32 {
+func GetInterfaceMTU() uint {
 	return cache.mtu
 }
 
