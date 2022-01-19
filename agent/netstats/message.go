@@ -1,7 +1,8 @@
-package peerdata
+package netstats
 
 import (
-	"time"
+	"encoding/json"
+	"io"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
@@ -9,16 +10,12 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
-const cmd = "IFACES_PEERS_BW_DATA"
-const pkgName = "Peer_Data. "
-
 const (
-	periodInit           = time.Second
-	periodRun            = time.Second * 5 // ping every 5 seconds
-	controllerSendPeriod = 12              // reduce messages to controller to every minute
+	cmd     = "IFACES_PEERS_BW_DATA"
+	pkgName = "Peer_Data. "
 )
 
-type peerDataEntry struct {
+type PeerDataEntry struct {
 	PublicKey    string  `json:"public_key"`
 	IP           string  `json:"internal_ip"`
 	Handshake    string  `json:"last_handshake,omitempty"`
@@ -33,20 +30,20 @@ type peerDataEntry struct {
 	GroupID      int     `json:"connection_group_id"`
 }
 
-type ifaceBwEntry struct {
+type IfaceBwEntry struct {
 	IfName    string           `json:"iface"`
 	PublicKey string           `json:"iface_public_key"`
-	Peers     []*peerDataEntry `json:"peers"`
+	Peers     []*PeerDataEntry `json:"peers"`
 }
 
-type peerBwData struct {
+type Message struct {
 	common.MessageHeader
-	Data []ifaceBwEntry `json:"data"`
+	Data []IfaceBwEntry `json:"data"`
 }
 
-func newMsg() *peerBwData {
-	msg := &peerBwData{
-		Data: []ifaceBwEntry{},
+func NewMessage() *Message {
+	msg := &Message{
+		Data: []IfaceBwEntry{},
 	}
 	msg.ID = env.MessageDefaultID
 	msg.MsgType = cmd
@@ -54,8 +51,25 @@ func newMsg() *peerBwData {
 	return msg
 }
 
+func (msg *Message) Send(writer io.Writer) error {
+	if len(msg.Data) == 0 {
+		// no need send an empty message
+		return nil
+	}
+
+	msg.Now()
+	raw, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug().Println(pkgName, "Sending: ", string(raw))
+	_, err = writer.Write(raw)
+	return err
+}
+
 // Parse ping result and fill statistics for connected peers
-func (msg *peerBwData) PingProcess(pr *multiping.PingData) {
+func (msg *Message) PingProcess(pr *multiping.PingData) {
 	for _, ifaceEntry := range msg.Data {
 		for _, peerEntry := range ifaceEntry.Peers {
 			val, ok := pr.Get(peerEntry.IP)

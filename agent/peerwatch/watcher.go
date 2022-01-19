@@ -1,4 +1,4 @@
-package peerdata
+package peerwatch
 
 import (
 	"context"
@@ -9,10 +9,22 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
+	"github.com/SyntropyNet/syntropy-agent/agent/netstats"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+)
+
+const (
+	cmd     = "PEER_WATCHER"
+	pkgName = "PeerWatcher. "
+)
+
+const (
+	periodInit           = time.Second
+	periodRun            = time.Second * 5 // ping every 5 seconds
+	controllerSendPeriod = 12              // reduce messages to controller to every minute
 )
 
 type wgPeerWatcher struct {
@@ -37,13 +49,29 @@ func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing) common.Service 
 func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 	// PeerMonitor instance (member of Router) also needs to process these ping result
 	obj.mole.Router().PingProcess(pr)
+
+	// Now merge ping results
+	obj.pingData.Append(pr)
+
+	// finally cleanup removed peers
+	removeIPs := []string{}
+	obj.pingData.Iterate(func(ip string, val multiping.PingStats) {
+		_, found := pr.Get(ip)
+		if !found {
+			// peer not found - add to remove list
+			removeIPs = append(removeIPs, ip)
+		}
+	})
+	// Remove deleted peers
+	obj.pingData.Del(removeIPs...)
 }
 
 func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) error {
 	// Update swireguard cached peers statistics
 	obj.mole.Wireguard().PeerStatsUpdate()
 	wgdevs := obj.mole.Wireguard().Devices()
-	resp := newMsg()
+	resp := netstats.NewMessage()
+	pingData := multiping.NewPingData()
 
 	// If no interfaces are created yet - I send nothing to controller and wait a short time
 	// When interfaces are created - switch to less frequently check
@@ -60,10 +88,10 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 
 	// prepare peers ping list and message to controller
 	for _, wgdev := range wgdevs {
-		ifaceData := ifaceBwEntry{
+		ifaceData := netstats.IfaceBwEntry{
 			IfName:    wgdev.IfName,
 			PublicKey: wgdev.PublicKey,
-			Peers:     []*peerDataEntry{},
+			Peers:     []*netstats.PeerDataEntry{},
 		}
 
 		for _, p := range wgdev.Peers() {
@@ -77,11 +105,8 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 				continue
 			}
 
-			// add missing peers to ping list
-			_, ok := obj.pingData.Get(ip)
-			if !ok {
-				obj.pingData.Add(ip)
-			}
+			// add peers to ping list
+			pingData.Add(ip)
 
 			var lastHandshake string
 			if !p.Stats.LastHandshake.IsZero() {
@@ -89,7 +114,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			}
 
 			ifaceData.Peers = append(ifaceData.Peers,
-				&peerDataEntry{
+				&netstats.PeerDataEntry{
 					ConnectionID: p.ConnectionID,
 					GroupID:      p.GroupID,
 					PublicKey:    p.PublicKey,
@@ -105,42 +130,18 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 		resp.Data = append(resp.Data, ifaceData)
 	}
 
-	// One more iteration to remove deleted wireguard peers IP addresses
-	removeIPs := []string{}
-	obj.pingData.Iterate(func(ip string, val multiping.PingStats) {
-		found := false
-		for _, iface := range resp.Data {
-			for _, peer := range iface.Peers {
-				if ip == peer.IP {
-					// This peer is still present
-					found = true
-					break // internal (peer) loop break, continue on external (interfaces loop)
-				}
-			}
-			if found {
-				break
-			}
-		}
-		if !found {
-			// peer not found - add to remove list
-			removeIPs = append(removeIPs, ip)
-		}
-	})
-	// Remove deleted peers
-	obj.pingData.Del(removeIPs...)
-
 	// pingData now contains all connected peers on all interfaces
 	// Perform ping and process results, if I have any connected peers
 	// Do nothing if no peers are configured
-	if obj.pingData.Count() == 0 {
+	if pingData.Count() == 0 {
 		return nil
 	}
 
 	// Ping the connected peers
-	obj.pinger.Ping(obj.pingData)
+	obj.pinger.Ping(pingData)
 	// Some other users (e.g. PeerMonitor) are also interested in these results
 	// NOTE: optimisation - ping statistics are not yet added to IFACES_PEERS_BW_DATA message (resp)
-	obj.PingProcess(obj.pingData)
+	obj.PingProcess(pingData)
 
 	// I need these ping results in other places as well
 	// SDN rerouting also depends on these pings. Thus I need to ping often

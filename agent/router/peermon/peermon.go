@@ -11,8 +11,8 @@ import (
 const (
 	pkgName = "PeerMonitor. "
 	// how many values use for moving average
-	// this value is like multiplicator for peerdata.periodRun
-	// if peerdata.periodRun=5secs, then 5*24=2 minutes average
+	// this value is like multiplicator for peerwatch.periodRun
+	// if peerwatch.periodRun=5secs, then 5*24=2 minutes average
 	valuesCount = 24
 	// internal use
 	invalidBestIndex = -1

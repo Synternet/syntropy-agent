@@ -16,7 +16,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent/agent/metrics"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
-	"github.com/SyntropyNet/syntropy-agent/agent/peerdata"
+	"github.com/SyntropyNet/syntropy-agent/agent/peerwatch"
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
@@ -131,7 +131,7 @@ func New(contype int) (*Agent, error) {
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerdata.New(agent.controller, agent.mole, agent.pinger))
+	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
 	agent.addService(agent.mole.Router())
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
