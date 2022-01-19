@@ -76,6 +76,27 @@ func (pr *PingData) Del(hosts ...string) {
 	}
 }
 
+// Append - merges 2 PingData into one
+func (pr *PingData) Append(data *PingData) {
+	pr.mutex.Lock()
+	data.mutex.Lock()
+	defer pr.mutex.Unlock()
+	defer data.mutex.Unlock()
+
+	for ip, stats := range data.entries {
+		val, ok := pr.entries[ip]
+		if ok {
+			val.avgRtt = (val.avgRtt*time.Duration(val.rx) + stats.avgRtt*time.Duration(stats.rx)) /
+				time.Duration(val.rx+stats.rx)
+			val.rtt = stats.rtt
+			val.tx = val.tx + stats.tx
+			val.rx = val.rx + stats.rx
+		} else {
+			pr.entries[ip] = stats
+		}
+	}
+}
+
 // Flush removes all configured hosts
 func (pr *PingData) Flush() {
 	pr.mutex.Lock()
