@@ -11,10 +11,10 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/configinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/docker"
+	"github.com/SyntropyNet/syntropy-agent/agent/exporter"
 	"github.com/SyntropyNet/syntropy-agent/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/hostnetsrv"
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
-	"github.com/SyntropyNet/syntropy-agent/agent/metrics"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerwatch"
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
@@ -131,7 +131,21 @@ func New(contype int) (*Agent, error) {
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 
-	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
+	var collector exporter.Collector
+	if config.MetricsExporterEnabled() {
+		metrics, err := exporter.New(config.MetricsExporterPort())
+		if err != nil {
+			logger.Error().Println(pkgName, "metrics exporter create", err)
+		} else {
+			agent.addService(metrics)
+			collector = metrics.Collector()
+		}
+	}
+	if collector == nil {
+		collector = &exporter.DummyCollector{}
+	}
+
+	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger, collector))
 	agent.addService(agent.mole.Router())
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
@@ -140,15 +154,6 @@ func New(contype int) (*Agent, error) {
 		shellcmd.New("wg_info", "wg", "show"),
 		shellcmd.New("routes", "route", "-n"),
 		autoping))
-
-	if config.MetricsExporterEnabled() {
-		metrics, err := metrics.New(config.MetricsExporterPort())
-		if err != nil {
-			logger.Error().Println(pkgName, "metrics exporter create", err)
-		} else {
-			agent.addService(metrics)
-		}
-	}
 
 	return agent, nil
 }

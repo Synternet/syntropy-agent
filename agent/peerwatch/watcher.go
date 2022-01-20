@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/exporter"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/netstats"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
@@ -28,21 +29,23 @@ const (
 )
 
 type wgPeerWatcher struct {
-	writer   io.Writer
-	mole     *mole.Mole
-	timeout  time.Duration
-	pinger   *multiping.MultiPing
-	pingData *multiping.PingData
-	counter  int
+	writer     io.Writer
+	mole       *mole.Mole
+	expCollect exporter.Collector
+	timeout    time.Duration
+	pinger     *multiping.MultiPing
+	pingData   *multiping.PingData
+	counter    int
 }
 
-func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing) common.Service {
+func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing, c exporter.Collector) common.Service {
 	return &wgPeerWatcher{
-		mole:     m,
-		writer:   writer,
-		timeout:  periodInit,
-		pinger:   p,
-		pingData: multiping.NewPingData(),
+		mole:       m,
+		writer:     writer,
+		timeout:    periodInit,
+		pinger:     p,
+		pingData:   multiping.NewPingData(),
+		expCollect: c,
 	}
 }
 
@@ -50,7 +53,10 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 	// PeerMonitor instance (member of Router) also needs to process these ping result
 	obj.mole.Router().PingProcess(pr)
 
-	// Now merge ping results
+	// Exporter collector also depends on pinged peers metrics
+	obj.expCollect.PingProcess(pr)
+
+	// Now merge ping results to keep average values for the whole period
 	obj.pingData.Append(pr)
 
 	// finally cleanup removed peers
@@ -108,6 +114,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 			// add peers to ping list
 			pingData.Add(ip)
 
+			// Format message to controller
 			var lastHandshake string
 			if !p.Stats.LastHandshake.IsZero() {
 				lastHandshake = p.Stats.LastHandshake.Format(env.TimeFormat)
@@ -126,6 +133,9 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 					RxSpeed:      p.Stats.RxSpeedMbps,
 					TxSpeed:      p.Stats.TxSpeedMbps,
 				})
+
+			// Format collector metrics metadata
+			obj.expCollect.AddPeer(ip, wgdev.IfName, wgdev.PublicKey, p.ConnectionID, p.GroupID)
 		}
 		resp.Data = append(resp.Data, ifaceData)
 	}
