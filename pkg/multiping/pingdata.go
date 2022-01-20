@@ -86,8 +86,10 @@ func (pr *PingData) Append(data *PingData) {
 	for ip, stats := range data.entries {
 		val, ok := pr.entries[ip]
 		if ok {
-			val.avgRtt = (val.avgRtt*time.Duration(val.rx) + stats.avgRtt*time.Duration(stats.rx)) /
-				time.Duration(val.rx+stats.rx)
+			if val.rx+stats.rx > 0 {
+				val.avgRtt = (val.avgRtt*time.Duration(val.rx) + stats.avgRtt*time.Duration(stats.rx)) /
+					time.Duration(val.rx+stats.rx)
+			}
 			val.rtt = stats.rtt
 			val.tx = val.tx + stats.tx
 			val.rx = val.rx + stats.rx
