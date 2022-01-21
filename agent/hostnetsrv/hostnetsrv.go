@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
 
 const (
-	pkgName      = "HostNetServices. "
-	cmd          = "HW_SERVICE_INFO"
-	updatePeriod = time.Second * 5
+	pkgName = "HostNetServices. "
+	cmd     = "HW_SERVICE_INFO"
 )
 
 type hostNetServices struct {
@@ -35,7 +35,7 @@ func (obj *hostNetServices) Name() string {
 
 func (obj *hostNetServices) Run(ctx context.Context) error {
 	go func() {
-		ticker := time.NewTicker(updatePeriod)
+		ticker := time.NewTicker(config.PeerMonitorPeriod())
 		defer ticker.Stop()
 		for {
 			select {

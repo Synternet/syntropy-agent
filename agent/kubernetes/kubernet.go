@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/google/go-cmp/cmp"
@@ -18,9 +19,8 @@ import (
 // and using GO stdlib kubernetes package
 // (premature optimisation is the root of all evil)
 const (
-	pkgName      = "Kubernetes. "
-	cmd          = "KUBERNETES_SERVICE_INFO"
-	updatePeriod = time.Second * 5
+	pkgName = "Kubernetes. "
+	cmd     = "KUBERNETES_SERVICE_INFO"
 )
 
 type kubernet struct {
@@ -74,7 +74,7 @@ func (obj *kubernet) Run(ctx context.Context) error {
 	}
 
 	go func() {
-		ticker := time.NewTicker(updatePeriod)
+		ticker := time.NewTicker(config.PeerMonitorPeriod())
 		defer ticker.Stop()
 		for {
 			select {
