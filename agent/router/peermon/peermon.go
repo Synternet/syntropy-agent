@@ -10,10 +10,6 @@ import (
 
 const (
 	pkgName = "PeerMonitor. "
-	// how many values use for moving average
-	// this value is like multiplicator for peerwatch.periodRun
-	// if peerwatch.periodRun=5secs, then 5*24=2 minutes average
-	valuesCount = 24
 	// internal use
 	invalidBestIndex = -1
 )
@@ -26,14 +22,16 @@ const (
 
 type PeerMonitor struct {
 	sync.RWMutex
-	peerList     []*peerInfo
-	lastBest     int
-	changeReason int
+	peerList      []*peerInfo
+	avgWindowSize uint
+	lastBest      int
+	changeReason  int
 }
 
-func New() *PeerMonitor {
+func New(avgSize uint) *PeerMonitor {
 	return &PeerMonitor{
-		lastBest: invalidBestIndex,
+		lastBest:      invalidBestIndex,
+		avgWindowSize: avgSize,
 	}
 }
 
@@ -47,11 +45,10 @@ func (pm *PeerMonitor) AddNode(gateway, endpoint string) {
 		}
 	}
 
-	e := peerInfo{
-		gateway:  gateway,
-		endpoint: endpoint,
-	}
-	pm.peerList = append(pm.peerList, &e)
+	e := newPeerInfo(pm.avgWindowSize)
+	e.gateway = gateway
+	e.endpoint = endpoint
+	pm.peerList = append(pm.peerList, e)
 }
 
 func (pm *PeerMonitor) DelNode(endpoint string) {

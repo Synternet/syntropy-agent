@@ -8,16 +8,24 @@ import (
 type peerInfo struct {
 	endpoint string
 	gateway  string
-	latency  [valuesCount]float32
-	loss     [valuesCount]float32
+	latency  []float32
+	loss     []float32
 	index    int
+}
+
+func newPeerInfo(avgCount uint) *peerInfo {
+	pi := peerInfo{
+		latency: make([]float32, avgCount),
+		loss:    make([]float32, avgCount),
+	}
+	return &pi
 }
 
 func (node *peerInfo) Add(latency, loss float32) {
 	node.latency[node.index] = latency
 	node.loss[node.index] = loss
 	node.index++
-	if node.index >= valuesCount {
+	if node.index >= cap(node.latency) {
 		node.index = 0
 	}
 }
@@ -57,7 +65,7 @@ func (node *peerInfo) StatsIncomplete() bool {
 			count++
 		}
 	}
-	return count != valuesCount
+	return count != cap(node.latency)
 }
 
 func (node *peerInfo) String() string {

@@ -7,12 +7,13 @@ import (
 )
 
 func TestPeerMonitor(t *testing.T) {
-	pm := New()
+	count := 24
+	pm := New(uint(count))
 
 	fillStats := func(endpoint string, latency, loss float32) {
 		for _, peer := range pm.peerList {
 			if peer.endpoint == endpoint {
-				for i := 0; i < valuesCount; i++ {
+				for i := 0; i < count; i++ {
 					peer.Add(latency, loss)
 				}
 			}

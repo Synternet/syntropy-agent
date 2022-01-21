@@ -3,7 +3,8 @@ package peermon
 import "testing"
 
 func TestPeerInfo(t *testing.T) {
-	pi := peerInfo{}
+	valuesCount := 20
+	pi := newPeerInfo(uint(valuesCount))
 
 	// test incomplete results
 	for i := 0; i < 3; i++ {
