@@ -21,4 +21,3 @@ syntropy_agent
 target/
 # All testing scripts
 test*
-*.env
