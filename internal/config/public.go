@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 const (
 	ControllerSaas = iota
 	ControllerScript
@@ -137,4 +139,8 @@ func MetricsExporterEnabled() bool {
 
 func MetricsExporterPort() uint16 {
 	return cache.exporterPort
+}
+
+func PeerMonitorPeriod() time.Duration {
+	return time.Second * time.Duration(cache.times.peerMonitor)
 }

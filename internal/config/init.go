@@ -54,6 +54,14 @@ func Init() {
 	// Default values: diff >= 10ms and at least 10% better
 	cache.rerouteThresholds.diff = 10
 	cache.rerouteThresholds.ratio = 1.1
+
+	initUint(&cache.times.peerMonitor, "SYNTROPY_PEER_MONITOR_TIME", 5)
+	if cache.times.peerMonitor < 1 {
+		cache.times.peerMonitor = 1
+	} else if cache.times.peerMonitor > 60 {
+		cache.times.peerMonitor = 60
+	}
+
 }
 
 func Close() {

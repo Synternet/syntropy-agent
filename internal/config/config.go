@@ -51,6 +51,10 @@ type configCache struct {
 		diff  float32
 		ratio float32
 	}
+
+	times struct {
+		peerMonitor uint
+	}
 }
 
 var cache configCache

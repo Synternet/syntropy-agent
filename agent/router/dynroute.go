@@ -4,20 +4,17 @@
 package router
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (
-	checkPeriod = time.Second * 3
-	pkgName     = "Router. "
-	cmd         = "SMART_ROUTER"
+	pkgName = "Router. "
+	cmd     = "SMART_ROUTER"
 )
 
 type Router struct {
@@ -31,10 +28,6 @@ func New(w io.Writer) *Router {
 		writer: w,
 		routes: make(map[int]*routerGroupEntry),
 	}
-}
-
-func (obj *Router) Name() string {
-	return cmd
 }
 
 func (obj *Router) execute() {
@@ -57,22 +50,4 @@ func (obj *Router) execute() {
 		obj.writer.Write(raw)
 	}
 
-}
-
-func (obj *Router) Run(ctx context.Context) error {
-	go func() {
-		ticker := time.NewTicker(checkPeriod)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				obj.execute()
-
-			}
-		}
-	}()
-
-	return nil
 }

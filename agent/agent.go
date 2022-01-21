@@ -146,7 +146,6 @@ func New(contype int) (*Agent, error) {
 	}
 
 	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger, collector))
-	agent.addService(agent.mole.Router())
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 	agent.addCommand(settings.New())

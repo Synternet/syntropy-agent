@@ -12,6 +12,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/netstats"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
@@ -22,30 +23,24 @@ const (
 	pkgName = "PeerWatcher. "
 )
 
-const (
-	periodInit           = time.Second
-	periodRun            = time.Second * 5 // ping every 5 seconds
-	controllerSendPeriod = 12              // reduce messages to controller to every minute
-)
-
 type wgPeerWatcher struct {
-	writer     io.Writer
-	mole       *mole.Mole
-	expCollect exporter.Collector
-	timeout    time.Duration
-	pinger     *multiping.MultiPing
-	pingData   *multiping.PingData
-	counter    int
+	writer             io.Writer
+	mole               *mole.Mole
+	expCollect         exporter.Collector
+	pinger             *multiping.MultiPing
+	pingData           *multiping.PingData
+	counter            uint
+	controlerSendCount uint
 }
 
 func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing, c exporter.Collector) common.Service {
 	return &wgPeerWatcher{
-		mole:       m,
-		writer:     writer,
-		timeout:    periodInit,
-		pinger:     p,
-		pingData:   multiping.NewPingData(),
-		expCollect: c,
+		mole:               m,
+		writer:             writer,
+		pinger:             p,
+		pingData:           multiping.NewPingData(),
+		expCollect:         c,
+		controlerSendCount: uint(time.Minute / config.PeerMonitorPeriod()),
 	}
 }
 
@@ -72,25 +67,12 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 	obj.pingData.Del(removeIPs...)
 }
 
-func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) error {
+func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 	// Update swireguard cached peers statistics
 	obj.mole.Wireguard().PeerStatsUpdate()
 	wgdevs := obj.mole.Wireguard().Devices()
 	resp := netstats.NewMessage()
 	pingData := multiping.NewPingData()
-
-	// If no interfaces are created yet - I send nothing to controller and wait a short time
-	// When interfaces are created - switch to less frequently check
-	if len(wgdevs) == 0 {
-		if obj.timeout != periodInit {
-			obj.timeout = periodInit
-			ticker.Reset(obj.timeout)
-		}
-		return nil
-	} else if obj.timeout != periodRun {
-		obj.timeout = periodRun
-		ticker.Reset(obj.timeout)
-	}
 
 	// prepare peers ping list and message to controller
 	for _, wgdev := range wgdevs {
@@ -157,7 +139,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context, ticker *time.Ticker) erro
 	// SDN rerouting also depends on these pings. Thus I need to ping often
 	// But controller does not need this information so oftern. That's why this throtling is here
 	obj.counter++
-	if obj.counter >= controllerSendPeriod {
+	if obj.counter >= obj.controlerSendCount {
 		obj.counter = 0
 
 		// Fill message with ping statistics
@@ -187,14 +169,14 @@ func (obj *wgPeerWatcher) Name() string {
 
 func (obj *wgPeerWatcher) Run(ctx context.Context) error {
 	go func() {
-		ticker := time.NewTicker(periodInit)
+		ticker := time.NewTicker(config.PeerMonitorPeriod())
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				obj.execute(ctx, ticker)
+				obj.execute(ctx)
 			}
 		}
 	}()

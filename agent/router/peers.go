@@ -52,4 +52,6 @@ func (r *Router) PingProcess(pr *multiping.PingData) {
 	for _, pm := range r.routes {
 		pm.peerMonitor.PingProcess(pr)
 	}
+	// After processing ping results check for a better route for services
+	r.execute()
 }
