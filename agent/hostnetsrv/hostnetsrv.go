@@ -35,7 +35,7 @@ func (obj *hostNetServices) Name() string {
 
 func (obj *hostNetServices) Run(ctx context.Context) error {
 	go func() {
-		ticker := time.NewTicker(config.PeerMonitorPeriod())
+		ticker := time.NewTicker(config.PeerCheckTime())
 		defer ticker.Stop()
 		for {
 			select {

@@ -40,7 +40,7 @@ func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing, c exporter.Coll
 		pinger:             p,
 		pingData:           multiping.NewPingData(),
 		expCollect:         c,
-		controlerSendCount: uint(time.Minute / config.PeerMonitorPeriod()),
+		controlerSendCount: uint(time.Minute / config.PeerCheckTime()),
 	}
 }
 
@@ -169,7 +169,7 @@ func (obj *wgPeerWatcher) Name() string {
 
 func (obj *wgPeerWatcher) Run(ctx context.Context) error {
 	go func() {
-		ticker := time.NewTicker(config.PeerMonitorPeriod())
+		ticker := time.NewTicker(config.PeerCheckTime())
 		defer ticker.Stop()
 		for {
 			select {

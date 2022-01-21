@@ -129,6 +129,10 @@ func MetricsExporterPort() uint16 {
 	return cache.exporterPort
 }
 
-func PeerMonitorPeriod() time.Duration {
+func PeerCheckTime() time.Duration {
 	return time.Second * time.Duration(cache.times.peerMonitor)
+}
+
+func PeerCheckWindow() uint {
+	return cache.times.rerouteWindow
 }

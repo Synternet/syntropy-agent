@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// peerInfo collects stores and calculates moving average of last [valuesCount] link measurement
+// peerInfo collects stores and calculates moving average of last [SYNTROPY_PEERCHECK_WINDOW] link measurement
 type peerInfo struct {
 	endpoint string
 	gateway  string

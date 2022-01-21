@@ -53,13 +53,17 @@ func Init() {
 	cache.rerouteThresholds.diff = 10
 	cache.rerouteThresholds.ratio = 1.1
 
-	initUint(&cache.times.peerMonitor, "SYNTROPY_PEER_MONITOR_TIME", 5)
+	initUint(&cache.times.peerMonitor, "SYNTROPY_PEERCHECK_TIME", 5)
 	if cache.times.peerMonitor < 1 {
 		cache.times.peerMonitor = 1
 	} else if cache.times.peerMonitor > 60 {
 		cache.times.peerMonitor = 60
 	}
 
+	initUint(&cache.times.rerouteWindow, "SYNTROPY_PEERCHECK_WINDOW", 24)
+	if cache.times.rerouteWindow < 1 {
+		cache.times.rerouteWindow = 1
+	}
 }
 
 func Close() {

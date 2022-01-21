@@ -51,7 +51,8 @@ type configCache struct {
 	}
 
 	times struct {
-		peerMonitor uint
+		peerMonitor   uint
+		rerouteWindow uint
 	}
 }
 
