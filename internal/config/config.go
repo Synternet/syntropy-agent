@@ -27,10 +27,8 @@ type configCache struct {
 
 	agentName      string
 	agentProvider  uint
-	agentCategory  string
 	servicesStatus bool
 	agentTags      []string
-	networkIDs     []string
 
 	portsRange struct {
 		start uint16

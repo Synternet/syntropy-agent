@@ -36,10 +36,8 @@ func Init() {
 
 	initAgentName()
 	initUint(&cache.agentProvider, "SYNTROPY_PROVIDER", 0)
-	cache.agentCategory = os.Getenv("SYNTROPY_CATEGORY")
 	initBool(&cache.servicesStatus, "SYNTROPY_SERVICES_STATUS", false)
 	initAgentTags()
-	cache.networkIDs = strings.Split(os.Getenv("SYNTROPY_NETWORK_IDS"), ",")
 
 	initPortsRange()
 	initAllowedIPs()

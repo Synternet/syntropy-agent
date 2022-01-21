@@ -60,10 +60,6 @@ func GetAgentProvider() uint {
 	return cache.agentProvider
 }
 
-func GetAgentCategory() string {
-	return cache.agentCategory
-}
-
 func GetServicesStatus() bool {
 	return cache.servicesStatus
 }
@@ -71,14 +67,6 @@ func GetServicesStatus() bool {
 func GetAgentTags() []string {
 	if len(cache.agentTags) > 0 {
 		return cache.agentTags
-	} else {
-		return []string{}
-	}
-}
-
-func GetNetworkIDs() []string {
-	if len(cache.networkIDs) > 0 {
-		return cache.networkIDs
 	} else {
 		return []string{}
 	}
