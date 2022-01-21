@@ -18,40 +18,35 @@ func Init() {
 		// Fallback. This was used on older agent versions
 		initString(&cache.apiKey, "SYNTROPY_API_KEY", "")
 	}
+	initControllerType()
 	initString(&cache.cloudURL, "SYNTROPY_CONTROLLER_URL",
 		"controller-prod-platform-agents.syntropystack.com")
 
-	initDeviceID()
-	initControllerType()
+	initString(&cache.ipfsURL, "SYNTROPY_IPFS_URL", "localhost:5001")
+	initString(&cache.ownerAddress, "SYNTROPY_OWNER_ADDRESS", "")
+
 	initDebugLevel()
 
-	initString(&cache.ownerAddress, "SYNTROPY_OWNER_ADDRESS", "")
-	initString(&cache.ipfsURL, "SYNTROPY_IPFS_URL", "localhost:5001")
+	initUint(&cache.mtu, "SYNTROPY_MTU", 0)
+	initAgentName()
+	initUint(&cache.agentProvider, "SYNTROPY_PROVIDER", 0)
+	initAgentTags()
+	initBool(&cache.servicesStatus, "SYNTROPY_SERVICES_STATUS", false)
+	initPortsRange()
+	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
+
+	// TODO: Add kubernetes namespace
+
+	initAllowedIPs()
+	initLocation()
+	initBool(&cache.vpnClient, "VPN_CLIENT", false)
+	initIptables()
+	initBool(&cache.cleanupOnExit, "SYNTROPY_CLEANUP_ON_EXIT", false)
 
 	initUint(&tmpval, "SYNTROPY_EXPORTER_PORT", 0)
 	if tmpval <= maxPort {
 		cache.exporterPort = uint16(tmpval)
 	}
-	initUint(&cache.mtu, "SYNTROPY_MTU", 0)
-
-	initAgentName()
-	initUint(&cache.agentProvider, "SYNTROPY_PROVIDER", 0)
-	initBool(&cache.servicesStatus, "SYNTROPY_SERVICES_STATUS", false)
-	initAgentTags()
-
-	initPortsRange()
-	initAllowedIPs()
-	initIptables()
-
-	initLocation()
-	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
-	initBool(&cache.cleanupOnExit, "SYNTROPY_CLEANUP_ON_EXIT", false)
-	initBool(&cache.vpnClient, "VPN_CLIENT", false)
-
-	// reroute thresholds used to compare better latency.
-	// Default values: diff >= 10ms and at least 10% better
-	cache.rerouteThresholds.diff = 10
-	cache.rerouteThresholds.ratio = 1.1
 
 	initUint(&cache.times.peerMonitor, "SYNTROPY_PEERCHECK_TIME", 5)
 	if cache.times.peerMonitor < 1 {
@@ -59,11 +54,17 @@ func Init() {
 	} else if cache.times.peerMonitor > 60 {
 		cache.times.peerMonitor = 60
 	}
-
 	initUint(&cache.times.rerouteWindow, "SYNTROPY_PEERCHECK_WINDOW", 24)
 	if cache.times.rerouteWindow < 1 {
 		cache.times.rerouteWindow = 1
 	}
+
+	initDeviceID()
+
+	// reroute thresholds used to compare better latency.
+	// Default values: diff >= 10ms and at least 10% better
+	cache.rerouteThresholds.diff = 10
+	cache.rerouteThresholds.ratio = 1.1
 }
 
 func Close() {
