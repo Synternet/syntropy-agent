@@ -37,11 +37,12 @@ type configCache struct {
 	mtu                 uint
 	createIptablesRules bool
 
-	debugLevel    int
-	location      Location
-	containerType string
-	cleanupOnExit bool
-	vpnClient     bool
+	debugLevel          int
+	location            Location
+	containerType       string
+	kubernetesNamespace string
+	cleanupOnExit       bool
+	vpnClient           bool
 
 	allowedIPs []AllowedIPEntry
 

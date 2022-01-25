@@ -34,8 +34,7 @@ func Init() {
 	initBool(&cache.servicesStatus, "SYNTROPY_SERVICES_STATUS", false)
 	initPortsRange()
 	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
-
-	// TODO: Add kubernetes namespace
+	initString(&cache.kubernetesNamespace, "SYNTROPY_NAMESPACE", "")
 
 	initAllowedIPs()
 	initLocation()
