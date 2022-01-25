@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -13,8 +14,58 @@ type peerInfo struct {
 	PublicKey    string
 	ConnectionID int
 	GroupID      int
-	Loss         float32
-	Latency      float32
+	loss         []float32
+	latency      []float32
+	index        int
+}
+
+func newPeerInfo(ifname, pubkey string, connID, grID int) *peerInfo {
+	count := config.PeerCheckWindow()
+	return &peerInfo{
+		Ifname:       ifname,
+		PublicKey:    pubkey,
+		ConnectionID: connID,
+		GroupID:      grID,
+		latency:      make([]float32, count),
+		loss:         make([]float32, count),
+	}
+}
+
+func (node *peerInfo) Add(latency, loss float32) {
+	node.latency[node.index] = latency
+	node.loss[node.index] = loss
+	node.index++
+	if node.index >= cap(node.latency) {
+		node.index = 0
+	}
+}
+
+func (node *peerInfo) Latency() float32 {
+	count := 0
+	var sum float32
+	for _, val := range node.latency {
+		if val > 0 {
+			sum = sum + val
+			count++
+		}
+	}
+	if count > 0 {
+		return sum / float32(count)
+	}
+	return 0
+}
+
+func (node *peerInfo) Loss() float32 {
+	count := 0
+	var sum float32
+	for _, val := range node.loss {
+		sum = sum + val
+		count++
+	}
+	if count > 0 {
+		return sum / float32(count)
+	}
+	return 0
 }
 
 type peersCollector struct {
@@ -34,21 +85,11 @@ func (pc *peersCollector) AddPeer(ip, ifname, pubkey string, connID, grID int) {
 
 	entry, ok := pc.entries[ip]
 	if !ok {
-		pc.entries[ip] = &peerInfo{
-			Ifname:       ifname,
-			PublicKey:    pubkey,
-			ConnectionID: connID,
-			GroupID:      grID,
-		}
+		pc.entries[ip] = newPeerInfo(ifname, pubkey, connID, grID)
 	} else if entry.PublicKey != pubkey || entry.Ifname != ifname {
 		// Most probably peer was deleted and IP reused for other peer.
 		// So parameters need to be updated
-		pc.entries[ip] = &peerInfo{
-			Ifname:       ifname,
-			PublicKey:    pubkey,
-			ConnectionID: connID,
-			GroupID:      grID,
-		}
+		pc.entries[ip] = newPeerInfo(ifname, pubkey, connID, grID)
 	}
 }
 
@@ -65,8 +106,7 @@ func (pc *peersCollector) PingProcess(pr *multiping.PingData) {
 		if !ok {
 			removed = append(removed, ip)
 		} else {
-			peer.Latency = pingRes.Latency()
-			peer.Loss = pingRes.Loss()
+			peer.Add(pingRes.Latency(), pingRes.Loss())
 		}
 	}
 
@@ -102,13 +142,13 @@ func (pc *peersCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(
 			descLatency,
 			prometheus.GaugeValue,
-			float64(peer.Latency),
+			float64(peer.Latency()),
 			peer.Ifname, peer.PublicKey, ip, strconv.Itoa(peer.ConnectionID), strconv.Itoa(peer.GroupID),
 		)
 		ch <- prometheus.MustNewConstMetric(
 			descLoss,
 			prometheus.GaugeValue,
-			float64(peer.Loss),
+			float64(peer.Loss()),
 			peer.Ifname, peer.PublicKey, ip, strconv.Itoa(peer.ConnectionID), strconv.Itoa(peer.GroupID),
 		)
 	}
