@@ -57,6 +57,7 @@ func Init() {
 	if cache.times.rerouteWindow < 1 {
 		cache.times.rerouteWindow = 1
 	}
+	initUint(&cache.routeDelThreshold, "SYNTROPY_ROUTEDEL_THRESHOLD", 0)
 
 	initDeviceID()
 

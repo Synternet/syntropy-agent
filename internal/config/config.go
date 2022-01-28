@@ -55,6 +55,7 @@ type configCache struct {
 		peerMonitor   uint
 		rerouteWindow uint
 	}
+	routeDelThreshold uint
 }
 
 var cache configCache

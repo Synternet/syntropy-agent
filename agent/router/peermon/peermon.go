@@ -16,7 +16,6 @@ const (
 	// After migration to Go1.18 and netip structures
 	// I think to use IsZero()/IsValid() or IsUnspecified() instead
 	NoRoute = "no.rou.te"
-	bigLoss = 0.5
 )
 
 const (
@@ -148,7 +147,8 @@ func (pm *PeerMonitor) BestPath() string {
 
 	pm.checkNewBest(bestIdx)
 
-	if pm.peerList[pm.lastBest].Loss() > bigLoss {
+	lossThreshold := config.GetRouteDeleteThreshold()
+	if lossThreshold > 0 && pm.peerList[pm.lastBest].Loss()*100 >= float32(lossThreshold) {
 		return NoRoute
 	}
 

@@ -140,3 +140,7 @@ func PeerCheckTime() time.Duration {
 func PeerCheckWindow() uint {
 	return cache.times.rerouteWindow
 }
+
+func GetRouteDeleteThreshold() uint {
+	return cache.routeDelThreshold
+}
