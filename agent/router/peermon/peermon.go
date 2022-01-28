@@ -12,6 +12,11 @@ const (
 	pkgName = "PeerMonitor. "
 	// internal use
 	invalidBestIndex = -1
+	// For now use simple constant
+	// After migration to Go1.18 and netip structures
+	// I think to use IsZero()/IsValid() or IsUnspecified() instead
+	NoRoute = "no.rou.te"
+	bigLoss = 0.5
 )
 
 const (
@@ -124,7 +129,7 @@ func (pm *PeerMonitor) BestPath() string {
 	defer pm.RUnlock()
 
 	if len(pm.peerList) == 0 {
-		return ""
+		return NoRoute
 	}
 
 	// find currently best route
@@ -142,6 +147,10 @@ func (pm *PeerMonitor) BestPath() string {
 	}
 
 	pm.checkNewBest(bestIdx)
+
+	if pm.peerList[pm.lastBest].Loss() > bigLoss {
+		return NoRoute
+	}
 
 	return pm.peerList[pm.lastBest].gateway
 }

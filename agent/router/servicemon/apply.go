@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
@@ -24,7 +25,6 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			// nothing to do for this group
 			continue
 		}
-
 		count := rl.Count()
 		logger.Info().Printf("%s Apply: add:%d, del:%d, count:%d\n",
 			pkgName, add, del, count)
@@ -40,6 +40,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 		} else {
 			routeStatus, padEntry = rl.MergeRoutes(ip, sm.reroutePath.BestPath())
 		}
+
 		if routeStatus != nil {
 			routeStatusCons = append(routeStatusCons, routeStatus)
 		}
@@ -108,27 +109,37 @@ func (rl *routeList) ClearRoute(destination string) (*routestatus.Connection, *p
 	defer rl.resetPending()
 
 	logger.Debug().Println(pkgName, "Apply/ClearRoute ", destination)
+
 	route := rl.GetActive()
+	if route == nil {
+		return nil, nil
+	}
 
 	err := netcfg.RouteDel(route.ifname, destination)
 	if err != nil {
 		logger.Error().Println(pkgName, destination, "route delete error", err)
 	}
+	route.ClearFlags(rfActive)
 
 	return nil,
 		peeradata.NewEntry(route.connectionID, 0, route.groupID)
 }
 
 func (rl *routeList) MergeRoutes(destination string, newgw string) (*routestatus.Connection, *peeradata.Entry) {
-	defer rl.resetPending()
-
 	logger.Debug().Println(pkgName, "Apply/MergeRoute ", destination)
 
-	newRoute := rl.Find(newgw)
 	activeRoute := rl.GetActive()
-	if activeRoute == nil {
-		// Should never happen. But print to log just in case.
-		logger.Error().Println(pkgName, "No active route was present.")
+	var newRoute *routeEntry
+	if newgw != peermon.NoRoute {
+		newRoute = rl.Find(newgw)
+		// check if route change is needed
+		// I think this both cases should never happen
+		if newRoute == nil {
+			logger.Error().Println(pkgName, "New route ", newgw, "not found.")
+		} else if newRoute.CheckFlag(rfPendingDel) {
+			logger.Error().Println(pkgName, "New active route marked for deletion.", newgw)
+			newRoute = nil
+		}
 	}
 
 	// Build new list of new and old, but not deleted entries
@@ -139,33 +150,9 @@ func (rl *routeList) MergeRoutes(destination string, newgw string) (*routestatus
 		}
 	}
 	// drop old list and keep updated list.
-	defer func() { rl.list = newList }()
-
-	// check if route change is needed
-	if newRoute == nil || newRoute.CheckFlag(rfPendingDel) {
-		logger.Error().Println(pkgName, "New active route marked for deletion.")
-		// No new route - try fallback to default route
-		newRoute = rl.GetDefault()
-	}
-
-	if activeRoute == newRoute {
-		// nothing changed, nothing to inform.
-		return nil, nil
-	}
-
-	// Should never happen. Actually this case should be handled in ServiceMonitor.Apply
-	if newRoute == nil {
-		// But print to log just in case.
-		logger.Error().Println(pkgName, "No active new route was found.")
-		return rl.ClearRoute(destination)
-	}
-	// Should never happen. Actually this case should be handled in ServiceMonitor.Apply
-	if activeRoute == nil {
-		// But print to log just in case.
-		logger.Error().Println(pkgName, "No active old route was found.")
-		return rl.SetRoute(destination)
-	}
+	rl.list = newList
+	rl.resetPending()
 
 	// Reuse reroute function to do actual job
-	return nil, rl.Reroute(newRoute.gateway, destination)
+	return nil, rl.Reroute(newRoute, activeRoute, destination)
 }
