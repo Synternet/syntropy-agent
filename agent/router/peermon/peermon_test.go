@@ -10,6 +10,10 @@ func TestPeerMonitor(t *testing.T) {
 	count := 24
 	pm := New(uint(count))
 
+	addNode := func(gw, ip string) {
+		pm.AddNode("ifname", "PublicKey", gw, ip, 0)
+	}
+
 	fillStats := func(endpoint string, latency, loss float32) {
 		for _, peer := range pm.peerList {
 			if peer.endpoint == endpoint {
@@ -21,10 +25,10 @@ func TestPeerMonitor(t *testing.T) {
 
 	}
 
-	pm.AddNode("1.1.1.1", "1.1.1.2")
-	pm.AddNode("2.2.2.1", "2.2.2.2")
-	pm.AddNode("3.3.3.1", "3.3.3.2")
-	pm.AddNode("4.4.4.1", "4.4.4.2")
+	addNode("1.1.1.1", "1.1.1.2")
+	addNode("2.2.2.1", "2.2.2.2")
+	addNode("3.3.3.1", "3.3.3.2")
+	addNode("4.4.4.1", "4.4.4.2")
 	pm.lastBest = 0
 
 	// Lower loss is always must
