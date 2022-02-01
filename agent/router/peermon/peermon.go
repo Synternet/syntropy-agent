@@ -39,7 +39,7 @@ func New(avgSize uint) *PeerMonitor {
 	}
 }
 
-func (pm *PeerMonitor) AddNode(gateway, endpoint string) {
+func (pm *PeerMonitor) AddNode(ifname, pubKey string, gateway, endpoint string, connID int) {
 	pm.Lock()
 	defer pm.Unlock()
 
@@ -50,9 +50,13 @@ func (pm *PeerMonitor) AddNode(gateway, endpoint string) {
 	}
 
 	e := newPeerInfo(pm.avgWindowSize)
+	pm.peerList = append(pm.peerList, e)
+
+	e.ifname = ifname
+	e.publicKey = pubKey
+	e.connectionID = connID
 	e.gateway = gateway
 	e.endpoint = endpoint
-	pm.peerList = append(pm.peerList, e)
 }
 
 func (pm *PeerMonitor) DelNode(endpoint string) {

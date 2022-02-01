@@ -6,11 +6,14 @@ import (
 
 // peerInfo collects stores and calculates moving average of last [SYNTROPY_PEERCHECK_WINDOW] link measurement
 type peerInfo struct {
-	endpoint string
-	gateway  string
-	latency  []float32
-	loss     []float32
-	index    int
+	ifname       string
+	publicKey    string
+	connectionID int
+	endpoint     string
+	gateway      string
+	latency      []float32
+	loss         []float32
+	index        int
 }
 
 func newPeerInfo(avgCount uint) *peerInfo {

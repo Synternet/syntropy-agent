@@ -138,12 +138,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	for _, cmd := range req.Data.VPN {
 		switch cmd.Function {
 		case "add_peer":
-			err = obj.mole.AddPeer(cmd.asPeerInfo(), &common.SdnNetworkPath{
-				Ifname:       cmd.Args.IfName,
-				Gateway:      cmd.Args.GatewayIPv4,
-				ConnectionID: cmd.Metadata.ConnectionID,
-				GroupID:      cmd.Metadata.GroupID,
-			})
+			err = obj.mole.AddPeer(cmd.asPeerInfo(), cmd.asNetworkPath())
 
 		case "create_interface":
 			wgi = cmd.asInterfaceInfo()

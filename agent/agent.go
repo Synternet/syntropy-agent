@@ -130,22 +130,16 @@ func New(contype int) (*Agent, error) {
 	autoping := autoping.New(agent.controller, agent.pinger)
 	agent.addCommand(autoping)
 	agent.addService(autoping)
+	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
 
-	var collector exporter.Collector
 	if config.MetricsExporterEnabled() {
-		metrics, err := exporter.New(config.MetricsExporterPort())
+		metrics, err := exporter.New(config.MetricsExporterPort(), agent.mole.Router())
 		if err != nil {
 			logger.Error().Println(pkgName, "metrics exporter create", err)
 		} else {
 			agent.addService(metrics)
-			collector = metrics.Collector()
 		}
 	}
-	if collector == nil {
-		collector = &exporter.DummyCollector{}
-	}
-
-	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger, collector))
 
 	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
 	agent.addCommand(settings.New())

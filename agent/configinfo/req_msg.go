@@ -64,6 +64,16 @@ func (e *configInfoVpnEntry) asInterfaceInfo() *swireguard.InterfaceInfo {
 	}
 }
 
+func (e *configInfoVpnEntry) asNetworkPath() *common.SdnNetworkPath {
+	return &common.SdnNetworkPath{
+		Ifname:       e.Args.IfName,
+		PublicKey:    e.Args.PublicKey,
+		Gateway:      e.Args.GatewayIPv4,
+		ConnectionID: e.Metadata.ConnectionID,
+		GroupID:      e.Metadata.GroupID,
+	}
+}
+
 type configInfoSubnetworksEntry struct {
 	Name   string `json:"name"`
 	Subnet string `json:"subnet"`

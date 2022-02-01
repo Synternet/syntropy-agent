@@ -17,28 +17,22 @@ const (
 )
 
 type PeersMetrics struct {
-	port      uint16
-	collector Collector
-	reg       *prometheus.Registry
+	port uint16
+	reg  *prometheus.Registry
 }
 
-func New(port uint16) (*PeersMetrics, error) {
+func New(port uint16, collector prometheus.Collector) (*PeersMetrics, error) {
 	obj := PeersMetrics{
-		port:      port,
-		collector: newPeersCollector(),
-		reg:       prometheus.NewRegistry(),
+		port: port,
+		reg:  prometheus.NewRegistry(),
 	}
 
-	err := obj.reg.Register(obj.collector)
+	err := obj.reg.Register(collector)
 	if err != nil {
 		return nil, err
 	}
 
 	return &obj, nil
-}
-
-func (obj *PeersMetrics) Collector() Collector {
-	return obj.collector
 }
 
 func (obj *PeersMetrics) Run(ctx context.Context) error {

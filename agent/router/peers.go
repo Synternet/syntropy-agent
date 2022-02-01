@@ -15,7 +15,9 @@ func (r *Router) PeerAdd(netpath *common.SdnNetworkPath, destination string) err
 
 	// peerMonitor needs only IP, not full CIDR
 	parts := strings.Split(destination, "/")
-	pm.AddNode(netpath.Gateway, parts[0])
+	pm.AddNode(netpath.Ifname, netpath.PublicKey,
+		netpath.Gateway, parts[0],
+		netpath.ConnectionID)
 
 	err := netcfg.RouteAdd(netpath.Ifname, "", destination)
 	if err != nil {

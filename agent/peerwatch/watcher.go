@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/exporter"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/netstats"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
@@ -26,20 +25,18 @@ const (
 type wgPeerWatcher struct {
 	writer             io.Writer
 	mole               *mole.Mole
-	expCollect         exporter.Collector
 	pinger             *multiping.MultiPing
 	pingData           *multiping.PingData
 	counter            uint
 	controlerSendCount uint
 }
 
-func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing, c exporter.Collector) common.Service {
+func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing) common.Service {
 	return &wgPeerWatcher{
 		mole:               m,
 		writer:             writer,
 		pinger:             p,
 		pingData:           multiping.NewPingData(),
-		expCollect:         c,
 		controlerSendCount: uint(time.Minute / config.PeerCheckTime()),
 	}
 }
@@ -47,9 +44,6 @@ func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing, c exporter.Coll
 func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 	// PeerMonitor instance (member of Router) also needs to process these ping result
 	obj.mole.Router().PingProcess(pr)
-
-	// Exporter collector also depends on pinged peers metrics
-	obj.expCollect.PingProcess(pr)
 
 	// Now merge ping results to keep average values for the whole period
 	obj.pingData.Append(pr)
@@ -115,10 +109,8 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 					RxSpeed:      p.Stats.RxSpeedMbps,
 					TxSpeed:      p.Stats.TxSpeedMbps,
 				})
-
-			// Format collector metrics metadata
-			obj.expCollect.AddPeer(ip, wgdev.IfName, wgdev.PublicKey, p.ConnectionID, p.GroupID)
 		}
+
 		resp.Data = append(resp.Data, ifaceData)
 	}
 

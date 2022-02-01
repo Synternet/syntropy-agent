@@ -69,6 +69,7 @@ func (e *wgConfEntry) asPeerInfo() *swireguard.PeerInfo {
 func (e *wgConfEntry) asNetworkPath() *common.SdnNetworkPath {
 	return &common.SdnNetworkPath{
 		Ifname:       e.Args.IfName,
+		PublicKey:    e.Args.PublicKey,
 		Gateway:      e.Args.GatewayIPv4,
 		ConnectionID: e.Metadata.ConnectionID,
 		GroupID:      e.Metadata.GroupID,
