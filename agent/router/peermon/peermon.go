@@ -132,6 +132,7 @@ func (pm *PeerMonitor) BestPath() string {
 	defer pm.RUnlock()
 
 	if len(pm.peerList) == 0 {
+		pm.lastBest = invalidBestIndex
 		return NoRoute
 	}
 
@@ -159,6 +160,9 @@ func (pm *PeerMonitor) BestPath() string {
 	return pm.peerList[pm.lastBest].gateway
 }
 
+// This function compares currently active best with newly calculated best route
+// And compares if route should be changed taken into account route change thresholds
+// It changes PeerMonitor's lastBest and changeReason members
 func (pm *PeerMonitor) checkNewBest(newIdx int) {
 	// No previous best route yet - choose the best
 	if pm.lastBest == invalidBestIndex || pm.lastBest >= len(pm.peerList) {
