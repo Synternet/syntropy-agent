@@ -52,15 +52,17 @@ func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 		logger.Error().Println(pkgName, "listing services", err)
 	}
 	for _, srv := range srvs.Items {
+		if len(srv.Spec.ClusterIPs) == 0 {
+			continue
+		}
 		e := kubernetesServiceEntry{
-			Name:    srv.Name,
-			Subnets: make([]string, len(srv.Spec.ClusterIPs)),
+			Name:   srv.Name,
+			Subnet: srv.Spec.ClusterIPs[0],
 			Ports: common.Ports{
 				TCP: []uint16{},
 				UDP: []uint16{},
 			},
 		}
-		copy(e.Subnets, srv.Spec.ClusterIPs)
 
 		for _, port := range srv.Spec.Ports {
 			switch port.Protocol {

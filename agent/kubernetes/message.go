@@ -8,7 +8,7 @@ type kubernetesInfoMessage struct {
 }
 
 type kubernetesServiceEntry struct {
-	Name    string       `json:"agent_service_name"`
-	Subnets []string     `json:"agent_service_subnets"`
-	Ports   common.Ports `json:"agent_service_ports"`
+	Name   string       `json:"agent_service_name"`
+	Subnet string       `json:"agent_service_subnets"`
+	Ports  common.Ports `json:"agent_service_ports"`
 }
