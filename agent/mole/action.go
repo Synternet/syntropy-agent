@@ -22,6 +22,9 @@ func (m *Mole) Router() *router.Router {
 
 // Close and cleanup
 func (m *Mole) Close() error {
+	m.Lock()
+	defer m.Unlock()
+
 	// Delete host routes to peers.
 	// These are routes added to connected WG peers via original default gateway.
 	// NOTE: other routes will be deleted on interface destroy
