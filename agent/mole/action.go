@@ -28,9 +28,9 @@ func (m *Mole) Close() error {
 		}
 	}
 
-	err := m.wg.Close()
+	m.cleanupControllerRoutes()
 
-	return err
+	return m.wg.Close()
 }
 
 // Flush old cache (prepare to build new cache)

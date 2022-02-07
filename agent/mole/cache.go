@@ -9,11 +9,13 @@ type peerCacheEntry struct {
 }
 
 type storage struct {
-	peers  map[string]peerCacheEntry
-	ifaces map[string]string
+	controller []peerCacheEntry
+	peers      map[string]peerCacheEntry
+	ifaces     map[string]string
 }
 
 func (s *storage) init() {
 	s.peers = make(map[string]peerCacheEntry)
 	s.ifaces = make(map[string]string)
+	s.controller = nil
 }
