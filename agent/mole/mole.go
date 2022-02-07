@@ -36,6 +36,9 @@ func New(w io.Writer) (*Mole, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	m.initControllerRoutes()
+
 	return m, nil
 }
 

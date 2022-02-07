@@ -42,6 +42,8 @@ func (m *Mole) Close() error {
 		}
 	}
 
+	m.cleanupControllerRoutes()
+
 	return m.wg.Close()
 }
 
