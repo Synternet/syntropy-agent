@@ -6,6 +6,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
 /**
@@ -24,8 +25,6 @@ import (
  **/
 
 func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error {
-	const defaultRouteIP = "0.0.0.0/0"
-
 	r.Lock()
 	defer r.Unlock()
 
@@ -33,7 +32,7 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 		// A very dumb protection from "bricking" servers by adding default routes
 		// Allow add default routes only for configured VPN_CLIENT
 		// TODO: there are dosens other ways to act as default route, without 0.0.0.0 IP
-		if !config.IsVPNClient() && ip == defaultRouteIP {
+		if !config.IsVPNClient() && ip == netcfg.DefaultRouteIP {
 			logger.Warning().Println(pkgName, "ignored default route for non configured VPN client")
 			continue
 		}

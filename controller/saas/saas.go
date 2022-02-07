@@ -84,6 +84,7 @@ func New() (controller.Controller, error) {
 	// I am using configured DebugLevel here, but actually
 	// only Errors and Warnings should be logged on this logger.
 	cc.log = logger.New(nil, config.GetDebugLevel(), os.Stdout)
+	cc.log.Info().Println(pkgName, "Connecting...")
 
 	err = cc.connect()
 	if err != nil {
@@ -161,8 +162,11 @@ func (cc *CloudController) Recv() ([]byte, error) {
 }
 
 func (cc *CloudController) Write(b []byte) (n int, err error) {
-	if controllerState := cc.GetState(); controllerState != running {
-		cc.log.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
+	controllerState := cc.GetState()
+	if controllerState != running {
+		if controllerState != stopped {
+			cc.log.Warning().Println(pkgName, "Controller is not running. Current state: ", controllerState)
+		}
 		return 0, ErrNotRunning
 	}
 

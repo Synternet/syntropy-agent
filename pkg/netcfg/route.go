@@ -61,6 +61,16 @@ func RouteDel(ifname string, ip string) error {
 			if err != nil {
 				return fmt.Errorf("route %s del: %s", ip, err.Error())
 			}
+		} else if r.Dst == nil && ip == DefaultRouteIP {
+			// Deleting default route. Lib returns me nil, but expects Dst to be filled
+			_, r.Dst, err = net.ParseCIDR(ip)
+			if err != nil {
+				return fmt.Errorf("%s while parsing %s", err.Error(), ip)
+			}
+			err = netlink.RouteDel(&r)
+			if err != nil {
+				return fmt.Errorf("route %s del: %s", ip, err.Error())
+			}
 		}
 	}
 
