@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 
+## 0.4.0 - Prometheus exporter + routes deletion
+* Prometheus exporter
+* Route deletion when peer is unreachable
+* Some more configuration variables
+* Configuration example in config.env
+* Bugfix: reporting kubernetes services to controller.
+
+## 0.3.1 - Default route hotfix
+* Bugfix default route parsing
+
 ## 0.3.0 - SDN router
 * Service Router refactor. Cache settings and sync cache to OS settings.
 * Fix removed services and/or peers route deletion and cleanup.
