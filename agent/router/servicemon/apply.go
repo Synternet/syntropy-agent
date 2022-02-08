@@ -108,7 +108,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *pee
 func (rl *routeList) ClearRoute(destination string) (*routestatus.Connection, *peeradata.Entry) {
 	defer rl.resetPending()
 
-	logger.Debug().Println(pkgName, "Apply/ClearRoute ", destination)
+	logger.Debug().Println(pkgName, "Apply/ClearRoute", destination)
 
 	route := rl.GetActive()
 	if route == nil {

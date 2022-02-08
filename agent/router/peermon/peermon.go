@@ -98,7 +98,7 @@ func (pm *PeerMonitor) Dump() {
 			mark = "*"
 		}
 		logger.Debug().Printf("%s%s %s\t%s\t%fms\t%f%%\n",
-			pkgName, mark, e.endpoint, e.gateway, e.Latency(), 100*e.Loss())
+			pkgName, mark, e.endpoint, e.ifname, e.Latency(), 100*e.Loss())
 	}
 }
 

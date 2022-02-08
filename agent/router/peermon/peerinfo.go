@@ -72,6 +72,6 @@ func (node *peerInfo) StatsIncomplete() bool {
 }
 
 func (node *peerInfo) String() string {
-	return fmt.Sprintf("%s via %s loss: %f latency %f",
-		node.endpoint, node.gateway, node.Loss(), node.Latency())
+	return fmt.Sprintf("%s dev %s loss: %f latency %f",
+		node.endpoint, node.ifname, node.Loss(), node.Latency())
 }
