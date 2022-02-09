@@ -40,7 +40,9 @@ type MultiPing struct {
 	// Tracker: Used to uniquely identify packet when non-priviledged
 	Tracker int64
 
-	ctx      context.Context // context for timeouting
+	ctx    context.Context    // context for timeouting
+	cancel context.CancelFunc // Do I need it ?
+
 	pinger   *Pinger
 	pingData *PingData
 
@@ -139,7 +141,8 @@ func (mp *MultiPing) Ping(data *PingData) {
 	var wg sync.WaitGroup
 	wg.Add(1) // Sender goroutine
 
-	mp.ctx, _ = context.WithTimeout(context.Background(), mp.Timeout)
+	mp.ctx, mp.cancel = context.WithTimeout(context.Background(), mp.Timeout)
+	defer mp.cancel()
 
 	if mp.conn4 != nil {
 		wg.Add(1)
