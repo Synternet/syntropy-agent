@@ -41,8 +41,9 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 		// Controller sends Allowed_IPs as follows:
 		// first entry (index=0) is its WG tunnel peers internal ip ==> need to add host route
 		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
+		// I don't need to send IP address to PeerAdd, because it is the same as netpath.Gateway
 		if idx == 0 {
-			r.PeerAdd(netpath, ip)
+			r.PeerAdd(netpath)
 		} else {
 			r.ServiceAdd(netpath, ip)
 		}
@@ -60,8 +61,9 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
 		// Controller sends Allowed_IPs as follows:
 		// first entry (index=0) is its WG tunnel peers internal ip ==> need to add host route
 		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
+		// I don't need to send IP address to PeerDel, because it is the same as netpath.Gateway
 		if idx == 0 {
-			r.PeerDel(netpath, ip)
+			r.PeerDel(netpath)
 		} else {
 			r.ServiceDel(netpath, ip)
 		}
