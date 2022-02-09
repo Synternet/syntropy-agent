@@ -29,13 +29,13 @@ func (pm *PeerMonitor) Collect(ch chan<- prometheus.Metric, groupID int) {
 			descLatency,
 			prometheus.GaugeValue,
 			float64(peer.Latency()),
-			peer.ifname, peer.publicKey, peer.endpoint, strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
+			peer.ifname, peer.publicKey, peer.ip, strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
 		)
 		ch <- prometheus.MustNewConstMetric(
 			descLoss,
 			prometheus.GaugeValue,
 			float64(peer.Loss()),
-			peer.ifname, peer.publicKey, peer.endpoint, strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
+			peer.ifname, peer.publicKey, peer.ip, strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
 		)
 	}
 }
