@@ -26,8 +26,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			continue
 		}
 		count := rl.Count()
-		logger.Info().Printf("%s Apply: add:%d, del:%d, count:%d\n",
-			pkgName, add, del, count)
+		logger.Info().Println(pkgName, "Apply Service", ip)
 		rl.Dump()
 
 		if add == count && del == 0 {
