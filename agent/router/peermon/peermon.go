@@ -39,12 +39,12 @@ func New(avgSize uint) *PeerMonitor {
 	}
 }
 
-func (pm *PeerMonitor) AddNode(ifname, pubKey string, gateway, endpoint string, connID int) {
+func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint string, connID int) {
 	pm.Lock()
 	defer pm.Unlock()
 
 	for _, peer := range pm.peerList {
-		if peer.endpoint == endpoint {
+		if peer.ip == endpoint {
 			return
 		}
 	}
@@ -55,8 +55,7 @@ func (pm *PeerMonitor) AddNode(ifname, pubKey string, gateway, endpoint string, 
 	e.ifname = ifname
 	e.publicKey = pubKey
 	e.connectionID = connID
-	e.gateway = gateway
-	e.endpoint = endpoint
+	e.ip = endpoint
 }
 
 func (pm *PeerMonitor) DelNode(endpoint string) {
@@ -64,7 +63,7 @@ func (pm *PeerMonitor) DelNode(endpoint string) {
 	defer pm.Unlock()
 
 	for idx, peer := range pm.peerList {
-		if peer.endpoint == endpoint {
+		if peer.ip == endpoint {
 			// order is not important.
 			// Remove from slice in more effective way
 			pm.peerList[idx] = pm.peerList[len(pm.peerList)-1]
@@ -85,7 +84,7 @@ func (pm *PeerMonitor) Peers() []string {
 	rv := []string{}
 
 	for _, peer := range pm.peerList {
-		rv = append(rv, peer.endpoint)
+		rv = append(rv, peer.ip)
 	}
 	return rv
 }
@@ -98,7 +97,7 @@ func (pm *PeerMonitor) Dump() {
 			mark = "*"
 		}
 		logger.Debug().Printf("%s%s %s\t%s\t%fms\t%f%%\n",
-			pkgName, mark, e.endpoint, e.ifname, e.Latency(), 100*e.Loss())
+			pkgName, mark, e.ip, e.ifname, e.Latency(), 100*e.Loss())
 	}
 }
 
@@ -107,7 +106,7 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 	defer pm.Unlock()
 
 	for _, peer := range pm.peerList {
-		val, ok := pr.Get(peer.endpoint)
+		val, ok := pr.Get(peer.ip)
 		if !ok {
 			// NOTE: PeerMonitor is not creating its own ping list
 			// It depends on other pingers and is an additional PingClient in their PingProces line
@@ -157,7 +156,7 @@ func (pm *PeerMonitor) BestPath() string {
 		return NoRoute
 	}
 
-	return pm.peerList[pm.lastBest].gateway
+	return pm.peerList[pm.lastBest].ip
 }
 
 // This function compares currently active best with newly calculated best route

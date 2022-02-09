@@ -65,10 +65,17 @@ func (e *configInfoVpnEntry) asInterfaceInfo() *swireguard.InterfaceInfo {
 }
 
 func (e *configInfoVpnEntry) asNetworkPath() *common.SdnNetworkPath {
+	var gw string
+	if len(e.Args.AllowedIPs) > 0 {
+		// Controller sends first IP as connected peers internal IP address
+		// Use this IP as internal routing gateway
+		parts := strings.Split(e.Args.AllowedIPs[0], "/")
+		gw = parts[0]
+	}
 	return &common.SdnNetworkPath{
 		Ifname:       e.Args.IfName,
 		PublicKey:    e.Args.PublicKey,
-		Gateway:      e.Args.GatewayIPv4,
+		Gateway:      gw,
 		ConnectionID: e.Metadata.ConnectionID,
 		GroupID:      e.Metadata.GroupID,
 	}
