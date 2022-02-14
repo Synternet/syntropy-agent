@@ -36,6 +36,7 @@ func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip string) error {
 	}
 	sm.routes[ip].Add(&routeEntry{
 		ifname:       netpath.Ifname,
+		publicKey:    netpath.PublicKey,
 		gateway:      netpath.Gateway,
 		connectionID: netpath.ConnectionID,
 		groupID:      netpath.GroupID,

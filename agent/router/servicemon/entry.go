@@ -14,6 +14,7 @@ const (
 // The route entry. Destination will be map key
 type routeEntry struct {
 	ifname       string
+	publicKey    string
 	gateway      string
 	connectionID int
 	groupID      int
