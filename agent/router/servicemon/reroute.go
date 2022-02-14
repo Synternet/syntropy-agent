@@ -12,7 +12,10 @@ import (
 
 func addAllowedIp(ifname string, pubkey string, ip string) {
 	wgClient, _ := wgctrl.New()
-	dev, _ := wgClient.Device(ifname)
+	dev, err := wgClient.Device(ifname)
+	if err != nil {
+		return
+	}
 	wgconf := wgtypes.Config{}
 	pcfg := &wgtypes.PeerConfig{}
 	for _, peer := range dev.Peers {
@@ -30,14 +33,17 @@ func addAllowedIp(ifname string, pubkey string, ip string) {
 	wgClient.Close()
 }
 
-func removeAllowedIp(ifname string, pubkey string, ip string) {
+func removeAllowedIps(ip string) {
 	wgClient, _ := wgctrl.New()
-	dev, _ := wgClient.Device(ifname)
-	wgconf := wgtypes.Config{}
-	pcfg := &wgtypes.PeerConfig{}
-	for _, peer := range dev.Peers {
-		if peer.PublicKey.String() == pubkey {
-			_, ipnet, _ := net.ParseCIDR(ip)
+	devices, err := wgClient.Devices()
+	if err != nil {
+		return
+	}
+	for _, dev := range devices {
+		wgconf := wgtypes.Config{}
+		pcfg := &wgtypes.PeerConfig{}
+		_, ipnet, _ := net.ParseCIDR(ip)
+		for _, peer := range dev.Peers {
 			for _, allowed_ip := range peer.AllowedIPs {
 				if allowed_ip.String() != ipnet.String() {
 					pcfg.AllowedIPs = append(pcfg.AllowedIPs, allowed_ip)
@@ -49,8 +55,8 @@ func removeAllowedIp(ifname string, pubkey string, ip string) {
 			pcfg.PersistentKeepaliveInterval = &peer.PersistentKeepaliveInterval
 			wgconf.Peers = append(wgconf.Peers, *pcfg)
 		}
+		wgClient.ConfigureDevice(dev.Name, wgconf)
 	}
-	wgClient.ConfigureDevice(ifname, wgconf)
 	wgClient.Close()
 }
 
@@ -96,7 +102,8 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		// reset active flags
 		oldRoute.ClearFlags(rfActive)
 
-		removeAllowedIp(oldRoute.ifname, oldRoute.publicKey, destination)
+		// TODO Fix this. Currently Allowed ip has to be removed from every peer.
+		removeAllowedIps(destination)
 		// Return route change
 		return peeradata.NewEntry(oldRoute.connectionID, 0, 0)
 
@@ -110,6 +117,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		// set active flags
 		newRoute.SetFlag(rfActive)
 
+		// Todo should reuse Mole for setting up allowed ip.
 		addAllowedIp(newRoute.ifname, newRoute.publicKey, destination)
 		// Return route change
 		return peeradata.NewEntry(0, newRoute.connectionID, newRoute.groupID)
