@@ -41,9 +41,9 @@ func removeAllowedIps(ip string) {
 	}
 	for _, dev := range devices {
 		wgconf := wgtypes.Config{}
-		pcfg := &wgtypes.PeerConfig{}
 		_, ipnet, _ := net.ParseCIDR(ip)
 		for _, peer := range dev.Peers {
+			pcfg := &wgtypes.PeerConfig{}
 			for _, allowed_ip := range peer.AllowedIPs {
 				if allowed_ip.String() != ipnet.String() {
 					pcfg.AllowedIPs = append(pcfg.AllowedIPs, allowed_ip)
