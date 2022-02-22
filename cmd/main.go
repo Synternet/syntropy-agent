@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"syscall"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent"
@@ -91,7 +92,7 @@ func main() {
 
 	// Wait for SIGINT or SIGKILL to terminate app
 	terminate := make(chan os.Signal, 1)
-	signal.Notify(terminate, os.Interrupt)
+	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 	<-terminate
 	logger.Info().Println(fullAppName, " terminating")
 }
