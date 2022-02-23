@@ -7,10 +7,14 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func PublicIP() (net.IP, error) {
-	resp, err := http.Get("https://ip.syntropystack.com:443")
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+	resp, err := client.Get("https://ip.syntropystack.com:443")
 	if err != nil {
 		return nil, err
 	}
