@@ -31,7 +31,7 @@ var publicIP struct {
 }
 
 func init() {
-	publicIP.ipUpdatePeriod = 10 * time.Minute
+	publicIP.ipUpdatePeriod = time.Minute
 	publicIP.provider = providerStun
 }
 
@@ -41,6 +41,12 @@ func UpdatePeriod() time.Duration {
 
 func SetUpdatePeriod(t time.Duration) {
 	publicIP.ipUpdatePeriod = t
+}
+
+func Reset() {
+	// reset IP provider and force checking
+	publicIP.provider = providerStun
+	publicIP.cache.updated = time.Unix(0, 0)
 }
 
 func GetPublicIp() net.IP {
@@ -87,12 +93,10 @@ func GetPublicIp() net.IP {
 			publicIP.cache.ip = ip
 			publicIP.cache.updated = time.Now()
 		} else {
-			if publicIP.cache.ip == nil {
-				// Fallback to 0.0.0.0, if have no valid older ip (stick to old value, if it is present)
-				// Do not update timestamp, so I will retry asap
-				// Temporary workarround until a propper solution will be implemented
-				publicIP.cache.ip = net.ParseIP("0.0.0.0")
-			}
+			// Fallback to 0.0.0.0
+			// Do not update timestamp, so I will retry asap
+			// Temporary workarround until a propper solution will be implemented
+			publicIP.cache.ip = net.ParseIP("0.0.0.0")
 		}
 	}
 
