@@ -90,10 +90,6 @@ func GetPublicIp() net.IP {
 
 		// Lets hope we have some result and parse them
 		if err == nil {
-			if !ip.Equal(publicIP.cache.ip) && publicIP.cache.ip != nil {
-				logger.Info().Println(pkgName, "Public IP Change",
-					publicIP.cache.ip.String(), "-->", ip.String())
-			}
 			publicIP.cache.ip = ip
 			publicIP.cache.updated = time.Now()
 		} else {
