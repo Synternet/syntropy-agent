@@ -14,6 +14,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/exporter"
 	"github.com/SyntropyNet/syntropy-agent/agent/getinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/hostnetsrv"
+	"github.com/SyntropyNet/syntropy-agent/agent/ifacemon"
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerwatch"
@@ -130,6 +131,7 @@ func New(contype int) (*Agent, error) {
 	agent.addCommand(autoping)
 	agent.addService(autoping)
 	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
+	agent.addService(ifacemon.New())
 
 	if config.MetricsExporterEnabled() {
 		metrics, err := exporter.New(config.MetricsExporterPort(), agent.mole.Router())
