@@ -187,13 +187,15 @@ func (cc *CloudController) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
-// Close closes websocket connection to saas backend
-func (cc *CloudController) Close() error {
+// closes websocket connection to saas backend
+func (cc *CloudController) close(terminate bool) error {
 	if cc.GetState() == stopped {
 		// cannot close already closed connection
 		return ErrNotRunning
 	}
-	cc.SetState(stopped)
+	if terminate {
+		cc.SetState(stopped)
+	}
 
 	// Cleanly close the connection by sending a close message and then
 	// waiting (with timeout) for the server to close the connection.
@@ -204,4 +206,15 @@ func (cc *CloudController) Close() error {
 
 	cc.ws.Close()
 	return nil
+}
+
+// Close closes websocket connection to saas backend
+func (cc *CloudController) Close() error {
+	return cc.close(true)
+}
+
+// Reconnect closes websocket connection to saas backend
+// But does not change state - so this should result in reconnecting from Recv funtion
+func (cc *CloudController) Reconnect() error {
+	return cc.close(false)
 }
