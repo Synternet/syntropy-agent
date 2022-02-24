@@ -2,13 +2,13 @@ package ifacemon
 
 import (
 	"context"
-	"log"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
 	"github.com/vishvananda/netlink"
 )
@@ -19,15 +19,17 @@ const (
 )
 
 type interfaceMonitor struct {
-	publicIP net.IP
-	t        *time.Ticker
-	check    bool
+	publicIP  net.IP
+	t         *time.Ticker
+	check     bool
+	reconnect func() error
 }
 
-func New() common.Service {
+func New(f func() error) common.Service {
 	return &interfaceMonitor{
-		publicIP: pubip.GetPublicIp(),
-		t:        time.NewTicker(10 * time.Second),
+		publicIP:  pubip.GetPublicIp(),
+		t:         time.NewTicker(10 * time.Second),
+		reconnect: f,
 	}
 }
 
@@ -77,8 +79,15 @@ func (obj *interfaceMonitor) Run(ctx context.Context) error {
 
 				// check if public IP has changed
 				if !pubip.Equal(obj.publicIP) {
-					log.Println(pkgName, "public IP change", obj.publicIP, "-->", pubip)
+					logger.Info().Println(pkgName, "public IP change", obj.publicIP, "-->", pubip)
 					obj.publicIP = pubip
+					if obj.reconnect != nil {
+						logger.Info().Println(pkgName, "Forcing reconnection")
+						err := obj.reconnect()
+						if err != nil {
+							logger.Error().Println(pkgName, "Reconnect on public IP change", err)
+						}
+					}
 				}
 				obj.check = false
 			}
