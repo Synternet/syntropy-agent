@@ -57,6 +57,7 @@ func (obj *PeersMetrics) Run(ctx context.Context) error {
 
 	go func() {
 		<-ctx.Done()
+		logger.Debug().Println(pkgName, "stopping", cmd)
 		srv.Close()
 	}()
 

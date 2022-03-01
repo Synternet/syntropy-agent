@@ -107,6 +107,7 @@ func (obj *AutoPing) start(period time.Duration) {
 		for {
 			select {
 			case <-obj.ctx.Done():
+				logger.Debug().Println(pkgName, "stopping", cmd)
 				return
 			case <-obj.timer.C:
 				obj.pinger.Ping(obj.pingData)

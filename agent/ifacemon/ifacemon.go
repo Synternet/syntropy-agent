@@ -53,6 +53,7 @@ func (obj *interfaceMonitor) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
+				logger.Debug().Println(pkgName, "stopping", cmd)
 				close(done)
 				return
 

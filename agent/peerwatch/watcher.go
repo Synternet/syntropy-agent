@@ -166,6 +166,7 @@ func (obj *wgPeerWatcher) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
+				logger.Debug().Println(pkgName, "stopping", cmd)
 				return
 			case <-ticker.C:
 				obj.execute(ctx)

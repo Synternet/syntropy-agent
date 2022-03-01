@@ -193,16 +193,19 @@ func (agent *Agent) Close() error {
 	agent.stopServices()
 
 	// cleanup on exit (craftman mole knows what to cleanup)
+	logger.Debug().Println(pkgName, "Mole close")
 	err := agent.mole.Close()
 	if err != nil {
 		logger.Error().Println(pkgName, "mole cleanup:", err)
 	}
 
 	// Close controler will also terminate agent loop
+	logger.Debug().Println(pkgName, "Closing connection with controller")
 	err = agent.controller.Close()
 	if err != nil {
 		logger.Warning().Println(pkgName, "Failed stopping the controller: ", err)
 	}
+	logger.Debug().Println(pkgName, "Agent close done")
 
 	return nil
 }

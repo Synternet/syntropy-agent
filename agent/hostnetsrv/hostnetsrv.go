@@ -8,6 +8,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (
@@ -40,6 +41,7 @@ func (obj *hostNetServices) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
+				logger.Debug().Println(pkgName, "stopping", cmd)
 				return
 			case <-ticker.C:
 				obj.execute()
