@@ -74,12 +74,6 @@ func (m *Mole) RemovePeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPat
 		}
 	}
 
-	// Same is with interface IP address
-	netpath.Gateway, ok = m.cache.ifaces[pi.IfName]
-	if !ok {
-		logger.Warning().Println(pkgName, pi.IfName, "not found in cache")
-	}
-
 	// Nobody is interested in RouteDel results
 	m.router.RouteDel(netpath, pi.AllowedIPs...)
 
