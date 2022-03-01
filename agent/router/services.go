@@ -22,6 +22,7 @@ func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination string) 
 			pkgName, destination, netpath.GroupID)
 		return nil
 	}
+	logger.Debug().Println(pkgName, "Delete service route to", netpath.Gateway, "via", netpath.Gateway)
 
 	return routesGroup.serviceMonitor.Del(netpath, destination)
 }

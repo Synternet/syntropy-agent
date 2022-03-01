@@ -31,6 +31,7 @@ func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
 		return nil
 	}
 
+	logger.Debug().Println(pkgName, "Delete peer route to", netpath.Gateway)
 	routesGroup.peerMonitor.DelNode(netpath.Gateway)
 
 	err := netcfg.RouteDel(netpath.Ifname, netpath.Gateway+"/32")
