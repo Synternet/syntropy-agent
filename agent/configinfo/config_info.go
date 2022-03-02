@@ -10,6 +10,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -51,19 +52,26 @@ func (obj *configInfo) Exec(raw []byte) error {
 		req.Data.Network.Sdn2 == nil &&
 		req.Data.Network.Sdn3 == nil {
 		logger.Info().Println(pkgName, "Platform Agent deletion in progress.")
-		for _, ii := range obj.mole.Wireguard().Devices() {
-			// TODO review this later
-			// use mole or delete directly (breaks mole concept).
-			obj.mole.Wireguard().RemoveInterface(ii)
-		}
+
+		// Cleanup will be done on mole, wireguard and router Close functions.
+		// But CleanupOnExit must be enabled. Force enable it
+		config.ForceCleanupOnExit()
+
+		// First try sending SIGTERM signal to self and it will cleanup all on exit
 		process, err := os.FindProcess(os.Getpid())
-		if err != nil {
-			logger.Error().Println(pkgName, "Platform Agent exit failed getting self pid", err)
-			logger.Error().Println(pkgName, "exit anyway")
-			os.Exit(0)
+		if err == nil {
+			logger.Debug().Println(pkgName, "Sending SIGINT signal to self process")
+			process.Signal(os.Interrupt)
+			// exit and signal handler will complete termination
+			return nil
 		}
-		process.Signal(os.Interrupt)
-		return nil
+
+		// Self process finding failed. Can it ever happen ?
+		logger.Error().Println(pkgName, "Platform Agent exit failed getting self pid", err)
+		logger.Error().Println(pkgName, "Exiting anyway")
+		// mole.Close should do most cleanup
+		obj.mole.Close()
+		os.Exit(0)
 	}
 
 	resp := updateAgentConfigMsg{
