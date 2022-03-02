@@ -104,6 +104,10 @@ func GetLocationLongitude() float32 {
 	return cache.location.Longitude
 }
 
+func ForceCleanupOnExit() {
+	cache.cleanupOnExit = true
+}
+
 func CleanupOnExit() bool {
 	return cache.cleanupOnExit
 }
