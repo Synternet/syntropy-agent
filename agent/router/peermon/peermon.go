@@ -190,3 +190,8 @@ func (pm *PeerMonitor) checkNewBest(newIdx int) {
 		pm.lastBest = newIdx
 	}
 }
+func (pm *PeerMonitor) Close() error {
+	// nothing to do in peer monitor yet
+	// All peer routes will be deleted once interface is deleted
+	return nil
+}

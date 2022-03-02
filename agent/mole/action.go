@@ -44,7 +44,17 @@ func (m *Mole) Close() error {
 
 	m.cleanupControllerRoutes()
 
-	return m.wg.Close()
+	err := m.router.Close()
+	if err != nil {
+		logger.Error().Println(pkgName, "Router close", err)
+	}
+
+	err = m.wg.Close()
+	if err != nil {
+		logger.Error().Println(pkgName, "Wireguard close", err)
+	}
+
+	return nil
 }
 
 // Flush old cache (prepare to build new cache)

@@ -58,3 +58,13 @@ func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip string) error {
 
 	return nil
 }
+
+func (sm *ServiceMonitor) Close() error {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for ip, rl := range sm.routes {
+		rl.ClearRoute(ip)
+	}
+	return nil
+}
