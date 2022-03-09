@@ -40,7 +40,7 @@ func main() {
 	mode := flag.String("mode", "ping", "Mode of operation (ping, json)")
 
 	server := flag.Bool("server", false, "Start a TWAMP server (default is client mode)")
-	listenPtr := flag.String("listen", "localhost:862", "listen address")
+	listenPtr := flag.String("listen", fmt.Sprintf("localhost:%d", twamp.TwampControlPort), "listen address")
 	udpStart := flag.Uint("udp-start", 2000, "initial UDP port for tests")
 
 	flag.Parse()
@@ -64,7 +64,7 @@ func main() {
 	}
 
 	remoteIP := args[0]
-	remoteServer := fmt.Sprintf("%s:%d", remoteIP, 862)
+	remoteServer := fmt.Sprintf("%s:%d", remoteIP, twamp.TwampControlPort)
 
 	c := twamp.NewClient()
 	connection, err := c.Connect(remoteServer)
