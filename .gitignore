@@ -18,6 +18,7 @@
 .vscode/*
 # Executable binary
 syntropy_agent
+twamp
 target/
 # All testing scripts
 test*
