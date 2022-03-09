@@ -13,11 +13,6 @@ import (
 	"time"
 )
 
-type Timestamp struct {
-	Seconds  uint32
-	Fraction uint32
-}
-
 type ServerGreeting struct {
 	Unused    [12]byte
 	Modes     uint32
@@ -317,23 +312,12 @@ func receiveMessage(conn net.Conn, msg interface{}) error {
 	return nil
 }
 
-func getTimestamp(time time.Time) Timestamp {
-	var ts Timestamp
-
-	ts.Seconds = uint32(time.Unix() + 2208988800)
-
-	usec := time.Nanosecond() / 1000
-	ts.Fraction = uint32((4294967296 * usec) / 1000000)
-
-	return ts
-}
-
 func createServerStart(accept byte) (*ServerStart, error) {
 	start := new(ServerStart)
 
 	start.Accept = accept
 
-	ts := getTimestamp(time.Now())
+	ts := NewTimestamp(time.Now())
 	start.StartTime.Seconds = ts.Seconds
 	start.StartTime.Fraction = ts.Fraction
 
@@ -426,11 +410,11 @@ func createTestResponse(buf []byte, seq uint32) ([]byte, error) {
 	resp.SenderTTL = 255
 
 	resp.Sequence = seq
-	resp.RcvTimestamp = getTimestamp(received)
+	resp.RcvTimestamp = NewTimestamp(received)
 	resp.ErrorEst = createErrorEstimate()
 
 	writer := new(bytes.Buffer)
-	resp.Timestamp = getTimestamp(time.Now())
+	resp.Timestamp = NewTimestamp(time.Now())
 	err = binary.Write(writer, binary.BigEndian, resp)
 	if err != nil {
 		return nil, err

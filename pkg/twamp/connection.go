@@ -81,7 +81,7 @@ func (c *TwampConnection) getTwampServerGreetingMessage() (*TwampServerGreeting,
 type TwampServerStart struct {
 	Accept    byte
 	ServerIV  [16]byte
-	StartTime TwampTimestamp
+	StartTime Timestamp
 }
 
 type TwampSessionConfig struct {
@@ -104,7 +104,7 @@ func (c *TwampConnection) getTwampServerStartMessage() (*TwampServerStart, error
 	_ = buffer.Next(15)
 	start.Accept = byte(buffer.Next(1)[0])
 	copy(start.ServerIV[:], buffer.Next(16))
-	start.StartTime.Integer = binary.BigEndian.Uint32(buffer.Next(4))
+	start.StartTime.Seconds = binary.BigEndian.Uint32(buffer.Next(4))
 	start.StartTime.Fraction = binary.BigEndian.Uint32(buffer.Next(4))
 
 	return start, nil
@@ -124,12 +124,12 @@ const (
 type RequestTwSession []byte
 
 func (b RequestTwSession) Encode(c TwampSessionConfig) {
-	start_time := NewTwampTimestamp(time.Now())
+	start_time := NewTimestamp(time.Now())
 	b[command] = byte(5)
 	binary.BigEndian.PutUint16(b[senderPort:], 6666)
 	binary.BigEndian.PutUint16(b[receiverPort:], uint16(c.Port))
 	binary.BigEndian.PutUint32(b[paddingLength:], uint32(c.Padding))
-	binary.BigEndian.PutUint32(b[startTime:], start_time.Integer)
+	binary.BigEndian.PutUint32(b[startTime:], start_time.Seconds)
 	binary.BigEndian.PutUint32(b[startTime+4:], start_time.Fraction)
 	binary.BigEndian.PutUint32(b[timeout:], uint32(c.Timeout))
 	binary.BigEndian.PutUint32(b[timeout+4:], 0)
