@@ -53,6 +53,7 @@ func main() {
 			log.Println(err)
 		}
 		cleanup()
+		os.Exit(0)
 	}
 
 	args := flag.Args()
