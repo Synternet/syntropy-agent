@@ -8,21 +8,6 @@ import (
 	"net"
 )
 
-/*
-	Default TCP port for remote TWAMP server.
-*/
-const TwampControlPort int = 862
-
-/*
-	Security modes for TWAMP session.
-*/
-const (
-	ModeUnspecified     = 0
-	ModeUnauthenticated = 1
-	ModeAuthenticated   = 2
-	ModeEncypted        = 4
-)
-
 type TwampClient struct{}
 
 func NewClient() *TwampClient {
@@ -86,35 +71,23 @@ func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {
 }
 
 /*
-	TWAMP Accept Field Status Code
-*/
-const (
-	OK                          = 0
-	Failed                      = 1
-	InternalError               = 2
-	NotSupported                = 3
-	PermanentResourceLimitation = 4
-	TemporaryResourceLimitation = 5
-)
-
-/*
 	Convenience function for checking the accept code contained in various TWAMP server
 	response messages.
 */
-func checkAcceptStatus(accept int, context string) error {
+func checkAcceptStatus(accept int, cmd string) error {
 	switch accept {
-	case OK:
+	case AcceptOK:
 		return nil
-	case Failed:
-		return errors.New(fmt.Sprintf("ERROR: The ", context, " failed."))
-	case InternalError:
-		return errors.New(fmt.Sprintf("ERROR: The ", context, " failed: internal error."))
-	case NotSupported:
-		return errors.New(fmt.Sprintf("ERROR: The ", context, " failed: not supported."))
-	case PermanentResourceLimitation:
-		return errors.New(fmt.Sprintf("ERROR: The ", context, " failed: permanent resource limitation."))
-	case TemporaryResourceLimitation:
-		return errors.New(fmt.Sprintf("ERROR: The ", context, " failed: temporary resource limitation."))
+	case AcceptFailure:
+		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed."))
+	case AcceptInternalError:
+		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: internal error."))
+	case AcceptNotSupported:
+		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: not supported."))
+	case AcceptPermResLimitation:
+		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: permanent resource limitation."))
+	case AcceptTempResLimitation:
+		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: temporary resource limitation."))
 	}
 	return nil
 }

@@ -13,21 +13,6 @@ import (
 	"time"
 )
 
-const (
-	Unauthenticated = 1 << iota
-	Authenticated
-	Encrypted
-)
-
-const (
-	AcceptOK = iota
-	AcceptFailure
-	AcceptInternalError
-	AcceptNotSupported
-	AcceptPermLimit
-	AcceptTempLimit
-)
-
 type Timestamp struct {
 	Seconds  uint32
 	Fraction uint32
@@ -215,7 +200,7 @@ func serveClient(conn net.Conn, udp_port uint16) error {
 }
 
 func sendServerGreeting(conn net.Conn) error {
-	greeting, err := createServerGreeting(Unauthenticated)
+	greeting, err := createServerGreeting(ModeUnauthenticated)
 	if err != nil {
 		return err
 	}
@@ -275,7 +260,7 @@ func receiveSetupResponse(conn net.Conn) (*SetupResponse, error) {
 		return nil, err
 	}
 
-	if setup.Mode != Unauthenticated {
+	if setup.Mode != ModeUnauthenticated {
 		err = errors.New("Unsupported setup mode received")
 		return nil, err
 	}
