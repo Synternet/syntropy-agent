@@ -84,7 +84,7 @@ type TwampServerStart struct {
 	StartTime Timestamp
 }
 
-type TwampSessionConfig struct {
+type SessionConfig struct {
 	Port    int
 	Padding int
 	Timeout int
@@ -123,7 +123,7 @@ const (
 
 type RequestTwSession []byte
 
-func (b RequestTwSession) Encode(c TwampSessionConfig) {
+func (b RequestTwSession) Encode(c SessionConfig) {
 	start_time := NewTimestamp(time.Now())
 	b[command] = byte(5)
 	binary.BigEndian.PutUint16(b[senderPort:], 6666)
@@ -136,7 +136,7 @@ func (b RequestTwSession) Encode(c TwampSessionConfig) {
 	binary.BigEndian.PutUint32(b[typePDescriptor:], uint32(c.TOS))
 }
 
-func (c *Connection) CreateSession(config TwampSessionConfig) (*TwampSession, error) {
+func (c *Connection) CreateSession(config SessionConfig) (*Session, error) {
 	var pdu RequestTwSession = make(RequestTwSession, 112)
 
 	pdu.Encode(config)
@@ -156,7 +156,7 @@ func (c *Connection) CreateSession(config TwampSessionConfig) (*TwampSession, er
 		return nil, err
 	}
 
-	session := &TwampSession{conn: c, port: acceptSession.port, config: config}
+	session := &Session{conn: c, port: acceptSession.port, config: config}
 
 	return session, nil
 }

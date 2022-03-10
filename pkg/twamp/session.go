@@ -7,25 +7,25 @@ import (
 	"net"
 )
 
-type TwampSession struct {
+type Session struct {
 	conn   *Connection
 	port   uint16
-	config TwampSessionConfig
+	config SessionConfig
 }
 
-func (s *TwampSession) GetConnection() net.Conn {
+func (s *Session) GetConnection() net.Conn {
 	return s.conn.GetConnection()
 }
 
-func (s *TwampSession) GetConfig() TwampSessionConfig {
+func (s *Session) GetConfig() SessionConfig {
 	return s.config
 }
 
-func (s *TwampSession) Write(buf []byte) {
+func (s *Session) Write(buf []byte) {
 	s.GetConnection().Write(buf)
 }
 
-func (s *TwampSession) CreateTest() (*TwampTest, error) {
+func (s *Session) CreateTest() (*TwampTest, error) {
 	var pdu []byte = make([]byte, 32)
 	pdu[0] = 2
 
@@ -70,7 +70,7 @@ func (s *TwampSession) CreateTest() (*TwampTest, error) {
 	return test, nil
 }
 
-func (s *TwampSession) Stop() {
+func (s *Session) Stop() {
 	//	log.Println("Stopping test sessions.")
 	var pdu []byte = make([]byte, 32)
 	pdu[0] = byte(3)                       // Stop-Sessions Command Number

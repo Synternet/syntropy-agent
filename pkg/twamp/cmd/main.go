@@ -73,7 +73,7 @@ func main() {
 	}
 
 	session, err := connection.CreateSession(
-		twamp.TwampSessionConfig{
+		twamp.SessionConfig{
 			Port:    *port,
 			Timeout: *wait,
 			Padding: *size,
