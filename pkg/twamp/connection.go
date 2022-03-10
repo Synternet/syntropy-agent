@@ -8,27 +8,27 @@ import (
 	"time"
 )
 
-type TwampConnection struct {
+type Connection struct {
 	conn net.Conn
 }
 
-func NewTwampConnection(conn net.Conn) *TwampConnection {
-	return &TwampConnection{conn: conn}
+func NewConnection(conn net.Conn) *Connection {
+	return &Connection{conn: conn}
 }
 
-func (c *TwampConnection) GetConnection() net.Conn {
+func (c *Connection) GetConnection() net.Conn {
 	return c.conn
 }
 
-func (c *TwampConnection) Close() {
+func (c *Connection) Close() {
 	c.GetConnection().Close()
 }
 
-func (c *TwampConnection) LocalAddr() net.Addr {
+func (c *Connection) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *TwampConnection) RemoteAddr() net.Addr {
+func (c *Connection) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
@@ -52,14 +52,14 @@ type TwampServerGreeting struct {
 	Count     uint32   // count (4 bytes)
 }
 
-func (c *TwampConnection) sendTwampClientSetupResponse() {
+func (c *Connection) sendTwampClientSetupResponse() {
 	// negotiate TWAMP session configuration
 	response := &TwampClientSetUpResponse{}
 	response.Mode = ModeUnauthenticated
 	binary.Write(c.GetConnection(), binary.BigEndian, response)
 }
 
-func (c *TwampConnection) getTwampServerGreetingMessage() (*TwampServerGreeting, error) {
+func (c *Connection) getTwampServerGreetingMessage() (*TwampServerGreeting, error) {
 	// check the greeting message from TWAMP server
 	buffer, err := readFromSocket(c.conn, 64)
 	if err != nil {
@@ -91,7 +91,7 @@ type TwampSessionConfig struct {
 	TOS     int
 }
 
-func (c *TwampConnection) getTwampServerStartMessage() (*TwampServerStart, error) {
+func (c *Connection) getTwampServerStartMessage() (*TwampServerStart, error) {
 	// check the start message from TWAMP server
 	buffer, err := readFromSocket(c.conn, 48)
 	if err != nil {
@@ -136,7 +136,7 @@ func (b RequestTwSession) Encode(c TwampSessionConfig) {
 	binary.BigEndian.PutUint32(b[typePDescriptor:], uint32(c.TOS))
 }
 
-func (c *TwampConnection) CreateSession(config TwampSessionConfig) (*TwampSession, error) {
+func (c *Connection) CreateSession(config TwampSessionConfig) (*TwampSession, error) {
 	var pdu RequestTwSession = make(RequestTwSession, 112)
 
 	pdu.Encode(config)

@@ -14,18 +14,18 @@ func NewClient() *Client {
 	return &Client{}
 }
 
-func (c *Client) Connect(hostname string) (*TwampConnection, error) {
+func (c *Client) Connect(hostname string) (*Connection, error) {
 	// connect to remote host
 	conn, err := net.Dial("tcp", hostname)
 	if err != nil {
 		return nil, err
 	}
 
-	// create a new TwampConnection
-	twampConnection := NewTwampConnection(conn)
+	// create a new Connection
+	Connection := NewConnection(conn)
 
 	// check for greeting message from TWAMP server
-	greeting, err := twampConnection.getTwampServerGreetingMessage()
+	greeting, err := Connection.getTwampServerGreetingMessage()
 	if err != nil {
 		return nil, err
 	}
@@ -42,10 +42,10 @@ func (c *Client) Connect(hostname string) (*TwampConnection, error) {
 	}
 
 	// negotiate TWAMP session configuration
-	twampConnection.sendTwampClientSetupResponse()
+	Connection.sendTwampClientSetupResponse()
 
 	// check the start message from TWAMP server
-	serverStartMessage, err := twampConnection.getTwampServerStartMessage()
+	serverStartMessage, err := Connection.getTwampServerStartMessage()
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c *Client) Connect(hostname string) (*TwampConnection, error) {
 		return nil, err
 	}
 
-	return twampConnection, nil
+	return Connection, nil
 }
 
 func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {

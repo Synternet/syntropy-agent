@@ -8,7 +8,7 @@ import (
 )
 
 type TwampSession struct {
-	conn   *TwampConnection
+	conn   *Connection
 	port   uint16
 	config TwampSessionConfig
 }
