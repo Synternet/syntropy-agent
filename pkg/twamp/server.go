@@ -29,14 +29,6 @@ type SetupResponse struct {
 	ClientIV [16]byte
 }
 
-type ServerStart struct {
-	MBZ       [15]byte
-	Accept    byte
-	ServerIV  [16]byte
-	StartTime Timestamp
-	MBZ2      [8]byte
-}
-
 type RequestSession struct {
 	Five          byte
 	IPVN          byte

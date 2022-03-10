@@ -45,7 +45,7 @@ func (c *Client) Connect(hostname string) (*Connection, error) {
 	Connection.sendTwampClientSetupResponse()
 
 	// check the start message from TWAMP server
-	serverStartMessage, err := Connection.getTwampServerStartMessage()
+	serverStartMessage, err := Connection.getServerStartMessage()
 	if err != nil {
 		return nil, err
 	}

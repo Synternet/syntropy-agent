@@ -78,10 +78,12 @@ func (c *Connection) getTwampServerGreetingMessage() (*TwampServerGreeting, erro
 	return greeting, nil
 }
 
-type TwampServerStart struct {
+type ServerStart struct {
+	MBZ       [15]byte
 	Accept    byte
 	ServerIV  [16]byte
 	StartTime Timestamp
+	MBZ2      [8]byte
 }
 
 type SessionConfig struct {
@@ -91,21 +93,13 @@ type SessionConfig struct {
 	TOS     int
 }
 
-func (c *Connection) getTwampServerStartMessage() (*TwampServerStart, error) {
-	// check the start message from TWAMP server
-	buffer, err := readFromSocket(c.conn, 48)
+func (c *Connection) getServerStartMessage() (*ServerStart, error) {
+	start := &ServerStart{}
+
+	err := receiveMessage(c.conn, start)
 	if err != nil {
-		log.Printf("Cannot read: %s\n", err)
 		return nil, err
 	}
-
-	// decode the TwampServerStart PDU
-	start := &TwampServerStart{}
-	_ = buffer.Next(15)
-	start.Accept = byte(buffer.Next(1)[0])
-	copy(start.ServerIV[:], buffer.Next(16))
-	start.StartTime.Seconds = binary.BigEndian.Uint32(buffer.Next(4))
-	start.StartTime.Fraction = binary.BigEndian.Uint32(buffer.Next(4))
 
 	return start, nil
 }
