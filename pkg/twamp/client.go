@@ -8,13 +8,13 @@ import (
 	"net"
 )
 
-type TwampClient struct{}
+type Client struct{}
 
-func NewClient() *TwampClient {
-	return &TwampClient{}
+func NewClient() *Client {
+	return &Client{}
 }
 
-func (c *TwampClient) Connect(hostname string) (*TwampConnection, error) {
+func (c *Client) Connect(hostname string) (*TwampConnection, error) {
 	// connect to remote host
 	conn, err := net.Dial("tcp", hostname)
 	if err != nil {
