@@ -33,12 +33,12 @@ func (c *Client) Connect(hostname string) (*Connection, error) {
 	// check greeting mode for errors
 	switch greeting.Mode {
 	case ModeUnspecified:
-		return nil, errors.New("The TWAMP server is not interested in communicating with you.")
+		return nil, errors.New("TWAMP server is not interested in communicating with you")
 	case ModeUnauthenticated:
 	case ModeAuthenticated:
-		return nil, errors.New("Authentication is not currently supported.")
+		return nil, errors.New("authentication is not currently supported")
 	case ModeEncypted:
-		return nil, errors.New("Encyption is not currently supported.")
+		return nil, errors.New("encyption is not currently supported")
 	}
 
 	// negotiate TWAMP session configuration
@@ -64,7 +64,7 @@ func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {
 	bytesRead, err := reader.Read(buf)
 
 	if err != nil && bytesRead < size {
-		return buffer, errors.New(fmt.Sprintf("readFromSocket: expected %d bytes, got %d", size, bytesRead))
+		return buffer, fmt.Errorf("readFromSocket: expected %d bytes, got %d", size, bytesRead)
 	}
 
 	return buffer, err
@@ -79,15 +79,15 @@ func checkAcceptStatus(accept int, cmd string) error {
 	case AcceptOK:
 		return nil
 	case AcceptFailure:
-		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed."))
+		return fmt.Errorf("ERROR: The %s failed", cmd)
 	case AcceptInternalError:
-		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: internal error."))
+		return fmt.Errorf("ERROR: The %s failed: internal error", cmd)
 	case AcceptNotSupported:
-		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: not supported."))
+		return fmt.Errorf("ERROR: The %s failed: not supported", cmd)
 	case AcceptPermResLimitation:
-		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: permanent resource limitation."))
+		return fmt.Errorf("ERROR: The %s failed: permanent resource limitation", cmd)
 	case AcceptTempResLimitation:
-		return errors.New(fmt.Sprintf("ERROR: The ", cmd, " failed: temporary resource limitation."))
+		return fmt.Errorf("ERROR: The %s failed: temporary resource limitation", cmd)
 	}
 	return nil
 }
