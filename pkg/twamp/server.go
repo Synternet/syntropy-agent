@@ -2,6 +2,7 @@ package twamp
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
@@ -12,6 +13,45 @@ import (
 	"syscall"
 	"time"
 )
+
+type Server struct {
+	listen   string
+	udpStart uint16
+}
+
+func NewServer(address string, startPort uint16) (*Server, error) {
+	s := Server{
+		listen:   fmt.Sprintf("%s:%d", address, TwampControlPort),
+		udpStart: startPort,
+	}
+
+	return &s, nil
+}
+
+func (s *Server) Serve(ctx context.Context) error {
+	var udp_port = s.udpStart
+	sock, err := net.Listen("tcp", s.listen)
+	if err != nil {
+		return fmt.Errorf("error listening on %s: %s", s.listen, err)
+	}
+
+	defer sock.Close()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			conn, err := sock.Accept()
+			if err != nil {
+				return fmt.Errorf("error accepting connection: %s", err)
+			}
+
+			go handleClient(conn, udp_port)
+			udp_port++
+		}
+	}
+}
 
 type ServerGreeting struct {
 	Unused    [12]byte
@@ -97,27 +137,6 @@ type TestResponse struct {
 	SenderErrorEst  uint16
 	MBZ2            [2]byte
 	SenderTTL       byte
-}
-
-func ServeTwamp(listen string, udp_start uint) error {
-	sock, err := net.Listen("tcp", listen)
-	if err != nil {
-		return fmt.Errorf("Error listening on %s: %s", listen, err)
-	}
-
-	log.Println("Listening on", listen)
-	defer sock.Close()
-
-	var udp_port = uint16(udp_start)
-	for {
-		conn, err := sock.Accept()
-		if err != nil {
-			return fmt.Errorf("Error accepting connection: %s", err)
-		}
-
-		go handleClient(conn, udp_port)
-		udp_port++
-	}
 }
 
 func handleClient(conn net.Conn, udp_port uint16) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -10,24 +11,6 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent/pkg/twamp"
 )
-
-func cleanup() {
-}
-
-func handleSignals(c chan os.Signal) {
-	sig := <-c
-	log.Println("Exiting, got signal:", sig)
-
-	cleanup()
-	os.Exit(0)
-}
-
-func setupSignals() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-
-	go handleSignals(c)
-}
 
 func main() {
 	interval := flag.Int("interval", 1, "Delay between TWAMP-test requests (seconds)")
@@ -40,63 +23,82 @@ func main() {
 	mode := flag.String("mode", "ping", "Mode of operation (ping, json)")
 
 	server := flag.Bool("server", false, "Start a TWAMP server (default is client mode)")
-	listenPtr := flag.String("listen", fmt.Sprintf("localhost:%d", twamp.TwampControlPort), "listen address")
+	listenPtr := flag.String("listen", "localhost", "listen address")
 	udpStart := flag.Uint("udp-start", 2000, "initial UDP port for tests")
 
 	flag.Parse()
 
-	if *server {
-		setupSignals()
+	runServer := func() {
+		s, err := twamp.NewServer(*listenPtr, uint16(*udpStart))
+		if err != nil {
+			fmt.Println("Error starting server", err)
+			return
+		}
+		ctx, cancel := context.WithCancel(context.Background())
 
-		err := twamp.ServeTwamp(*listenPtr, *udpStart)
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+
+		go func() {
+			sig := <-c
+			fmt.Println("Exiting, got signal:", sig)
+			cancel()
+		}()
+		err = s.Serve(ctx)
 		if err != nil {
 			log.Println(err)
 		}
-		cleanup()
-		os.Exit(0)
 	}
 
-	args := flag.Args()
+	runClient := func() {
+		args := flag.Args()
 
-	if len(args) < 1 {
-		fmt.Println("No hostname or IP address was specified.")
-		os.Exit(1)
+		if len(args) < 1 {
+			fmt.Println("No hostname or IP address was specified.")
+			os.Exit(1)
+		}
+
+		remoteIP := args[0]
+		remoteServer := fmt.Sprintf("%s:%d", remoteIP, twamp.TwampControlPort)
+
+		c := twamp.NewClient()
+		connection, err := c.Connect(remoteServer)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		session, err := connection.CreateSession(
+			twamp.SessionConfig{
+				Port:    *port,
+				Timeout: *wait,
+				Padding: *size,
+				TOS:     *tos,
+			},
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		test, err := session.CreateTest()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		switch *mode {
+		case "json":
+			results := test.RunX(*count)
+			test.FormatJSON(results)
+		case "ping":
+			test.Ping(*count, *rapid, *interval)
+		}
+
+		session.Stop()
+		connection.Close()
 	}
 
-	remoteIP := args[0]
-	remoteServer := fmt.Sprintf("%s:%d", remoteIP, twamp.TwampControlPort)
-
-	c := twamp.NewClient()
-	connection, err := c.Connect(remoteServer)
-	if err != nil {
-		log.Fatal(err)
+	if *server {
+		runServer()
+	} else {
+		runClient()
 	}
-
-	session, err := connection.CreateSession(
-		twamp.SessionConfig{
-			Port:    *port,
-			Timeout: *wait,
-			Padding: *size,
-			TOS:     *tos,
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	test, err := session.CreateTest()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	switch *mode {
-	case "json":
-		results := test.RunX(*count)
-		test.FormatJSON(results)
-	case "ping":
-		test.Ping(*count, *rapid, *interval)
-	}
-
-	session.Stop()
-	connection.Close()
 }
