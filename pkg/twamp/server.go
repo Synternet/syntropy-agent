@@ -120,25 +120,6 @@ type StopSessions struct {
 	MBZ2   [8]byte
 }
 
-type TestRequest struct {
-	Sequence  uint32
-	Timestamp Timestamp
-	ErrorEst  uint16
-}
-
-type TestResponse struct {
-	Sequence        uint32
-	Timestamp       Timestamp
-	ErrorEst        uint16
-	MBZ             [2]byte
-	RcvTimestamp    Timestamp
-	SenderSequence  uint32
-	SenderTimestamp Timestamp
-	SenderErrorEst  uint16
-	MBZ2            [2]byte
-	SenderTTL       byte
-}
-
 func handleClient(conn net.Conn, udp_port uint16) {
 	log.Println("Handle client on port", udp_port)
 	err := serveClient(conn, udp_port)

@@ -1,9 +1,9 @@
 package twamp
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -21,6 +21,25 @@ type TwampTest struct {
 	session *Session
 	conn    *net.UDPConn
 	seq     uint32
+}
+
+type TestRequest struct {
+	Sequence  uint32
+	Timestamp Timestamp
+	ErrorEst  uint16
+}
+
+type TestResponse struct {
+	Sequence        uint32
+	Timestamp       Timestamp
+	ErrorEst        uint16
+	MBZ             [2]byte
+	RcvTimestamp    Timestamp
+	SenderSequence  uint32
+	SenderTimestamp Timestamp
+	SenderErrorEst  uint16
+	MBZ2            [2]byte
+	SenderTTL       byte
 }
 
 /*
@@ -100,7 +119,6 @@ func (t *TwampTest) Run() (*TwampResults, error) {
 	// receive test packets
 	buffer, err := readFromSocket(t.GetConnection(), 64)
 	if err != nil {
-		//		log.Printf("Read error: %s\n", err)
 		return nil, err
 	}
 
@@ -133,41 +151,36 @@ func (t *TwampTest) Run() (*TwampResults, error) {
 	r.FinishedTimestamp = finished
 
 	if senderSeqNum != r.SeqNum {
-		return nil, errors.New(
-			fmt.Sprintf("Expected seq # %d but received %d.\n", senderSeqNum, r.SeqNum),
-		)
+		return nil, fmt.Errorf("expected seq %d but received %d", senderSeqNum, r.SeqNum)
 	}
 
 	return r, nil
 }
 
 func (t *TwampTest) sendTestMessage(use_all_zeroes bool) int {
-	now := NewTimestamp(time.Now())
-	totalSize := 14 + int(t.GetSession().config.Padding)
-	var pdu []byte = make([]byte, totalSize)
+	writer := new(bytes.Buffer)
 
-	binary.BigEndian.PutUint32(pdu[0:], t.seq)        // sequence number
-	binary.BigEndian.PutUint32(pdu[4:], now.Seconds)  // timestamp (seconds)
-	binary.BigEndian.PutUint32(pdu[8:], now.Fraction) // timestamp (fraction)
-	pdu[12] = byte(1)                                 // Synchronized, MBZ, Scale
-	pdu[13] = byte(1)                                 // multiplier
-
-	// seed psuedo-random number generator if requested
-	if !use_all_zeroes {
-		rand.NewSource(int64(time.Now().Unix()))
+	testRq := TestRequest{
+		Sequence:  t.seq,
+		Timestamp: NewTimestamp(time.Now()),
+		ErrorEst:  1<<8 | 1, // Synchronized, MBZ, Scale + multiplier. TODO: use constants
 	}
+	t.seq++
 
-	for x := 14; x < totalSize; x++ {
-		if use_all_zeroes {
-			pdu[x] = 0
-		} else {
-			pdu[x] = byte(rand.Intn(255))
+	binary.Write(writer, binary.BigEndian, testRq)
+
+	padding := make([]byte, t.GetSession().config.Padding)
+	if !use_all_zeroes {
+		// seed psuedo-random number generator if requested
+		rand.NewSource(int64(time.Now().Unix()))
+		for i := 0; i < cap(padding); i++ {
+			padding[i] = byte(rand.Intn(255))
 		}
 	}
+	writer.Write(padding)
 
-	t.GetConnection().Write(pdu)
-	t.seq++
-	return totalSize
+	count, _ := t.GetConnection().Write(writer.Bytes())
+	return count
 }
 
 func (t *TwampTest) FormatJSON(r *PingResults) {
