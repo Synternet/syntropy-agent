@@ -11,13 +11,9 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
 # Personalised vscode configs and scripts
 .vscode/*
 # Executable binary
 syntropy_agent
+# github scripts built files
 target/
-# All testing scripts
-test*
