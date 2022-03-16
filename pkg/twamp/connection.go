@@ -42,40 +42,11 @@ type TwampClientSetUpResponse struct {
 	ClientIV [16]byte
 }
 
-/*
-	TWAMP server greeting message.
-*/
-type TwampServerGreeting struct {
-	Mode      uint32   // modes (4 bytes)
-	Challenge [16]byte // challenge (16 bytes)
-	Salt      [16]byte // salt (16 bytes)
-	Count     uint32   // count (4 bytes)
-}
-
 func (c *Connection) sendTwampClientSetupResponse() {
 	// negotiate TWAMP session configuration
 	response := &TwampClientSetUpResponse{}
 	response.Mode = ModeUnauthenticated
 	binary.Write(c.GetConnection(), binary.BigEndian, response)
-}
-
-func (c *Connection) getTwampServerGreetingMessage() (*TwampServerGreeting, error) {
-	// check the greeting message from TWAMP server
-	buffer, err := readFromSocket(c.conn, 64)
-	if err != nil {
-		log.Printf("Cannot read: %s\n", err)
-		return nil, err
-	}
-
-	// decode the TwampServerGreeting PDU
-	greeting := &TwampServerGreeting{}
-	_ = buffer.Next(12)
-	greeting.Mode = binary.BigEndian.Uint32(buffer.Next(4))
-	copy(greeting.Challenge[:], buffer.Next(16))
-	copy(greeting.Salt[:], buffer.Next(16))
-	greeting.Count = binary.BigEndian.Uint32(buffer.Next(4))
-
-	return greeting, nil
 }
 
 type ServerStart struct {

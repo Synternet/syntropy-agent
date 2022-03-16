@@ -51,15 +51,6 @@ func (s *Server) Serve(ctx context.Context) error {
 	}
 }
 
-type ServerGreeting struct {
-	Unused    [12]byte
-	Modes     uint32
-	Challenge [16]byte
-	Salt      [16]byte
-	Count     uint32
-	MBZ       [12]byte
-}
-
 type SetupResponse struct {
 	Mode     uint32
 	KeyID    [80]byte
@@ -182,39 +173,6 @@ func serveClient(conn net.Conn, udp_port uint16) error {
 
 	logger.Info().Println(pkgName, "Finished control connection from client", conn.RemoteAddr())
 	return nil
-}
-
-func sendServerGreeting(conn net.Conn) error {
-	greeting, err := createServerGreeting(ModeUnauthenticated)
-	if err != nil {
-		return err
-	}
-
-	err = sendMessage(conn, greeting)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createServerGreeting(modes uint32) (*ServerGreeting, error) {
-	greeting := new(ServerGreeting)
-
-	greeting.Modes = modes
-	greeting.Count = 1024
-
-	_, err := rand.Read(greeting.Challenge[:])
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = rand.Read(greeting.Salt[:])
-	if err != nil {
-		return nil, err
-	}
-
-	return greeting, nil
 }
 
 func receiveSetupResponse(conn net.Conn) (*SetupResponse, error) {

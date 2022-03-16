@@ -2,7 +2,6 @@ package twamp
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -25,20 +24,9 @@ func (c *Client) Connect(hostname string) (*Connection, error) {
 	Connection := NewConnection(conn)
 
 	// check for greeting message from TWAMP server
-	greeting, err := Connection.getTwampServerGreetingMessage()
+	err = recvServerGreeting(Connection.conn)
 	if err != nil {
 		return nil, err
-	}
-
-	// check greeting mode for errors
-	switch greeting.Mode {
-	case ModeUnspecified:
-		return nil, errors.New("TWAMP server is not interested in communicating with you")
-	case ModeUnauthenticated:
-	case ModeAuthenticated:
-		return nil, errors.New("authentication is not currently supported")
-	case ModeEncypted:
-		return nil, errors.New("encyption is not currently supported")
 	}
 
 	// negotiate TWAMP session configuration
