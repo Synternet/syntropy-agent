@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -34,7 +33,6 @@ func main() {
 			fmt.Println("Error starting server", err)
 			return
 		}
-		ctx, cancel := context.WithCancel(context.Background())
 
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
@@ -42,9 +40,10 @@ func main() {
 		go func() {
 			sig := <-c
 			fmt.Println("Exiting, got signal:", sig)
-			cancel()
+			s.Close()
 		}()
-		err = s.Serve(ctx)
+
+		err = s.Run()
 		if err != nil {
 			log.Println(err)
 		}

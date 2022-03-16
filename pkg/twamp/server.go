@@ -2,7 +2,6 @@ package twamp
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 type Server struct {
 	listen   string
 	udpStart uint16
+	sock     net.Listener
 }
 
 func NewServer(address string, startPort uint16) (*Server, error) {
@@ -28,20 +28,17 @@ func NewServer(address string, startPort uint16) (*Server, error) {
 	return &s, nil
 }
 
-func (s *Server) Serve(ctx context.Context) error {
+func (s *Server) Run() error {
 	var udp_port = s.udpStart
-	sock, err := net.Listen("tcp", s.listen)
+	var err error
+
+	s.sock, err = net.Listen("tcp", s.listen)
 	if err != nil {
 		return fmt.Errorf("error listening on %s: %s", s.listen, err)
 	}
 
-	go func() {
-		<-ctx.Done()
-		defer sock.Close()
-	}()
-
 	for {
-		conn, err := sock.Accept()
+		conn, err := s.sock.Accept()
 		if err != nil {
 			return fmt.Errorf("error accepting connection: %s", err)
 		}
@@ -49,6 +46,15 @@ func (s *Server) Serve(ctx context.Context) error {
 		go handleClient(conn, udp_port)
 		udp_port++
 	}
+}
+
+func (s *Server) Close() error {
+	if s.sock == nil {
+		return fmt.Errorf("server not running")
+	}
+	defer func() { s.sock = nil }()
+
+	return s.sock.Close()
 }
 
 type SetupResponse struct {
