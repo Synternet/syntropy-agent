@@ -24,13 +24,16 @@ func (c *Client) Connect(hostname string) (*Connection, error) {
 	Connection := NewConnection(conn)
 
 	// check for greeting message from TWAMP server
-	err = recvServerGreeting(Connection.conn)
+	err = recvServerGreeting(Connection.GetConnection())
 	if err != nil {
 		return nil, err
 	}
 
 	// negotiate TWAMP session configuration
-	Connection.sendTwampClientSetupResponse()
+	err = sendClientSetupResponse(Connection.GetConnection())
+	if err != nil {
+		return nil, err
+	}
 
 	// check the start message from TWAMP server
 	serverStartMessage, err := Connection.getServerStartMessage()

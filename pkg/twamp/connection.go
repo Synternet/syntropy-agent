@@ -32,23 +32,6 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
-/*
-	TWAMP client session negotiation message.
-*/
-type TwampClientSetUpResponse struct {
-	Mode     uint32
-	KeyID    [80]byte
-	Token    [64]byte
-	ClientIV [16]byte
-}
-
-func (c *Connection) sendTwampClientSetupResponse() {
-	// negotiate TWAMP session configuration
-	response := &TwampClientSetUpResponse{}
-	response.Mode = ModeUnauthenticated
-	binary.Write(c.GetConnection(), binary.BigEndian, response)
-}
-
 type ServerStart struct {
 	MBZ       [15]byte
 	Accept    byte

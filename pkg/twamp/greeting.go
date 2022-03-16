@@ -21,12 +21,7 @@ func sendServerGreeting(conn net.Conn) error {
 		return err
 	}
 
-	err = sendMessage(conn, greeting)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return sendMessage(conn, greeting)
 }
 
 func createServerGreeting(modes uint32) (*ServerGreeting, error) {
@@ -70,4 +65,20 @@ func recvServerGreeting(conn net.Conn) error {
 	default:
 		return fmt.Errorf("unsupported mode 0x%x", greeting.Modes)
 	}
+}
+
+// TWAMP client session negotiation message.
+type SetUpResponse struct {
+	Mode     uint32
+	KeyID    [80]byte
+	Token    [64]byte
+	ClientIV [16]byte
+}
+
+func sendClientSetupResponse(conn net.Conn) error {
+	// negotiate TWAMP session configuration
+	response := &SetUpResponse{
+		Mode: ModeUnauthenticated,
+	}
+	return sendMessage(conn, response)
 }
