@@ -35,21 +35,19 @@ func (s *Server) Serve(ctx context.Context) error {
 		return fmt.Errorf("error listening on %s: %s", s.listen, err)
 	}
 
-	defer sock.Close()
+	go func() {
+		<-ctx.Done()
+		defer sock.Close()
+	}()
 
 	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			conn, err := sock.Accept()
-			if err != nil {
-				return fmt.Errorf("error accepting connection: %s", err)
-			}
-
-			go handleClient(conn, udp_port)
-			udp_port++
+		conn, err := sock.Accept()
+		if err != nil {
+			return fmt.Errorf("error accepting connection: %s", err)
 		}
+
+		go handleClient(conn, udp_port)
+		udp_port++
 	}
 }
 
