@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -218,26 +217,6 @@ func createServerGreeting(modes uint32) (*ServerGreeting, error) {
 	return greeting, nil
 }
 
-func sendMessage(conn net.Conn, msg interface{}) error {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, msg)
-	if err != nil {
-		return err
-	}
-
-	size := buf.Len()
-	n, err := conn.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	if size != n {
-		return errors.New("could not send message")
-	}
-
-	return nil
-}
-
 func receiveSetupResponse(conn net.Conn) (*SetupResponse, error) {
 	setup := new(SetupResponse)
 
@@ -285,22 +264,6 @@ func receiveStopSessions(conn net.Conn) (*StopSessions, error) {
 	}
 
 	return msg, nil
-}
-
-func receiveMessage(conn net.Conn, msg interface{}) error {
-	buf := make([]byte, binary.Size(msg))
-	_, err := conn.Read(buf)
-	if err != nil {
-		return err
-	}
-
-	reader := bytes.NewBuffer(buf)
-	err = binary.Read(reader, binary.BigEndian, msg)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func createServerStart(accept byte) (*ServerStart, error) {
