@@ -5,12 +5,12 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"golang.org/x/net/ipv4"
 )
 
@@ -45,21 +45,22 @@ type TestResponse struct {
 /*
 
  */
-func (t *TwampTest) SetConnection(conn *net.UDPConn) {
+func (t *TwampTest) SetConnection(conn *net.UDPConn) error {
 	c := ipv4.NewConn(conn)
 
 	// RFC recommends IP TTL of 255
 	err := c.SetTTL(255)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = c.SetTOS(t.GetSession().GetConfig().TOS)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	t.conn = conn
+	return nil
 }
 
 /*
@@ -186,7 +187,8 @@ func (t *TwampTest) sendTestMessage(use_all_zeroes bool) int {
 func (t *TwampTest) FormatJSON(r *PingResults) {
 	doc, err := json.Marshal(r)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error().Println(pkgName, "JSON marshal", err)
+		return
 	}
 	fmt.Printf("%s\n", string(doc))
 }
