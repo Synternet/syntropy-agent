@@ -7,11 +7,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 type Server struct {
@@ -119,51 +120,51 @@ type StopSessions struct {
 }
 
 func handleClient(conn net.Conn, udp_port uint16) {
-	log.Println("Handle client on port", udp_port)
+	logger.Info().Println(pkgName, "Handle client on port", udp_port)
 	err := serveClient(conn, udp_port)
 	if err != nil {
-		log.Println(err)
+		logger.Info().Println(pkgName, "server handle client error", err)
 	}
 }
 
 func serveClient(conn net.Conn, udp_port uint16) error {
 	defer conn.Close()
 
-	log.Println("Handling control connection from client", conn.RemoteAddr())
+	logger.Info().Println(pkgName, "Handling control connection from client", conn.RemoteAddr())
 
 	err := sendServerGreeting(conn)
 	if err != nil {
-		return fmt.Errorf("Error sending greeting: %s", err)
+		return fmt.Errorf("sending greeting: %s", err)
 	}
 
 	_, err = receiveSetupResponse(conn)
 	if err != nil {
-		return fmt.Errorf("Error receiving setup: %s", err)
+		return fmt.Errorf("receiving setup: %s", err)
 	}
 
 	err = sendServerStart(conn)
 	if err != nil {
-		return fmt.Errorf("Error sending start: %s", err)
+		return fmt.Errorf("sending start: %s", err)
 	}
 
 	_, err = receiveRequestSession(conn)
 	if err != nil {
-		return fmt.Errorf("Error receiving session: %s", err)
+		return fmt.Errorf("receiving session: %s", err)
 	}
 
 	udp_conn, err := startReflector(udp_port)
 	if err != nil {
-		return fmt.Errorf("Error starting reflector on port %d: %s", udp_port, err)
+		return fmt.Errorf("starting reflector on port %d: %s", udp_port, err)
 	}
 
 	err = sendAcceptSession(conn, udp_port)
 	if err != nil {
-		return fmt.Errorf("Error sending session accept: %s", err)
+		return fmt.Errorf("sending session accept: %s", err)
 	}
 
 	_, err = receiveStartSessions(conn)
 	if err != nil {
-		return fmt.Errorf("Error receiving start sessions: %s", err)
+		return fmt.Errorf("receiving start sessions: %s", err)
 	}
 
 	test_done := make(chan bool)
@@ -172,15 +173,15 @@ func serveClient(conn net.Conn, udp_port uint16) error {
 
 	err = sendStartAck(conn)
 	if err != nil {
-		return fmt.Errorf("Error sending start ACK: %s", err)
+		return fmt.Errorf("sending start ACK: %s", err)
 	}
 
 	_, err = receiveStopSessions(conn)
 	if err != nil {
-		return fmt.Errorf("Error receiving stop sessions: %s", err)
+		return fmt.Errorf("receiving stop sessions: %s", err)
 	}
 
-	log.Println("Finished control connection from client", conn.RemoteAddr())
+	logger.Info().Println(pkgName, "Finished control connection from client", conn.RemoteAddr())
 	return nil
 }
 
@@ -231,7 +232,7 @@ func sendMessage(conn net.Conn, msg interface{}) error {
 	}
 
 	if size != n {
-		return errors.New("Could not send message")
+		return errors.New("could not send message")
 	}
 
 	return nil
@@ -246,7 +247,7 @@ func receiveSetupResponse(conn net.Conn) (*SetupResponse, error) {
 	}
 
 	if setup.Mode != ModeUnauthenticated {
-		err = errors.New("Unsupported setup mode received")
+		err = fmt.Errorf("unsupported setup mode received %d", setup.Mode)
 		return nil, err
 	}
 
@@ -465,7 +466,7 @@ func startReflector(udp_port uint16) (*net.UDPConn, error) {
 func handleReflector(conn *net.UDPConn, test_done chan bool) {
 	err := runReflector(conn, test_done)
 	if err != nil {
-		log.Println(err)
+		logger.Error().Println(pkgName, "reflector error:", err)
 	}
 }
 
@@ -475,36 +476,36 @@ func runReflector(conn *net.UDPConn, test_done chan bool) error {
 	timeout := 10 * time.Second
 	defer conn.Close()
 
-	log.Println("Handling test session on port", conn.LocalAddr())
+	logger.Info().Println(pkgName, "Handling test session on port", conn.LocalAddr())
 	for {
 		err := conn.SetReadDeadline(time.Now().Add(timeout))
 		if err != nil {
-			return fmt.Errorf("Error setting test deadline: %s", err)
+			return fmt.Errorf("setting test deadline: %s", err)
 		}
 
 		_, addr, err := conn.ReadFromUDP(buf)
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Timeout() {
 				if _, ok := <-test_done; !ok {
-					log.Println("Finished test session on port", conn.LocalAddr())
+					logger.Info().Println(pkgName, "Finished test session on port", conn.LocalAddr())
 					return nil
 				} else {
-					log.Println("Timeout waiting for test packet:", err)
+					logger.Info().Println(pkgName, "Timeout waiting for test packet:", err)
 					continue
 				}
 			}
 
-			return fmt.Errorf("Error receiving test packet: %s", err)
+			return fmt.Errorf("receiving test packet: %s", err)
 		}
 
 		response, err := createTestResponse(buf, seq)
 		if err != nil {
-			return fmt.Errorf("Error creating test response: %s", err)
+			return fmt.Errorf("creating test response: %s", err)
 		}
 
 		_, err = conn.WriteToUDP(response, addr)
 		if err != nil {
-			return fmt.Errorf("Error sending test reponse: %s", err)
+			return fmt.Errorf("sending test reponse: %s", err)
 		}
 
 		seq++

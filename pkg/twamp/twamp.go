@@ -10,3 +10,7 @@ package twamp
  The idea of this package is to have full server+client implementation
  And client/server code reuse
 */
+
+const (
+	pkgName = "Twamp. "
+)
