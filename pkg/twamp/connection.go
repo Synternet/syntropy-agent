@@ -44,7 +44,7 @@ type AcceptSession struct {
 func (c *Client) CreateSession(config SessionConfig) (*Session, error) {
 	// Send SessionRequest message
 	req := new(RequestSession)
-	req.Five = 5
+	req.Five = 5          // TODO
 	req.SenderPort = 6666 // TODO: why hardcode ?
 	req.ReceiverPort = uint16(config.Port)
 	req.PaddingLength = uint32(config.Padding)

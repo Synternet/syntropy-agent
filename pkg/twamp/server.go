@@ -64,26 +64,6 @@ type SetupResponse struct {
 	ClientIV [16]byte
 }
 
-type StartSessions struct {
-	Two  byte
-	MBZ  [15]byte
-	HMAC [16]byte
-}
-
-type StartAck struct {
-	Accept byte
-	MBZ    [15]byte
-	HMAC   [16]byte
-}
-
-type StopSessions struct {
-	Three  byte
-	Accept byte
-	MBZ    [2]byte
-	Number uint32
-	MBZ2   [8]byte
-}
-
 func handleClient(conn net.Conn, udp_port uint16) {
 	logger.Info().Println(pkgName, "Handle client on port", udp_port)
 	err := serveClient(conn, udp_port)
