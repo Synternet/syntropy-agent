@@ -8,7 +8,7 @@ import (
 )
 
 type Session struct {
-	conn   *Connection
+	conn   *Client
 	port   uint16
 	config SessionConfig
 }
@@ -43,7 +43,7 @@ func (s *Session) CreateTest() (*TwampTest, error) {
 		return nil, err
 	}
 
-	err = checkAcceptStatus(int(accept), "test setup")
+	err = checkAcceptStatus(accept, "test setup")
 	if err != nil {
 		return nil, err
 	}

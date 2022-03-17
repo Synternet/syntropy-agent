@@ -8,27 +8,19 @@ import (
 	"time"
 )
 
-type Connection struct {
-	conn net.Conn
-}
-
-func NewConnection(conn net.Conn) *Connection {
-	return &Connection{conn: conn}
-}
-
-func (c *Connection) GetConnection() net.Conn {
+func (c *Client) GetConnection() net.Conn {
 	return c.conn
 }
 
-func (c *Connection) Close() {
+func (c *Client) Close() {
 	c.GetConnection().Close()
 }
 
-func (c *Connection) LocalAddr() net.Addr {
+func (c *Client) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *Connection) RemoteAddr() net.Addr {
+func (c *Client) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
@@ -38,24 +30,6 @@ type ServerStart struct {
 	ServerIV  [16]byte
 	StartTime Timestamp
 	MBZ2      [8]byte
-}
-
-type SessionConfig struct {
-	Port    int
-	Padding int
-	Timeout int
-	TOS     int
-}
-
-func (c *Connection) getServerStartMessage() (*ServerStart, error) {
-	start := &ServerStart{}
-
-	err := receiveMessage(c.conn, start)
-	if err != nil {
-		return nil, err
-	}
-
-	return start, nil
 }
 
 /* Byte offsets for Request-TW-Session TWAMP PDU */
@@ -84,7 +58,7 @@ func (b RequestTwSession) Encode(c SessionConfig) {
 	binary.BigEndian.PutUint32(b[typePDescriptor:], uint32(c.TOS))
 }
 
-func (c *Connection) CreateSession(config SessionConfig) (*Session, error) {
+func (c *Client) CreateSession(config SessionConfig) (*Session, error) {
 	var pdu RequestTwSession = make(RequestTwSession, 112)
 
 	pdu.Encode(config)
@@ -99,7 +73,7 @@ func (c *Connection) CreateSession(config SessionConfig) (*Session, error) {
 
 	acceptSession := NewTwampAcceptSession(acceptBuffer)
 
-	err = checkAcceptStatus(int(acceptSession.accept), "session")
+	err = checkAcceptStatus(acceptSession.accept, "session")
 	if err != nil {
 		return nil, err
 	}

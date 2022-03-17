@@ -7,13 +7,12 @@ import (
 	"net"
 )
 
-type Client struct{}
-
-func NewClient() *Client {
-	return &Client{}
+type Client struct {
+	host string
+	conn net.Conn
 }
 
-func (c *Client) Connect(hostname string) (*Connection, error) {
+func NewClient(hostname string) (*Client, error) {
 	// connect to remote host
 	conn, err := net.Dial("tcp", hostname)
 	if err != nil {
@@ -21,32 +20,30 @@ func (c *Client) Connect(hostname string) (*Connection, error) {
 	}
 
 	// create a new Connection
-	Connection := NewConnection(conn)
+	client := &Client{
+		host: hostname,
+		conn: conn,
+	}
 
 	// check for greeting message from TWAMP server
-	err = recvServerGreeting(Connection.GetConnection())
+	err = recvServerGreeting(client.GetConnection())
 	if err != nil {
 		return nil, err
 	}
 
 	// negotiate TWAMP session configuration
-	err = sendClientSetupResponse(Connection.GetConnection())
+	err = sendClientSetupResponse(client.GetConnection())
 	if err != nil {
 		return nil, err
 	}
 
 	// check the start message from TWAMP server
-	serverStartMessage, err := Connection.getServerStartMessage()
+	err = recvServerStartMessage(client.GetConnection())
 	if err != nil {
 		return nil, err
 	}
 
-	err = checkAcceptStatus(int(serverStartMessage.Accept), "connection")
-	if err != nil {
-		return nil, err
-	}
-
-	return Connection, nil
+	return client, nil
 }
 
 func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {
@@ -59,26 +56,4 @@ func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {
 	}
 
 	return buffer, err
-}
-
-/*
-	Convenience function for checking the accept code contained in various TWAMP server
-	response messages.
-*/
-func checkAcceptStatus(accept int, cmd string) error {
-	switch accept {
-	case AcceptOK:
-		return nil
-	case AcceptFailure:
-		return fmt.Errorf("ERROR: The %s failed", cmd)
-	case AcceptInternalError:
-		return fmt.Errorf("ERROR: The %s failed: internal error", cmd)
-	case AcceptNotSupported:
-		return fmt.Errorf("ERROR: The %s failed: not supported", cmd)
-	case AcceptPermResLimitation:
-		return fmt.Errorf("ERROR: The %s failed: permanent resource limitation", cmd)
-	case AcceptTempResLimitation:
-		return fmt.Errorf("ERROR: The %s failed: temporary resource limitation", cmd)
-	}
-	return nil
 }

@@ -82,3 +82,26 @@ func sendClientSetupResponse(conn net.Conn) error {
 	}
 	return sendMessage(conn, response)
 }
+
+type SessionConfig struct {
+	Port    int
+	Padding int
+	Timeout int
+	TOS     int
+}
+
+func recvServerStartMessage(conn net.Conn) error {
+	srvstart := new(ServerStart)
+
+	err := receiveMessage(conn, srvstart)
+	if err != nil {
+		return err
+	}
+
+	err = checkAcceptStatus(srvstart.Accept, "connection")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

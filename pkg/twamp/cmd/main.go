@@ -60,13 +60,12 @@ func main() {
 		remoteIP := args[0]
 		remoteServer := fmt.Sprintf("%s:%d", remoteIP, twamp.TwampControlPort)
 
-		c := twamp.NewClient()
-		connection, err := c.Connect(remoteServer)
+		client, err := twamp.NewClient(remoteServer)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		session, err := connection.CreateSession(
+		session, err := client.CreateSession(
 			twamp.SessionConfig{
 				Port:    *port,
 				Timeout: *wait,
@@ -92,7 +91,7 @@ func main() {
 		}
 
 		session.Stop()
-		connection.Close()
+		client.Close()
 	}
 
 	if *server {
