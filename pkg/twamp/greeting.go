@@ -83,11 +83,12 @@ func sendClientSetupResponse(conn net.Conn) error {
 	return sendMessage(conn, response)
 }
 
-type SessionConfig struct {
-	Port    int
-	Padding int
-	Timeout int
-	TOS     int
+type ServerStart struct {
+	MBZ       [15]byte
+	Accept    byte
+	ServerIV  [16]byte
+	StartTime Timestamp
+	MBZ2      [8]byte
 }
 
 func recvServerStartMessage(conn net.Conn) error {

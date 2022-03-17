@@ -64,37 +64,6 @@ type SetupResponse struct {
 	ClientIV [16]byte
 }
 
-type RequestSession struct {
-	Five          byte
-	IPVN          byte
-	ConfSender    byte
-	ConfReceiver  byte
-	Slots         uint32
-	Packets       uint32
-	SenderPort    uint16
-	ReceiverPort  uint16
-	SendAddress   uint32
-	SendAddress2  [12]byte
-	RecvAddress   uint32
-	RecvAddress2  [12]byte
-	SID           [16]byte
-	PaddingLength uint32
-	StartTime     Timestamp
-	Timeout       uint64
-	TypeP         uint32
-	MBZ           [8]byte
-	HMAC          [16]byte
-}
-
-type AcceptSession struct {
-	Accept byte
-	MBZ    byte
-	Port   uint16
-	SID    [16]byte
-	MBZ2   [12]byte
-	HMAC   [16]byte
-}
-
 type StartSessions struct {
 	Two  byte
 	MBZ  [15]byte

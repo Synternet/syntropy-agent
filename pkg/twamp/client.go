@@ -46,6 +46,23 @@ func NewClient(hostname string) (*Client, error) {
 	return client, nil
 }
 
+func (c *Client) GetConnection() net.Conn {
+	return c.conn
+}
+
+func (c *Client) Close() {
+	c.GetConnection().Close()
+}
+
+func (c *Client) LocalAddr() net.Addr {
+	return c.conn.LocalAddr()
+}
+
+func (c *Client) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
+// TODO: remove later
 func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {
 	buf := make([]byte, size)
 	buffer := *bytes.NewBuffer(buf)
