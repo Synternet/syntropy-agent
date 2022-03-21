@@ -112,44 +112,37 @@ func (t *TwampTest) GetRemoteTestHost() string {
 	Run a TWAMP test and return a pointer to the TwampResults.
 */
 func (t *TwampTest) Run() (*TwampResults, error) {
-
 	senderSeqNum := t.seq
+	padSize := t.GetSession().GetConfig().Padding
 
 	size := t.sendTestMessage(false)
 
 	// receive test packets
-	buffer, err := readFromSocket(t.GetConnection(), 64)
+	resp := new(TestResponse)
+	buf := make([]byte, binary.Size(resp)+padSize)
+
+	_, _, err := t.GetConnection().ReadFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+	reader := bytes.NewBuffer(buf)
+	err = binary.Read(reader, binary.BigEndian, resp)
 	if err != nil {
 		return nil, err
 	}
 
-	finished := time.Now()
-
 	// process test results
 	r := &TwampResults{}
 	r.SenderSize = size
-	r.SeqNum = binary.BigEndian.Uint32(buffer.Next(4))
-
-	r.Timestamp = ConvertTimestamp(
-		binary.BigEndian.Uint32(buffer.Next(4)),
-		binary.BigEndian.Uint32(buffer.Next(4)),
-	)
-
-	r.ErrorEstimate = binary.BigEndian.Uint16(buffer.Next(2))
-	_ = buffer.Next(2)
-	r.ReceiveTimestamp = ConvertTimestamp(
-		binary.BigEndian.Uint32(buffer.Next(4)),
-		binary.BigEndian.Uint32(buffer.Next(4)),
-	)
-	r.SenderSeqNum = binary.BigEndian.Uint32(buffer.Next(4))
-	r.SenderTimestamp = ConvertTimestamp(
-		binary.BigEndian.Uint32(buffer.Next(4)),
-		binary.BigEndian.Uint32(buffer.Next(4)),
-	)
-	r.SenderErrorEstimate = binary.BigEndian.Uint16(buffer.Next(2))
-	_ = buffer.Next(2)
-	r.SenderTTL = byte(buffer.Next(1)[0])
-	r.FinishedTimestamp = finished
+	r.SeqNum = resp.Sequence
+	r.Timestamp = ConvertTimestamp(resp.Timestamp.Seconds, resp.Timestamp.Fraction)
+	r.ErrorEstimate = resp.ErrorEst
+	r.ReceiveTimestamp = ConvertTimestamp(resp.RcvTimestamp.Seconds, resp.RcvTimestamp.Fraction)
+	r.SenderSeqNum = resp.SenderSequence
+	r.SenderTimestamp = ConvertTimestamp(resp.SenderTimestamp.Seconds, resp.SenderTimestamp.Fraction)
+	r.SenderErrorEstimate = resp.SenderErrorEst
+	r.SenderTTL = resp.SenderTTL
+	r.FinishedTimestamp = time.Now()
 
 	if senderSeqNum != r.SeqNum {
 		return nil, fmt.Errorf("expected seq %d but received %d", senderSeqNum, r.SeqNum)

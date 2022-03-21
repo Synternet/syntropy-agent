@@ -1,9 +1,6 @@
 package twamp
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"net"
 )
 
@@ -60,17 +57,4 @@ func (c *Client) LocalAddr() net.Addr {
 
 func (c *Client) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
-}
-
-// TODO: remove later
-func readFromSocket(reader io.Reader, size int) (bytes.Buffer, error) {
-	buf := make([]byte, size)
-	buffer := *bytes.NewBuffer(buf)
-	bytesRead, err := reader.Read(buf)
-
-	if err != nil && bytesRead < size {
-		return buffer, fmt.Errorf("readFromSocket: expected %d bytes, got %d", size, bytesRead)
-	}
-
-	return buffer, err
 }
