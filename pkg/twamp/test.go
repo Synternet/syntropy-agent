@@ -117,7 +117,7 @@ func (t *TwampTest) Run() (*TwampResults, error) {
 
 	size := t.sendTestMessage(false)
 
-	// receive test packets
+	// receive test packets. Buffer size is TestResponce struct + padding length
 	resp := new(TestResponse)
 	buf := make([]byte, binary.Size(resp)+padSize)
 
@@ -135,11 +135,11 @@ func (t *TwampTest) Run() (*TwampResults, error) {
 	r := &TwampResults{}
 	r.SenderSize = size
 	r.SeqNum = resp.Sequence
-	r.Timestamp = ConvertTimestamp(resp.Timestamp.Seconds, resp.Timestamp.Fraction)
+	r.Timestamp = resp.Timestamp.GetTime()
 	r.ErrorEstimate = resp.ErrorEst
-	r.ReceiveTimestamp = ConvertTimestamp(resp.RcvTimestamp.Seconds, resp.RcvTimestamp.Fraction)
+	r.ReceiveTimestamp = resp.RcvTimestamp.GetTime()
 	r.SenderSeqNum = resp.SenderSequence
-	r.SenderTimestamp = ConvertTimestamp(resp.SenderTimestamp.Seconds, resp.SenderTimestamp.Fraction)
+	r.SenderTimestamp = resp.SenderTimestamp.GetTime()
 	r.SenderErrorEstimate = resp.SenderErrorEst
 	r.SenderTTL = resp.SenderTTL
 	r.FinishedTimestamp = time.Now()
