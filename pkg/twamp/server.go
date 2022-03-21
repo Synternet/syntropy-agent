@@ -260,8 +260,6 @@ func sendStartAck(conn net.Conn) error {
 }
 
 func createTestResponse(buf []byte, seq uint32) ([]byte, error) {
-	req_len := len(buf)
-
 	req := new(TestRequest)
 	reader := bytes.NewBuffer(buf)
 	err := binary.Read(reader, binary.BigEndian, req)
@@ -274,6 +272,15 @@ func createTestResponse(buf []byte, seq uint32) ([]byte, error) {
 	resp.SenderSequence = req.Sequence
 	resp.SenderTimestamp = req.Timestamp
 	resp.SenderErrorEst = req.ErrorEst
+	/* TODO
+	   -  Extract the Sender TTL value from the TTL/Hop Limit value of
+	      received packets.  Session-Reflector implementations SHOULD fetch
+	      the TTL/Hop Limit value from the IP header of the packet,
+	      replacing the value of 255 set by the Session-Sender.  If an
+	      implementation does not fetch the actual TTL value (the only good
+	      reason not to do so is an inability to access the TTL field of
+	      arriving packets), it MUST set the Sender TTL value as 255.
+	*/
 	resp.SenderTTL = 255
 
 	resp.Sequence = seq
@@ -287,12 +294,10 @@ func createTestResponse(buf []byte, seq uint32) ([]byte, error) {
 		return nil, err
 	}
 
-	if writer.Len() < req_len {
-		padding := make([]byte, req_len-writer.Len())
-		_, err := writer.Write(padding)
-		if err != nil {
-			return nil, err
-		}
+	// Copy same padding to reply back
+	_, err = writer.Write(buf[binary.Size(req):])
+	if err != nil {
+		return nil, err
 	}
 
 	return writer.Bytes(), nil
@@ -359,7 +364,7 @@ func runReflector(conn *net.UDPConn, test_done chan bool) error {
 			return fmt.Errorf("setting test deadline: %s", err)
 		}
 
-		_, addr, err := conn.ReadFromUDP(buf)
+		pktLen, addr, err := conn.ReadFromUDP(buf)
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Timeout() {
 				if _, ok := <-test_done; !ok {
@@ -374,7 +379,7 @@ func runReflector(conn *net.UDPConn, test_done chan bool) error {
 			return fmt.Errorf("receiving test packet: %s", err)
 		}
 
-		response, err := createTestResponse(buf, seq)
+		response, err := createTestResponse(buf[:pktLen], seq)
 		if err != nil {
 			return fmt.Errorf("creating test response: %s", err)
 		}

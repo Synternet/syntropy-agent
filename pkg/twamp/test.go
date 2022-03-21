@@ -180,8 +180,8 @@ func (t *TwampTest) sendTestMessage(use_all_zeroes bool) int {
 	}
 	writer.Write(padding)
 
-	count, _ := t.GetConnection().Write(writer.Bytes())
-	return count
+	sendMessage(t.GetConnection(), writer.Bytes())
+	return writer.Len()
 }
 
 func (t *TwampTest) FormatJSON(r *PingResults) {
