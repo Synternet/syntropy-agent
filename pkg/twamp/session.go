@@ -2,7 +2,6 @@ package twamp
 
 import (
 	"fmt"
-	"log"
 	"net"
 )
 
@@ -74,11 +73,13 @@ func (s *Session) CreateTest() (*TwampTest, error) {
 		return nil, err
 	}
 
+	// Create new connection for test
 	conn, err := net.DialUDP("udp", localAddr, remoteAddr)
-	test.SetConnection(conn)
-
 	if err != nil {
-		log.Printf("Some error %+v", err)
+		return nil, err
+	}
+	err = test.SetConnection(conn)
+	if err != nil {
 		return nil, err
 	}
 
