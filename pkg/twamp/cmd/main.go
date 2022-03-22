@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/pkg/twamp"
 )
@@ -14,12 +15,10 @@ import (
 func main() {
 	interval := flag.Int("interval", 1, "Delay between TWAMP-test requests (seconds)")
 	count := flag.Int("count", 5, "Number of requests to send (1..2000000000 packets)")
-	rapid := flag.Bool("rapid", false, "Send requests rapidly (default count of 5)")
 	size := flag.Int("size", 42, "Size of request packets (0..65468 bytes)")
 	tos := flag.Int("tos", 0, "IP type-of-service value (0..255)")
 	wait := flag.Int("wait", 1, "Maximum wait time after sending final packet (seconds)")
 	port := flag.Int("port", 6666, "UDP port to send request packets")
-	mode := flag.String("mode", "ping", "Mode of operation (ping, json)")
 
 	server := flag.Bool("server", false, "Start a TWAMP server (default is client mode)")
 	listenPtr := flag.String("listen", "localhost", "listen address")
@@ -82,14 +81,24 @@ func main() {
 			log.Fatal(err)
 		}
 
-		switch *mode {
-		case "json":
-			results := test.RunX(*count)
-			test.FormatJSON(results)
-		case "ping":
-			test.Ping(*count, *rapid, *interval)
+		fmt.Printf("TWAMP PING %s: %d data bytes\n",
+			test.GetRemoteTestHost(), 14+test.GetSession().GetConfig().Padding)
+
+		for i := 0; i < *count; i++ {
+			stats, err := test.Run()
+			if err != nil {
+				fmt.Println("error:", err)
+			} else {
+				fmt.Printf("recv from %s: twamp_seq=%d time=%0.03f ms\n",
+					test.GetRemoteTestHost(), i, float32(stats.Rtt().Microseconds())/1000)
+			}
+			time.Sleep(time.Duration(*interval) * time.Second)
 		}
 
+		Stats := test.GetStats()
+		fmt.Printf("--- %s twamp ping statistics ---\n", test.GetRemoteTestHost())
+		fmt.Printf("%d packets transmitted, %d packets received\n%0.1f%% packet loss %0.03f ms latency\n",
+			Stats.Tx(), Stats.Rx(), Stats.Loss(), Stats.Latency())
 		session.Stop()
 		client.Close()
 	}
