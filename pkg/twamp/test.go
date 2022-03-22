@@ -206,7 +206,7 @@ func (t *TwampTest) Ping(count int, isRapid bool, interval int) *PingResults {
 		results, err := t.Run()
 		if err != nil {
 			if isRapid {
-				fmt.Printf(".")
+				fmt.Printf("!")
 			} else {
 				fmt.Println(err)
 			}
@@ -227,7 +227,7 @@ func (t *TwampTest) Ping(count int, isRapid bool, interval int) *PingResults {
 			Results.Results = append(Results.Results, results)
 
 			if isRapid {
-				fmt.Printf("!")
+				fmt.Printf(".")
 			} else {
 				fmt.Printf("%d bytes from %s: twamp_seq=%d ttl=%d time=%0.03f ms\n",
 					packetSize,
