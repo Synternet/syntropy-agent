@@ -117,11 +117,17 @@ func (t *TwampTest) Run() (*TwampResults, error) {
 
 	size := t.sendTestMessage(false)
 
+	// Set timeout for test
+	err := t.GetConnection().SetReadDeadline(time.Now().Add(time.Second))
+	if err != nil {
+		return nil, fmt.Errorf("setting test deadline: %s", err)
+	}
+
 	// receive test packets. Buffer size is TestResponce struct + padding length
 	resp := new(TestResponse)
 	buf := make([]byte, binary.Size(resp)+padSize)
 
-	_, _, err := t.GetConnection().ReadFrom(buf)
+	_, _, err = t.GetConnection().ReadFrom(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +207,8 @@ func (t *TwampTest) Ping(count int, isRapid bool, interval int) *PingResults {
 		if err != nil {
 			if isRapid {
 				fmt.Printf(".")
+			} else {
+				fmt.Println(err)
 			}
 		} else {
 			if i == 0 {
