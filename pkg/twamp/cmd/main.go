@@ -14,7 +14,7 @@ import (
 
 func main() {
 	interval := flag.Int("interval", 1, "Delay between TWAMP-test requests (seconds)")
-	count := flag.Int("count", 5, "Number of requests to send (1..2000000000 packets)")
+	count := flag.Int("count", 0, "Number of requests to send (1..2000000000 packets)")
 	size := flag.Int("size", 42, "Size of request packets (0..65468 bytes)")
 	tos := flag.Int("tos", 0, "IP type-of-service value (0..255)")
 	wait := flag.Int("wait", 1, "Maximum wait time after sending final packet (seconds)")
@@ -84,23 +84,41 @@ func main() {
 		fmt.Printf("TWAMP PING %s: %d data bytes\n",
 			test.GetRemoteTestHost(), 14+test.GetSession().GetConfig().Padding)
 
-		for i := 0; i < *count; i++ {
-			stats, err := test.Run()
-			if err != nil {
-				fmt.Println("error:", err)
-			} else {
-				fmt.Printf("recv from %s: twamp_seq=%d time=%0.03f ms\n",
-					test.GetRemoteTestHost(), i, float32(stats.Rtt().Microseconds())/1000)
+		i := 0
+		t := time.NewTicker(time.Duration(*interval) * time.Second)
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+
+		defer func() {
+			t.Stop()
+			Stats := test.GetStats()
+			fmt.Printf("--- %s twamp ping statistics ---\n", test.GetRemoteTestHost())
+			fmt.Printf("%d packets transmitted, %d packets received\n%0.1f%% packet loss %0.03f ms latency\n",
+				Stats.Tx(), Stats.Rx(), Stats.Loss(), Stats.Latency())
+			session.Stop()
+			client.Close()
+		}()
+
+		for {
+			select {
+			case <-t.C:
+				stats, err := test.Run()
+				if err != nil {
+					fmt.Println("error:", err)
+				} else {
+					fmt.Printf("recv from %s: twamp_seq=%d time=%0.03f ms\n",
+						test.GetRemoteTestHost(), i, float32(stats.Rtt().Microseconds())/1000)
+				}
+				i++
+
+				if *count > 0 && i >= *count {
+					return
+				}
+			case <-c:
+				return
 			}
-			time.Sleep(time.Duration(*interval) * time.Second)
 		}
 
-		Stats := test.GetStats()
-		fmt.Printf("--- %s twamp ping statistics ---\n", test.GetRemoteTestHost())
-		fmt.Printf("%d packets transmitted, %d packets received\n%0.1f%% packet loss %0.03f ms latency\n",
-			Stats.Tx(), Stats.Rx(), Stats.Loss(), Stats.Latency())
-		session.Stop()
-		client.Close()
 	}
 
 	if *server {
