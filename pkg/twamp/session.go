@@ -28,13 +28,13 @@ type StopSessions struct {
 func (c *Client) createTest() error {
 	start := new(StartSessions)
 	start.Two = 2 // TODO: rename to command and use contants
-	err := sendMessage(c.GetConnection(), start)
+	err := sendMessage(c.conn, start)
 	if err != nil {
 		return err
 	}
 
 	sack := new(StartAck)
-	err = receiveMessage(c.GetConnection(), sack)
+	err = receiveMessage(c.conn, sack)
 	if err != nil {
 		return err
 	}
@@ -73,5 +73,5 @@ func (c *Client) stopSession() error {
 	req.Three = 3 // TODO const
 	req.Accept = AcceptOK
 	req.Number = 1 // Stop single session
-	return sendMessage(c.GetConnection(), req)
+	return sendMessage(c.conn, req)
 }

@@ -46,14 +46,14 @@ func (c *Client) createSession() error {
 	req.Timeout = uint64(c.config.Timeout)
 	req.TypeP = uint32(c.config.TOS)
 
-	err := sendMessage(c.GetConnection(), req)
+	err := sendMessage(c.conn, req)
 	if err != nil {
 		return err
 	}
 
 	// Receive AcceptSession message
 	resp := new(AcceptSession)
-	err = receiveMessage(c.GetConnection(), resp)
+	err = receiveMessage(c.conn, resp)
 	if err != nil {
 		return err
 	}

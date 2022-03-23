@@ -38,19 +38,19 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 	}
 
 	// check for greeting message from TWAMP server
-	err = recvServerGreeting(client.GetConnection())
+	err = recvServerGreeting(client.conn)
 	if err != nil {
 		return nil, err
 	}
 
 	// negotiate TWAMP session configuration
-	err = sendClientSetupResponse(client.GetConnection())
+	err = sendClientSetupResponse(client.conn)
 	if err != nil {
 		return nil, err
 	}
 
 	// check the start message from TWAMP server
-	err = recvServerStartMessage(client.GetConnection())
+	err = recvServerStartMessage(client.conn)
 	if err != nil {
 		return nil, err
 	}
@@ -80,13 +80,9 @@ func (c *Client) GetStats() *Statistics {
 	return &c.test.stats
 }
 
-func (c *Client) GetConnection() net.Conn {
-	return c.conn
-}
-
 func (c *Client) Close() error {
 	c.stopSession()
-	return c.GetConnection().Close()
+	return c.conn.Close()
 }
 
 func (c *Client) LocalAddr() net.Addr {
