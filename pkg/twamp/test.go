@@ -54,7 +54,7 @@ func (t *twampTest) setConnection(conn *net.UDPConn) error {
 		return err
 	}
 
-	err = c.SetTOS(t.session.GetConfig().TOS)
+	err = c.SetTOS(t.session.config.TOS) // TODO beautify me
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (t *twampTest) GetRemoteTestHost() string {
 */
 func (c *Client) Run() (*TwampStats, error) {
 	senderSeqNum := c.test.seq
-	padSize := c.GetConfig().Padding
+	padSize := c.PaddingSize()
 
 	c.test.stats.tx++
 	c.test.sendTestMessage(uint(c.config.Padding), false)
@@ -100,7 +100,7 @@ func (c *Client) Run() (*TwampStats, error) {
 
 	// receive test packets. Buffer size is TestResponce struct + padding length
 	resp := new(TestResponse)
-	buf := make([]byte, binary.Size(resp)+padSize)
+	buf := make([]byte, binary.Size(resp)+int(padSize))
 
 	_, _, err = c.test.conn.ReadFrom(buf)
 	if err != nil {

@@ -71,7 +71,7 @@ func main() {
 		}
 
 		fmt.Printf("TWAMP PING %s: %d data bytes\n",
-			client.GetHost(), 14+client.GetConfig().Padding)
+			client.GetHost(), 14+client.PaddingSize())
 
 		i := 0
 		t := time.NewTicker(time.Duration(*interval) * time.Second)

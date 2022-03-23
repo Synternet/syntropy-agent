@@ -66,6 +66,10 @@ func NewClient(hostname string, config SessionConfig) (*Client, error) {
 	return client, nil
 }
 
+func (c *Client) PaddingSize() uint {
+	return uint(c.config.Padding)
+}
+
 func (c *Client) GetHost() string {
 	return c.host
 }
@@ -85,13 +89,4 @@ func (c *Client) LocalAddr() net.Addr {
 
 func (c *Client) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
-}
-
-// TODO do we need these ?
-func (c *Client) GetConfig() SessionConfig {
-	return c.config
-}
-
-func (c *Client) Write(buf []byte) {
-	c.GetConnection().Write(buf)
 }
