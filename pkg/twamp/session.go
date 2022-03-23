@@ -50,7 +50,7 @@ func (c *Client) createTest() error {
 		return err
 	}
 
-	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.test.GetLocalTestHost(), c.config.LocalPort))
+	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.localTestHost(), c.config.LocalPort))
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ type twampTest struct {
 	session *Client
 	conn    *net.UDPConn
 	seq     uint32
-	stats   TwampStats
+	stats   Statistics
 }
 
 type TestRequest struct {
@@ -39,10 +39,6 @@ type TestResponse struct {
 	SenderErrorEst  uint16
 	MBZ2            [2]byte
 	SenderTTL       byte
-}
-
-func (c *Client) GetStats() *TwampStats {
-	return &c.test.stats
 }
 
 func (t *twampTest) setConnection(conn *net.UDPConn) error {
@@ -66,26 +62,13 @@ func (c *Client) remoteTestAddr() (*net.UDPAddr, error) {
 	return net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.host, c.testPort))
 }
 
-/*
-	Get the local IP address for the TWAMP control session.
-*/
-func (t *twampTest) GetLocalTestHost() string {
-	localAddress := t.session.GetConnection().LocalAddr()
-	return strings.Split(localAddress.String(), ":")[0]
+// Get the local IP address for the TWAMP control session.
+func (c *Client) localTestHost() string {
+	return strings.Split(c.conn.LocalAddr().String(), ":")[0]
 }
 
-/*
-	Get the remote IP address for the TWAMP control session.
-*/
-func (t *twampTest) GetRemoteTestHost() string {
-	remoteAddress := t.session.GetConnection().RemoteAddr()
-	return strings.Split(remoteAddress.String(), ":")[0]
-}
-
-/*
-	Run a TWAMP test and return a pointer to the TwampResults.
-*/
-func (c *Client) Run() (*TwampStats, error) {
+// Run a TWAMP test and return a pointer to the TwampResults.
+func (c *Client) Ping() (*Statistics, error) {
 	senderSeqNum := c.test.seq
 	padSize := c.PaddingSize()
 

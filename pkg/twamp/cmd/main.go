@@ -88,7 +88,7 @@ func main() {
 		for {
 			select {
 			case <-t.C:
-				stats, err := client.Run()
+				stats, err := client.Ping()
 				if err != nil {
 					fmt.Println("error:", err)
 				} else {

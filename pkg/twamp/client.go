@@ -76,6 +76,10 @@ func (c *Client) GetHost() string {
 	return c.host
 }
 
+func (c *Client) GetStats() *Statistics {
+	return &c.test.stats
+}
+
 func (c *Client) GetConnection() net.Conn {
 	return c.conn
 }
