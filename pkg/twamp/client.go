@@ -4,6 +4,13 @@ import (
 	"net"
 )
 
+type SessionConfig struct {
+	Port    int
+	Padding int
+	Timeout int
+	TOS     int
+}
+
 type Client struct {
 	host string
 	conn net.Conn
