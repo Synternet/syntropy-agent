@@ -73,10 +73,13 @@ func (c *Client) Ping() (*Statistics, error) {
 	padSize := c.PaddingSize()
 
 	c.test.stats.tx++
-	c.test.sendTestMessage(uint(c.config.Padding), false)
+	err := c.sendTestMessage()
+	if err != nil {
+		return nil, fmt.Errorf("send test message: %s", err)
+	}
 
 	// Set timeout for test
-	err := c.test.conn.SetReadDeadline(time.Now().Add(time.Second))
+	err = c.test.conn.SetReadDeadline(time.Now().Add(c.config.Timeout))
 	if err != nil {
 		return nil, fmt.Errorf("setting test deadline: %s", err)
 	}
@@ -106,28 +109,31 @@ func (c *Client) Ping() (*Statistics, error) {
 	return c.GetStats(), nil
 }
 
-func (t *twampTest) sendTestMessage(padSize uint, use_all_zeroes bool) int {
+func (c *Client) sendTestMessage() error {
 	writer := new(bytes.Buffer)
 
 	testRq := TestRequest{
-		Sequence:  t.seq,
+		Sequence:  c.test.seq,
 		Timestamp: NewTimestamp(time.Now()),
 		ErrorEst:  1<<8 | 1, // Synchronized, MBZ, Scale + multiplier. TODO: use constants
 	}
-	t.seq++
+	c.test.seq++
 
-	binary.Write(writer, binary.BigEndian, testRq)
+	err := binary.Write(writer, binary.BigEndian, testRq)
+	if err != nil {
+		return err
+	}
 
-	padding := make([]byte, padSize)
-	if !use_all_zeroes {
+	padding := make([]byte, c.PaddingSize())
+	if !c.config.PaddingZeroes {
 		// seed psuedo-random number generator if requested
 		rand.NewSource(int64(time.Now().Unix()))
 		for i := 0; i < cap(padding); i++ {
 			padding[i] = byte(rand.Intn(255))
 		}
 	}
-	writer.Write(padding)
 
-	sendMessage(t.conn, writer.Bytes())
-	return writer.Len()
+	_, err = c.test.conn.Write(append(writer.Bytes(), padding...))
+
+	return err
 }

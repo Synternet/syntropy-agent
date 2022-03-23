@@ -1,10 +1,13 @@
 package twamp
 
+import "time"
+
 type clientConfig struct {
-	LocalPort int
-	Padding   int
-	Timeout   int
-	TOS       int
+	LocalPort     int
+	PaddingSize   int
+	PaddingZeroes bool
+	Timeout       time.Duration
+	TOS           int
 }
 
 type clientOption func(*clientConfig)
@@ -17,11 +20,17 @@ func LocalPort(port int) clientOption {
 
 func Padding(padSize int) clientOption {
 	return func(cfg *clientConfig) {
-		cfg.Padding = padSize
+		cfg.PaddingSize = padSize
 	}
 }
 
-func Timeout(timeout int) clientOption {
+func PadZeroes(zeroes bool) clientOption {
+	return func(cfg *clientConfig) {
+		cfg.PaddingZeroes = zeroes
+	}
+}
+
+func Timeout(timeout time.Duration) clientOption {
 	return func(cfg *clientConfig) {
 		cfg.Timeout = timeout
 	}

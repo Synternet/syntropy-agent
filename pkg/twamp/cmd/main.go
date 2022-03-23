@@ -60,7 +60,7 @@ func main() {
 
 		client, err := twamp.NewClient(remoteIP,
 			twamp.LocalPort(*port),
-			twamp.Timeout(*wait),
+			twamp.Timeout(time.Duration(*wait)*time.Second),
 			twamp.Padding(*size),
 			twamp.Tos(*tos),
 		)

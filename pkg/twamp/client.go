@@ -26,10 +26,11 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 		host: hostname,
 		conn: conn,
 		config: &clientConfig{
-			LocalPort: 0,
-			Padding:   0,
-			Timeout:   1,
-			TOS:       0,
+			LocalPort:     0,
+			PaddingSize:   0,
+			PaddingZeroes: false,
+			Timeout:       1,
+			TOS:           0,
 		},
 	}
 
@@ -69,7 +70,7 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 }
 
 func (c *Client) PaddingSize() uint {
-	return uint(c.config.Padding)
+	return uint(c.config.PaddingSize)
 }
 
 func (c *Client) GetHost() string {

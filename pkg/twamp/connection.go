@@ -41,7 +41,7 @@ func (c *Client) createSession() error {
 	req.Command = CmdRequestTwSession
 	req.SenderPort = uint16(c.config.LocalPort)
 	req.ReceiverPort = 0
-	req.PaddingLength = uint32(c.config.Padding)
+	req.PaddingLength = uint32(c.PaddingSize())
 	req.StartTime = NewTimestamp(time.Now())
 	req.Timeout = uint64(c.config.Timeout)
 	req.TypeP = uint32(c.config.TOS)
