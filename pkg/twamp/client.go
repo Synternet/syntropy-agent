@@ -8,7 +8,9 @@ import (
 type Client struct {
 	host     string
 	testPort uint16
-	conn     net.Conn
+
+	controlConn net.Conn
+	//	testConn    *net.UDPConn
 
 	test   *twampTest
 	config *clientConfig
@@ -23,8 +25,8 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 
 	// create a new Connection
 	client := &Client{
-		host: hostname,
-		conn: conn,
+		host:        hostname,
+		controlConn: conn,
 		config: &clientConfig{
 			LocalPort:     0,
 			PaddingSize:   0,
@@ -39,19 +41,19 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 	}
 
 	// check for greeting message from TWAMP server
-	err = recvServerGreeting(client.conn)
+	err = recvServerGreeting(client.controlConn)
 	if err != nil {
 		return nil, err
 	}
 
 	// negotiate TWAMP session configuration
-	err = sendClientSetupResponse(client.conn)
+	err = sendClientSetupResponse(client.controlConn)
 	if err != nil {
 		return nil, err
 	}
 
 	// check the start message from TWAMP server
-	err = recvServerStartMessage(client.conn)
+	err = recvServerStartMessage(client.controlConn)
 	if err != nil {
 		return nil, err
 	}
@@ -83,13 +85,13 @@ func (c *Client) GetStats() *Statistics {
 
 func (c *Client) Close() error {
 	c.stopSession()
-	return c.conn.Close()
+	return c.controlConn.Close()
 }
 
 func (c *Client) LocalAddr() net.Addr {
-	return c.conn.LocalAddr()
+	return c.controlConn.LocalAddr()
 }
 
 func (c *Client) RemoteAddr() net.Addr {
-	return c.conn.RemoteAddr()
+	return c.controlConn.RemoteAddr()
 }

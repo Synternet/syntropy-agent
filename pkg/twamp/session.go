@@ -3,6 +3,8 @@ package twamp
 import (
 	"fmt"
 	"net"
+
+	"golang.org/x/net/ipv4"
 )
 
 type StartSessions struct {
@@ -28,13 +30,13 @@ type StopSessions struct {
 func (c *Client) createTest() error {
 	start := new(StartSessions)
 	start.Command = CmdStartTestSession
-	err := sendMessage(c.conn, start)
+	err := sendMessage(c.controlConn, start)
 	if err != nil {
 		return err
 	}
 
 	sack := new(StartAck)
-	err = receiveMessage(c.conn, sack)
+	err = receiveMessage(c.controlConn, sack)
 	if err != nil {
 		return err
 	}
@@ -44,7 +46,7 @@ func (c *Client) createTest() error {
 		return err
 	}
 
-	c.test = &twampTest{session: c}
+	c.test = &twampTest{}
 	remoteAddr, err := c.remoteTestAddr()
 	if err != nil {
 		return err
@@ -56,11 +58,20 @@ func (c *Client) createTest() error {
 	}
 
 	// Create new connection for test
-	conn, err := net.DialUDP("udp", localAddr, remoteAddr)
+	c.test.conn, err = net.DialUDP("udp", localAddr, remoteAddr)
 	if err != nil {
 		return err
 	}
-	err = c.test.setConnection(conn)
+
+	// Configure test connection
+	ipConn := ipv4.NewConn(c.test.conn)
+	err = ipConn.SetTOS(c.config.TOS)
+	if err != nil {
+		return err
+	}
+
+	// RFC recommends IP TTL of 255
+	err = ipConn.SetTTL(255)
 	if err != nil {
 		return err
 	}
@@ -73,5 +84,5 @@ func (c *Client) stopSession() error {
 	req.Command = CmdStopSessions
 	req.Accept = AcceptOK
 	req.Number = 1 // Stop single session
-	return sendMessage(c.conn, req)
+	return sendMessage(c.controlConn, req)
 }

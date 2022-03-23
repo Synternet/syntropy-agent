@@ -8,18 +8,15 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"golang.org/x/net/ipv4"
 )
 
 /*
 	TWAMP test connection used for running TWAMP tests.
 */
 type twampTest struct {
-	session *Client
-	conn    *net.UDPConn
-	seq     uint32
-	stats   Statistics
+	conn  *net.UDPConn
+	seq   uint32
+	stats Statistics
 }
 
 type TestRequest struct {
@@ -41,30 +38,13 @@ type TestResponse struct {
 	SenderTTL       byte
 }
 
-func (t *twampTest) setConnection(conn *net.UDPConn) error {
-	c := ipv4.NewConn(conn)
-
-	// RFC recommends IP TTL of 255
-	err := c.SetTTL(255)
-	if err != nil {
-		return err
-	}
-
-	err = c.SetTOS(t.session.config.TOS) // TODO beautify me
-	if err != nil {
-		return err
-	}
-
-	t.conn = conn
-	return nil
-}
 func (c *Client) remoteTestAddr() (*net.UDPAddr, error) {
 	return net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.host, c.testPort))
 }
 
 // Get the local IP address for the TWAMP control session.
 func (c *Client) localTestHost() string {
-	return strings.Split(c.conn.LocalAddr().String(), ":")[0]
+	return strings.Split(c.controlConn.LocalAddr().String(), ":")[0]
 }
 
 // Run a TWAMP test and return a pointer to the TwampResults.
