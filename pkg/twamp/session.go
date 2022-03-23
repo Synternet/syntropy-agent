@@ -25,47 +25,47 @@ type StopSessions struct {
 	MBZ2   [8]byte
 }
 
-func (c *Client) CreateTest() (*TwampTest, error) {
+func (c *Client) createTest() error {
 	start := new(StartSessions)
 	start.Two = 2 // TODO: rename to command and use contants
 	err := sendMessage(c.GetConnection(), start)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	sack := new(StartAck)
 	err = receiveMessage(c.GetConnection(), sack)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = checkAcceptStatus(sack.Accept, "test setup")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	test := &TwampTest{session: c}
-	remoteAddr, err := test.RemoteAddr()
+	c.test = &twampTest{session: c}
+	remoteAddr, err := c.remoteTestAddr()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", test.GetLocalTestHost(), c.GetConfig().Port))
+	localAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.test.GetLocalTestHost(), c.GetConfig().Port))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Create new connection for test
 	conn, err := net.DialUDP("udp", localAddr, remoteAddr)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	err = test.SetConnection(conn)
+	err = c.test.setConnection(conn)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return test, nil
+	return nil
 }
 
 func (c *Client) stopSession() error {

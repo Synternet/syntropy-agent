@@ -57,9 +57,8 @@ func main() {
 		}
 
 		remoteIP := args[0]
-		remoteServer := fmt.Sprintf("%s:%d", remoteIP, twamp.TwampControlPort)
 
-		client, err := twamp.NewClient(remoteServer,
+		client, err := twamp.NewClient(remoteIP,
 			twamp.SessionConfig{
 				Port:    *port,
 				Timeout: *wait,
@@ -71,13 +70,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		test, err := client.CreateTest()
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		fmt.Printf("TWAMP PING %s: %d data bytes\n",
-			test.GetRemoteTestHost(), 14+test.GetSession().GetConfig().Padding)
+			client.GetHost(), 14+client.GetConfig().Padding)
 
 		i := 0
 		t := time.NewTicker(time.Duration(*interval) * time.Second)
@@ -86,8 +80,8 @@ func main() {
 
 		defer func() {
 			t.Stop()
-			Stats := test.GetStats()
-			fmt.Printf("--- %s twamp ping statistics ---\n", test.GetRemoteTestHost())
+			Stats := client.GetStats()
+			fmt.Printf("--- %s twamp ping statistics ---\n", client.GetHost())
 			fmt.Printf("%d packets transmitted, %d packets received\n%0.1f%% packet loss %0.03f ms latency\n",
 				Stats.Tx(), Stats.Rx(), Stats.Loss(), Stats.Latency())
 			client.Close()
@@ -96,12 +90,12 @@ func main() {
 		for {
 			select {
 			case <-t.C:
-				stats, err := test.Run()
+				stats, err := client.Run()
 				if err != nil {
 					fmt.Println("error:", err)
 				} else {
 					fmt.Printf("recv from %s: twamp_seq=%d time=%0.03f ms\n",
-						test.GetRemoteTestHost(), i, float32(stats.Rtt().Microseconds())/1000)
+						client.GetHost(), i, float32(stats.Rtt().Microseconds())/1000)
 				}
 				i++
 

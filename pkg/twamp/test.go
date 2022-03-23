@@ -15,7 +15,7 @@ import (
 /*
 	TWAMP test connection used for running TWAMP tests.
 */
-type TwampTest struct {
+type twampTest struct {
 	session *Client
 	conn    *net.UDPConn
 	seq     uint32
@@ -41,11 +41,11 @@ type TestResponse struct {
 	SenderTTL       byte
 }
 
-func (t *TwampTest) GetStats() *TwampStats {
-	return &t.stats
+func (c *Client) GetStats() *TwampStats {
+	return &c.test.stats
 }
 
-func (t *TwampTest) SetConnection(conn *net.UDPConn) error {
+func (t *twampTest) setConnection(conn *net.UDPConn) error {
 	c := ipv4.NewConn(conn)
 
 	// RFC recommends IP TTL of 255
@@ -54,7 +54,7 @@ func (t *TwampTest) SetConnection(conn *net.UDPConn) error {
 		return err
 	}
 
-	err = c.SetTOS(t.GetSession().GetConfig().TOS)
+	err = c.SetTOS(t.session.GetConfig().TOS)
 	if err != nil {
 		return err
 	}
@@ -62,40 +62,14 @@ func (t *TwampTest) SetConnection(conn *net.UDPConn) error {
 	t.conn = conn
 	return nil
 }
-
-/*
-	Get TWAMP Test UDP connection.
-*/
-func (t *TwampTest) GetConnection() *net.UDPConn {
-	return t.conn
-}
-
-/*
-	Get the underlying TWAMP control session for the TWAMP test.
-*/
-func (t *TwampTest) GetSession() *Client {
-	return t.session
-}
-
-/*
-	Get the remote TWAMP IP/UDP address.
-*/
-func (t *TwampTest) RemoteAddr() (*net.UDPAddr, error) {
-	address := fmt.Sprintf("%s:%d", t.GetRemoteTestHost(), t.GetRemoteTestPort())
-	return net.ResolveUDPAddr("udp", address)
-}
-
-/*
-	Get the remote TWAMP UDP port number.
-*/
-func (t *TwampTest) GetRemoteTestPort() uint16 {
-	return t.GetSession().port
+func (c *Client) remoteTestAddr() (*net.UDPAddr, error) {
+	return net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", c.host, c.testPort))
 }
 
 /*
 	Get the local IP address for the TWAMP control session.
 */
-func (t *TwampTest) GetLocalTestHost() string {
+func (t *twampTest) GetLocalTestHost() string {
 	localAddress := t.session.GetConnection().LocalAddr()
 	return strings.Split(localAddress.String(), ":")[0]
 }
@@ -103,7 +77,7 @@ func (t *TwampTest) GetLocalTestHost() string {
 /*
 	Get the remote IP address for the TWAMP control session.
 */
-func (t *TwampTest) GetRemoteTestHost() string {
+func (t *twampTest) GetRemoteTestHost() string {
 	remoteAddress := t.session.GetConnection().RemoteAddr()
 	return strings.Split(remoteAddress.String(), ":")[0]
 }
@@ -111,15 +85,15 @@ func (t *TwampTest) GetRemoteTestHost() string {
 /*
 	Run a TWAMP test and return a pointer to the TwampResults.
 */
-func (t *TwampTest) Run() (*TwampStats, error) {
-	senderSeqNum := t.seq
-	padSize := t.GetSession().GetConfig().Padding
+func (c *Client) Run() (*TwampStats, error) {
+	senderSeqNum := c.test.seq
+	padSize := c.GetConfig().Padding
 
-	t.stats.tx++
-	t.sendTestMessage(false)
+	c.test.stats.tx++
+	c.test.sendTestMessage(uint(c.config.Padding), false)
 
 	// Set timeout for test
-	err := t.GetConnection().SetReadDeadline(time.Now().Add(time.Second))
+	err := c.test.conn.SetReadDeadline(time.Now().Add(time.Second))
 	if err != nil {
 		return nil, fmt.Errorf("setting test deadline: %s", err)
 	}
@@ -128,7 +102,7 @@ func (t *TwampTest) Run() (*TwampStats, error) {
 	resp := new(TestResponse)
 	buf := make([]byte, binary.Size(resp)+padSize)
 
-	_, _, err = t.GetConnection().ReadFrom(buf)
+	_, _, err = c.test.conn.ReadFrom(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -142,14 +116,14 @@ func (t *TwampTest) Run() (*TwampStats, error) {
 	}
 
 	// Successfully received and parsed message - increase rx stats
-	t.stats.rtt = time.Now().Sub(resp.SenderTimestamp.GetTime())
-	t.stats.avgRtt = (time.Duration(t.stats.rx)*t.stats.avgRtt + t.stats.rtt) / time.Duration(t.stats.rx+1)
-	t.stats.rx++
+	c.test.stats.rtt = time.Now().Sub(resp.SenderTimestamp.GetTime())
+	c.test.stats.avgRtt = (time.Duration(c.test.stats.rx)*c.test.stats.avgRtt + c.test.stats.rtt) / time.Duration(c.test.stats.rx+1)
+	c.test.stats.rx++
 
-	return t.GetStats(), nil
+	return c.GetStats(), nil
 }
 
-func (t *TwampTest) sendTestMessage(use_all_zeroes bool) int {
+func (t *twampTest) sendTestMessage(padSize uint, use_all_zeroes bool) int {
 	writer := new(bytes.Buffer)
 
 	testRq := TestRequest{
@@ -161,7 +135,7 @@ func (t *TwampTest) sendTestMessage(use_all_zeroes bool) int {
 
 	binary.Write(writer, binary.BigEndian, testRq)
 
-	padding := make([]byte, t.GetSession().config.Padding)
+	padding := make([]byte, padSize)
 	if !use_all_zeroes {
 		// seed psuedo-random number generator if requested
 		rand.NewSource(int64(time.Now().Unix()))
@@ -171,6 +145,6 @@ func (t *TwampTest) sendTestMessage(use_all_zeroes bool) int {
 	}
 	writer.Write(padding)
 
-	sendMessage(t.GetConnection(), writer.Bytes())
+	sendMessage(t.conn, writer.Bytes())
 	return writer.Len()
 }

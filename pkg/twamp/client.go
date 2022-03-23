@@ -1,6 +1,7 @@
 package twamp
 
 import (
+	"fmt"
 	"net"
 )
 
@@ -12,16 +13,17 @@ type SessionConfig struct {
 }
 
 type Client struct {
-	host string
-	port uint16
-	conn net.Conn
+	host     string
+	testPort uint16
+	conn     net.Conn
 
+	test   *twampTest
 	config SessionConfig
 }
 
 func NewClient(hostname string, config SessionConfig) (*Client, error) {
 	// connect to remote host
-	conn, err := net.Dial("tcp", hostname)
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", hostname, TwampControlPort))
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +58,16 @@ func NewClient(hostname string, config SessionConfig) (*Client, error) {
 		return nil, err
 	}
 
+	err = client.createTest()
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
+}
+
+func (c *Client) GetHost() string {
+	return c.host
 }
 
 func (c *Client) GetConnection() net.Conn {

@@ -63,7 +63,7 @@ func (c *Client) createSession() error {
 		return err
 	}
 
-	c.port = resp.Port
+	c.testPort = resp.Port
 
 	return nil
 }
