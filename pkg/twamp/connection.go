@@ -39,7 +39,7 @@ func (c *Client) createSession() error {
 	// Send SessionRequest message
 	req := new(RequestSession)
 	req.Five = 5 // TODO
-	req.SenderPort = uint16(c.config.Port)
+	req.SenderPort = uint16(c.config.LocalPort)
 	req.ReceiverPort = 0
 	req.PaddingLength = uint32(c.config.Padding)
 	req.StartTime = NewTimestamp(time.Now())

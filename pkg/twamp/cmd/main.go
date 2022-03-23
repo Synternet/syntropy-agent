@@ -59,12 +59,10 @@ func main() {
 		remoteIP := args[0]
 
 		client, err := twamp.NewClient(remoteIP,
-			twamp.SessionConfig{
-				Port:    *port,
-				Timeout: *wait,
-				Padding: *size,
-				TOS:     *tos,
-			},
+			twamp.LocalPort(*port),
+			twamp.Timeout(*wait),
+			twamp.Padding(*size),
+			twamp.Tos(*tos),
 		)
 		if err != nil {
 			log.Fatal(err)

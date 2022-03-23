@@ -5,23 +5,16 @@ import (
 	"net"
 )
 
-type SessionConfig struct {
-	Port    int
-	Padding int
-	Timeout int
-	TOS     int
-}
-
 type Client struct {
 	host     string
 	testPort uint16
 	conn     net.Conn
 
 	test   *twampTest
-	config SessionConfig
+	config *clientConfig
 }
 
-func NewClient(hostname string, config SessionConfig) (*Client, error) {
+func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 	// connect to remote host
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", hostname, TwampControlPort))
 	if err != nil {
@@ -30,9 +23,18 @@ func NewClient(hostname string, config SessionConfig) (*Client, error) {
 
 	// create a new Connection
 	client := &Client{
-		host:   hostname,
-		conn:   conn,
-		config: config,
+		host: hostname,
+		conn: conn,
+		config: &clientConfig{
+			LocalPort: 0,
+			Padding:   0,
+			Timeout:   1,
+			TOS:       0,
+		},
+	}
+
+	for _, opt := range opts {
+		opt(client.config)
 	}
 
 	// check for greeting message from TWAMP server
