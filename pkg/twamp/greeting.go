@@ -43,10 +43,10 @@ func createServerGreeting(modes uint32) (*ServerGreeting, error) {
 	return greeting, nil
 }
 
-func recvServerGreeting(conn net.Conn) error {
+func (c *Client) recvServerGreeting() error {
 	// check for greeting message from TWAMP server
 	greeting := new(ServerGreeting)
-	err := receiveMessage(conn, greeting)
+	err := receiveMessage(c.controlConn, greeting)
 	if err != nil {
 		return err
 	}
@@ -75,12 +75,12 @@ type SetUpResponse struct {
 	ClientIV [16]byte
 }
 
-func sendClientSetupResponse(conn net.Conn) error {
+func (c *Client) sendClientSetupResponse() error {
 	// negotiate TWAMP session configuration
 	response := &SetUpResponse{
 		Mode: ModeUnauthenticated,
 	}
-	return sendMessage(conn, response)
+	return sendMessage(c.controlConn, response)
 }
 
 type ServerStart struct {
@@ -91,10 +91,10 @@ type ServerStart struct {
 	MBZ2      [8]byte
 }
 
-func recvServerStartMessage(conn net.Conn) error {
+func (c *Client) recvServerStartMessage() error {
 	srvstart := new(ServerStart)
 
-	err := receiveMessage(conn, srvstart)
+	err := receiveMessage(c.controlConn, srvstart)
 	if err != nil {
 		return err
 	}

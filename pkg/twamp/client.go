@@ -42,19 +42,19 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 	}
 
 	// check for greeting message from TWAMP server
-	err = recvServerGreeting(client.controlConn)
+	err = client.recvServerGreeting()
 	if err != nil {
 		return nil, err
 	}
 
 	// negotiate TWAMP session configuration
-	err = sendClientSetupResponse(client.controlConn)
+	err = client.sendClientSetupResponse()
 	if err != nil {
 		return nil, err
 	}
 
 	// check the start message from TWAMP server
-	err = recvServerStartMessage(client.controlConn)
+	err = client.recvServerStartMessage()
 	if err != nil {
 		return nil, err
 	}
