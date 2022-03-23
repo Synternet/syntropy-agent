@@ -13,7 +13,7 @@ type Client struct {
 	testConn    *net.UDPConn
 
 	testSequence uint32
-	stats        Statistics
+	stats        *Statistics
 	config       *clientConfig
 }
 
@@ -35,6 +35,7 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 			Timeout:       1,
 			TOS:           0,
 		},
+		stats: &Statistics{},
 	}
 
 	for _, opt := range opts {
@@ -77,7 +78,7 @@ func (c *Client) GetHost() string {
 }
 
 func (c *Client) Stats() *Statistics {
-	return &c.stats
+	return c.stats
 }
 
 func (c *Client) Close() error {
