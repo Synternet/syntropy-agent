@@ -59,12 +59,7 @@ func main() {
 		remoteIP := args[0]
 		remoteServer := fmt.Sprintf("%s:%d", remoteIP, twamp.TwampControlPort)
 
-		client, err := twamp.NewClient(remoteServer)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		session, err := client.CreateSession(
+		client, err := twamp.NewClient(remoteServer,
 			twamp.SessionConfig{
 				Port:    *port,
 				Timeout: *wait,
@@ -76,7 +71,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		test, err := session.CreateTest()
+		test, err := client.CreateTest()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -95,7 +90,6 @@ func main() {
 			fmt.Printf("--- %s twamp ping statistics ---\n", test.GetRemoteTestHost())
 			fmt.Printf("%d packets transmitted, %d packets received\n%0.1f%% packet loss %0.03f ms latency\n",
 				Stats.Tx(), Stats.Rx(), Stats.Loss(), Stats.Latency())
-			session.Stop()
 			client.Close()
 		}()
 

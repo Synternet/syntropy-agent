@@ -35,35 +35,35 @@ type AcceptSession struct {
 	HMAC   [16]byte
 }
 
-func (c *Client) CreateSession(config SessionConfig) (*Session, error) {
+func (c *Client) createSession() error {
 	// Send SessionRequest message
 	req := new(RequestSession)
 	req.Five = 5 // TODO
-	req.SenderPort = uint16(config.Port)
+	req.SenderPort = uint16(c.config.Port)
 	req.ReceiverPort = 0
-	req.PaddingLength = uint32(config.Padding)
+	req.PaddingLength = uint32(c.config.Padding)
 	req.StartTime = NewTimestamp(time.Now())
-	req.Timeout = uint64(config.Timeout)
-	req.TypeP = uint32(config.TOS)
+	req.Timeout = uint64(c.config.Timeout)
+	req.TypeP = uint32(c.config.TOS)
 
 	err := sendMessage(c.GetConnection(), req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Receive AcceptSession message
 	resp := new(AcceptSession)
 	err = receiveMessage(c.GetConnection(), resp)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = checkAcceptStatus(resp.Accept, "session")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	session := &Session{conn: c, port: resp.Port, config: config}
+	c.port = resp.Port
 
-	return session, nil
+	return nil
 }

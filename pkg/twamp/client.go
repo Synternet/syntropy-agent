@@ -13,10 +13,13 @@ type SessionConfig struct {
 
 type Client struct {
 	host string
+	port uint16
 	conn net.Conn
+
+	config SessionConfig
 }
 
-func NewClient(hostname string) (*Client, error) {
+func NewClient(hostname string, config SessionConfig) (*Client, error) {
 	// connect to remote host
 	conn, err := net.Dial("tcp", hostname)
 	if err != nil {
@@ -25,8 +28,9 @@ func NewClient(hostname string) (*Client, error) {
 
 	// create a new Connection
 	client := &Client{
-		host: hostname,
-		conn: conn,
+		host:   hostname,
+		conn:   conn,
+		config: config,
 	}
 
 	// check for greeting message from TWAMP server
@@ -47,6 +51,11 @@ func NewClient(hostname string) (*Client, error) {
 		return nil, err
 	}
 
+	err = client.createSession()
+	if err != nil {
+		return nil, err
+	}
+
 	return client, nil
 }
 
@@ -54,8 +63,9 @@ func (c *Client) GetConnection() net.Conn {
 	return c.conn
 }
 
-func (c *Client) Close() {
-	c.GetConnection().Close()
+func (c *Client) Close() error {
+	c.stopSession()
+	return c.GetConnection().Close()
 }
 
 func (c *Client) LocalAddr() net.Addr {
@@ -64,4 +74,13 @@ func (c *Client) LocalAddr() net.Addr {
 
 func (c *Client) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
+}
+
+// TODO do we need these ?
+func (c *Client) GetConfig() SessionConfig {
+	return c.config
+}
+
+func (c *Client) Write(buf []byte) {
+	c.GetConnection().Write(buf)
 }

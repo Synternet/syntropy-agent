@@ -16,7 +16,7 @@ import (
 	TWAMP test connection used for running TWAMP tests.
 */
 type TwampTest struct {
-	session *Session
+	session *Client
 	conn    *net.UDPConn
 	seq     uint32
 	stats   TwampStats
@@ -73,7 +73,7 @@ func (t *TwampTest) GetConnection() *net.UDPConn {
 /*
 	Get the underlying TWAMP control session for the TWAMP test.
 */
-func (t *TwampTest) GetSession() *Session {
+func (t *TwampTest) GetSession() *Client {
 	return t.session
 }
 
