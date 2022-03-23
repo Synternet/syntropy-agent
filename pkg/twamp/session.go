@@ -6,9 +6,9 @@ import (
 )
 
 type StartSessions struct {
-	Two  byte
-	MBZ  [15]byte
-	HMAC [16]byte
+	Command byte
+	MBZ     [15]byte
+	HMAC    [16]byte
 }
 
 type StartAck struct {
@@ -18,16 +18,16 @@ type StartAck struct {
 }
 
 type StopSessions struct {
-	Three  byte
-	Accept byte
-	MBZ    [2]byte
-	Number uint32
-	MBZ2   [8]byte
+	Command byte
+	Accept  byte
+	MBZ     [2]byte
+	Number  uint32
+	MBZ2    [8]byte
 }
 
 func (c *Client) createTest() error {
 	start := new(StartSessions)
-	start.Two = 2 // TODO: rename to command and use contants
+	start.Command = CmdStartTestSession
 	err := sendMessage(c.conn, start)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (c *Client) createTest() error {
 
 func (c *Client) stopSession() error {
 	req := new(StopSessions)
-	req.Three = 3 // TODO const
+	req.Command = CmdStopSessions
 	req.Accept = AcceptOK
 	req.Number = 1 // Stop single session
 	return sendMessage(c.conn, req)

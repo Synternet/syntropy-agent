@@ -20,3 +20,13 @@ const (
 	AcceptPermResLimitation
 	AcceptTempResLimitation
 )
+
+// TWAMP command field
+// NB this field is not marked as command ir RFC, but all uses show it as that
+const (
+	CmdRequestSession   = 1
+	CmdStartTestSession = 2
+	CmdStopSessions     = 3
+	CmdFetchSession     = 4
+	CmdRequestTwSession = 5
+)

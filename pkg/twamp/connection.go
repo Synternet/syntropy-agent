@@ -5,7 +5,7 @@ import (
 )
 
 type RequestSession struct {
-	Five          byte
+	Command       byte
 	IPVN          byte
 	ConfSender    byte
 	ConfReceiver  byte
@@ -38,7 +38,7 @@ type AcceptSession struct {
 func (c *Client) createSession() error {
 	// Send SessionRequest message
 	req := new(RequestSession)
-	req.Five = 5 // TODO
+	req.Command = CmdRequestTwSession
 	req.SenderPort = uint16(c.config.LocalPort)
 	req.ReceiverPort = 0
 	req.PaddingLength = uint32(c.config.Padding)
