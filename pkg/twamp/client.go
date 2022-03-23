@@ -10,10 +10,11 @@ type Client struct {
 	testPort uint16
 
 	controlConn net.Conn
-	//	testConn    *net.UDPConn
+	testConn    *net.UDPConn
 
-	test   *twampTest
-	config *clientConfig
+	testSequence uint32
+	stats        Statistics
+	config       *clientConfig
 }
 
 func NewClient(hostname string, opts ...clientOption) (*Client, error) {
@@ -80,7 +81,7 @@ func (c *Client) GetHost() string {
 }
 
 func (c *Client) GetStats() *Statistics {
-	return &c.test.stats
+	return &c.stats
 }
 
 func (c *Client) Close() error {

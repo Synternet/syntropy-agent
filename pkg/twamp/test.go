@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-/*
-	TWAMP test connection used for running TWAMP tests.
-*/
-type twampTest struct {
-	conn  *net.UDPConn
-	seq   uint32
-	stats Statistics
-}
-
 type TestRequest struct {
 	Sequence  uint32
 	Timestamp Timestamp
@@ -49,17 +40,17 @@ func (c *Client) localTestHost() string {
 
 // Run a TWAMP test and return a pointer to the TwampResults.
 func (c *Client) Ping() (*Statistics, error) {
-	senderSeqNum := c.test.seq
+	senderSeqNum := c.testSequence
 	padSize := c.PaddingSize()
 
-	c.test.stats.tx++
+	c.stats.tx++
 	err := c.sendTestMessage()
 	if err != nil {
 		return nil, fmt.Errorf("send test message: %s", err)
 	}
 
 	// Set timeout for test
-	err = c.test.conn.SetReadDeadline(time.Now().Add(c.config.Timeout))
+	err = c.testConn.SetReadDeadline(time.Now().Add(c.config.Timeout))
 	if err != nil {
 		return nil, fmt.Errorf("setting test deadline: %s", err)
 	}
@@ -68,7 +59,7 @@ func (c *Client) Ping() (*Statistics, error) {
 	resp := new(TestResponse)
 	buf := make([]byte, binary.Size(resp)+int(padSize))
 
-	_, _, err = c.test.conn.ReadFrom(buf)
+	_, _, err = c.testConn.ReadFrom(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +73,9 @@ func (c *Client) Ping() (*Statistics, error) {
 	}
 
 	// Successfully received and parsed message - increase rx stats
-	c.test.stats.rtt = time.Now().Sub(resp.SenderTimestamp.GetTime())
-	c.test.stats.avgRtt = (time.Duration(c.test.stats.rx)*c.test.stats.avgRtt + c.test.stats.rtt) / time.Duration(c.test.stats.rx+1)
-	c.test.stats.rx++
+	c.stats.rtt = time.Now().Sub(resp.SenderTimestamp.GetTime())
+	c.stats.avgRtt = (time.Duration(c.stats.rx)*c.stats.avgRtt + c.stats.rtt) / time.Duration(c.stats.rx+1)
+	c.stats.rx++
 
 	return c.GetStats(), nil
 }
@@ -93,11 +84,11 @@ func (c *Client) sendTestMessage() error {
 	writer := new(bytes.Buffer)
 
 	testRq := TestRequest{
-		Sequence:  c.test.seq,
+		Sequence:  c.testSequence,
 		Timestamp: NewTimestamp(time.Now()),
 		ErrorEst:  1<<8 | 1, // Synchronized, MBZ, Scale + multiplier. TODO: use constants
 	}
-	c.test.seq++
+	c.testSequence++
 
 	err := binary.Write(writer, binary.BigEndian, testRq)
 	if err != nil {
@@ -113,7 +104,7 @@ func (c *Client) sendTestMessage() error {
 		}
 	}
 
-	_, err = c.test.conn.Write(append(writer.Bytes(), padding...))
+	_, err = c.testConn.Write(append(writer.Bytes(), padding...))
 
 	return err
 }

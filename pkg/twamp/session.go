@@ -46,7 +46,6 @@ func (c *Client) createTest() error {
 		return err
 	}
 
-	c.test = &twampTest{}
 	remoteAddr, err := c.remoteTestAddr()
 	if err != nil {
 		return err
@@ -58,13 +57,13 @@ func (c *Client) createTest() error {
 	}
 
 	// Create new connection for test
-	c.test.conn, err = net.DialUDP("udp", localAddr, remoteAddr)
+	c.testConn, err = net.DialUDP("udp", localAddr, remoteAddr)
 	if err != nil {
 		return err
 	}
 
 	// Configure test connection
-	ipConn := ipv4.NewConn(c.test.conn)
+	ipConn := ipv4.NewConn(c.testConn)
 	err = ipConn.SetTOS(c.config.TOS)
 	if err != nil {
 		return err
