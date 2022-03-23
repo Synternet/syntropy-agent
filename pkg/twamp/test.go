@@ -41,7 +41,6 @@ func (c *Client) localTestHost() string {
 // Run a TWAMP test and return a pointer to the TwampResults.
 func (c *Client) Ping() (*Statistics, error) {
 	senderSeqNum := c.testSequence
-	padSize := c.PaddingSize()
 
 	c.stats.tx++
 	err := c.sendTestMessage()
@@ -57,7 +56,7 @@ func (c *Client) Ping() (*Statistics, error) {
 
 	// receive test packets. Buffer size is TestResponce struct + padding length
 	resp := new(TestResponse)
-	buf := make([]byte, binary.Size(resp)+int(padSize))
+	buf := make([]byte, binary.Size(resp)+int(c.config.PaddingSize))
 
 	_, _, err = c.testConn.ReadFrom(buf)
 	if err != nil {
@@ -77,7 +76,7 @@ func (c *Client) Ping() (*Statistics, error) {
 	c.stats.avgRtt = (time.Duration(c.stats.rx)*c.stats.avgRtt + c.stats.rtt) / time.Duration(c.stats.rx+1)
 	c.stats.rx++
 
-	return c.GetStats(), nil
+	return c.Stats(), nil
 }
 
 func (c *Client) sendTestMessage() error {
@@ -95,7 +94,7 @@ func (c *Client) sendTestMessage() error {
 		return err
 	}
 
-	padding := make([]byte, c.PaddingSize())
+	padding := make([]byte, c.config.PaddingSize)
 	if !c.config.PaddingZeroes {
 		// seed psuedo-random number generator if requested
 		rand.NewSource(int64(time.Now().Unix()))

@@ -69,7 +69,7 @@ func main() {
 		}
 
 		fmt.Printf("TWAMP PING %s: %d data bytes\n",
-			client.GetHost(), 14+client.PaddingSize())
+			remoteIP, 14+*size)
 
 		i := 0
 		t := time.NewTicker(time.Duration(*interval) * time.Second)
@@ -78,8 +78,8 @@ func main() {
 
 		defer func() {
 			t.Stop()
-			Stats := client.GetStats()
-			fmt.Printf("--- %s twamp ping statistics ---\n", client.GetHost())
+			Stats := client.Stats()
+			fmt.Printf("--- %s twamp ping statistics ---\n", remoteIP)
 			fmt.Printf("%d packets transmitted, %d packets received\n%0.1f%% packet loss %0.03f ms latency\n",
 				Stats.Tx(), Stats.Rx(), Stats.Loss(), Stats.Latency())
 			client.Close()
@@ -93,7 +93,7 @@ func main() {
 					fmt.Println("error:", err)
 				} else {
 					fmt.Printf("recv from %s: twamp_seq=%d time=%0.03f ms\n",
-						client.GetHost(), i, float32(stats.Rtt().Microseconds())/1000)
+						remoteIP, i, float32(stats.Rtt().Microseconds())/1000)
 				}
 				i++
 

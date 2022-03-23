@@ -72,27 +72,15 @@ func NewClient(hostname string, opts ...clientOption) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) PaddingSize() uint {
-	return uint(c.config.PaddingSize)
-}
-
 func (c *Client) GetHost() string {
 	return c.host
 }
 
-func (c *Client) GetStats() *Statistics {
+func (c *Client) Stats() *Statistics {
 	return &c.stats
 }
 
 func (c *Client) Close() error {
 	c.stopSession()
 	return c.controlConn.Close()
-}
-
-func (c *Client) LocalAddr() net.Addr {
-	return c.controlConn.LocalAddr()
-}
-
-func (c *Client) RemoteAddr() net.Addr {
-	return c.controlConn.RemoteAddr()
 }
