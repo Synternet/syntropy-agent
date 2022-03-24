@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	cmd     = "IFACES_PEERS_BW_DATA"
-	pkgName = "Peer_Data. "
+	cmd      = "IFACES_PEERS_BW_DATA"
+	pkgName  = "Peer_Data. "
+	PingLoss = 1.0
 )
 
 type PeerDataEntry struct {
@@ -73,14 +74,11 @@ func (msg *Message) PingProcess(pr *multiping.PingData) {
 	for _, ifaceEntry := range msg.Data {
 		for _, peerEntry := range ifaceEntry.Peers {
 			val, ok := pr.Get(peerEntry.IP)
-			if !ok {
-				logger.Warning().Println(pkgName, peerEntry.IP, "missing in ping results")
-				continue
+			if ok {
+				// format results for controler
+				peerEntry.Latency = val.Latency()
+				peerEntry.Loss = val.Loss()
 			}
-
-			// format results for controler
-			peerEntry.Latency = val.Latency()
-			peerEntry.Loss = val.Loss()
 		}
 	}
 }

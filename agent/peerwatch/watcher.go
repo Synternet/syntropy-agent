@@ -87,28 +87,30 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 				continue
 			}
 
-			// add peers to ping list
-			pingData.Add(ip)
-
 			// Format message to controller
-			var lastHandshake string
-			if !p.Stats.LastHandshake.IsZero() {
-				lastHandshake = p.Stats.LastHandshake.Format(env.TimeFormat)
+			entry := &netstats.PeerDataEntry{
+				ConnectionID: p.ConnectionID,
+				GroupID:      p.GroupID,
+				PublicKey:    p.PublicKey,
+				IP:           ip,
+				KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
+				RxBytes:      p.Stats.RxBytes,
+				TxBytes:      p.Stats.TxBytes,
+				RxSpeed:      p.Stats.RxSpeedMbps,
+				TxSpeed:      p.Stats.TxSpeedMbps,
 			}
 
-			ifaceData.Peers = append(ifaceData.Peers,
-				&netstats.PeerDataEntry{
-					ConnectionID: p.ConnectionID,
-					GroupID:      p.GroupID,
-					PublicKey:    p.PublicKey,
-					IP:           ip,
-					Handshake:    lastHandshake,
-					KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
-					RxBytes:      p.Stats.RxBytes,
-					TxBytes:      p.Stats.TxBytes,
-					RxSpeed:      p.Stats.RxSpeedMbps,
-					TxSpeed:      p.Stats.TxSpeedMbps,
-				})
+			if p.Stats.LastHandshake.IsZero() {
+				// If peer has no handshake - no reason to ping it
+				// Mark as lost at once and do not bother with it
+				entry.Loss = netstats.PingLoss
+			} else {
+				entry.Handshake = p.Stats.LastHandshake.Format(env.TimeFormat)
+				// add the peer to ping list
+				pingData.Add(ip)
+			}
+
+			ifaceData.Peers = append(ifaceData.Peers, entry)
 		}
 
 		resp.Data = append(resp.Data, ifaceData)
