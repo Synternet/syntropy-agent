@@ -4,6 +4,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
@@ -18,6 +19,11 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 	err := m.wg.AddPeer(pi)
 	if err != nil {
 		return err
+	}
+
+	err = netfilter.RulesAdd(pi.AllowedIPs...)
+	if err != nil {
+		logger.Error().Println(pkgName, "iptables rules add", err)
 	}
 
 	cacheEntry := peerCacheEntry{
@@ -84,6 +90,11 @@ func (m *Mole) RemovePeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPat
 	m.router.RouteDel(netpath, pi.AllowedIPs...)
 
 	delete(m.cache.peers, cacheKey)
+
+	err := netfilter.RulesDel(pi.AllowedIPs...)
+	if err != nil {
+		logger.Error().Println(pkgName, "iptables rules del", err)
+	}
 
 	return m.wg.RemovePeer(pi)
 }
