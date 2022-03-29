@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/internal/netfilter"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
@@ -81,11 +80,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	// Add peer to cache
 	wg.peerCacheAdd(pi)
 
-	err = netfilter.RulesAdd(pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "iptables rules add", err)
-	}
-
 	return nil
 }
 
@@ -113,11 +107,6 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
-	}
-
-	err = netfilter.RulesDel(pi.AllowedIPs...)
-	if err != nil {
-		logger.Error().Println(pkgName, "iptables rules del", err)
 	}
 
 	return nil
