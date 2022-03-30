@@ -160,6 +160,7 @@ func (mp *MultiPing) Ping(data *PingData) {
 			mp.pinger.SetIPAddr(addr)
 			if stats, ok := mp.pingData.entries[addr.IP.String()]; ok {
 				stats.tx++
+				stats.rtt = 0
 			}
 
 			mp.pinger.SendICMP(mp.sequence)
