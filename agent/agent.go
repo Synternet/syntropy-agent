@@ -29,7 +29,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/controller/script"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
@@ -107,7 +106,7 @@ func New(contype int) (*Agent, error) {
 		agent.addService(dockerWatch)
 		dockerHelper = dockerWatch
 		// SYNTROPY_CHAIN iptables rule is created only in Docker case
-		err = netfilter.CreateChain()
+		err = agent.mole.CreateChain()
 		if err != nil {
 			logger.Error().Println(pkgName, "Syntropy chain create:", err)
 		}

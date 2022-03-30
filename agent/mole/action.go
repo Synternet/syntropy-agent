@@ -40,6 +40,11 @@ func (m *Mole) Close() error {
 				}
 			}
 		}
+
+		err := m.filter.Close()
+		if err != nil {
+			logger.Error().Println(pkgName, "iptables close", err)
+		}
 	}
 
 	m.cleanupControllerRoutes()

@@ -8,6 +8,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/ipfilter"
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 )
@@ -21,6 +22,7 @@ type Mole struct {
 	writer io.Writer
 	wg     *swireguard.Wireguard
 	router *router.Router
+	filter *ipfilter.PacketFilter
 	cache  storage
 }
 
@@ -33,6 +35,11 @@ func New(w io.Writer) (*Mole, error) {
 	m.cache.init()
 
 	m.wg, err = swireguard.New()
+	if err != nil {
+		return nil, err
+	}
+
+	m.filter, err = ipfilter.New()
 	if err != nil {
 		return nil, err
 	}

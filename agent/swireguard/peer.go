@@ -162,7 +162,6 @@ func (wg *Wireguard) applyPeers(ii *InterfaceInfo) error {
 
 	// apply changes if needed
 	if len(wgconf.Peers) > 0 {
-		// TODO: what about monitoring and setting/cleaning netfilter rules ?
 		return wg.wgc.ConfigureDevice(ii.IfName, wgconf)
 	}
 
