@@ -5,6 +5,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -20,6 +21,13 @@ func (m *Mole) Router() *router.Router {
 
 // Close and cleanup
 func (m *Mole) Close() error {
+	if config.CleanupOnExit() {
+		err := m.filter.Close()
+		if err != nil {
+			logger.Error().Println(pkgName, "iptables close", err)
+		}
+	}
+
 	err := m.wg.Close()
 
 	return err

@@ -6,7 +6,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/internal/netfilter"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/webip"
 )
@@ -29,7 +28,7 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 
 	// Why this config variale configures only forward, and does not impact other iptables rules ???
 	if config.CreateIptablesRules() {
-		err = netfilter.ForwardEnable(ii.IfName)
+		err = m.filter.ForwardEnable(ii.IfName)
 		if err != nil {
 			logger.Error().Println(pkgName, "netfilter forward enable", ii.IfName, err)
 		}
@@ -79,4 +78,8 @@ func (m *Mole) RemoveInterface(ii *swireguard.InterfaceInfo) error {
 	delete(m.cache.ifaces, ii.IfName)
 
 	return err
+}
+
+func (m *Mole) CreateChain() error {
+	return m.filter.CreateChain()
 }
