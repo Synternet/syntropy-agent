@@ -36,7 +36,11 @@ func (s *PingStats) Loss() float32 {
 
 // Latency returns average latency in miliseconds
 func (s *PingStats) Latency() float32 {
-	return float32(s.avgRtt.Microseconds()) / 1000
+	if s.rx > 0 {
+		return float32(s.avgRtt.Microseconds()) / 1000
+	} else {
+		return 0
+	}
 }
 
 // Rtt returns last packet rtt
