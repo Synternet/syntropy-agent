@@ -20,11 +20,24 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"os/user"
 	"reflect"
 	"testing"
 )
 
+func checkRoot(t *testing.T) {
+	user, err := user.Current()
+	if err != nil {
+		t.Fatalf("getting current user %s", err)
+	} else if user.Uid != "0" {
+		t.Log("Skipping test. Run with root permissions for full iptables unit test")
+		// Cannot run/test iptables without root permition
+		t.Skip()
+	}
+}
+
 func TestProto(t *testing.T) {
+	checkRoot(t)
 	ipt, err := New()
 	if err != nil {
 		t.Fatalf("New failed: %v", err)
@@ -51,6 +64,7 @@ func TestProto(t *testing.T) {
 }
 
 func TestTimeout(t *testing.T) {
+	checkRoot(t)
 	ipt, err := New()
 	if err != nil {
 		t.Fatalf("New failed: %v", err)
@@ -117,6 +131,7 @@ func mustTestableIptables() []*IPTables {
 }
 
 func TestChain(t *testing.T) {
+	checkRoot(t)
 	for i, ipt := range mustTestableIptables() {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			runChainTests(t, ipt)
@@ -242,6 +257,7 @@ func runChainTests(t *testing.T, ipt *IPTables) {
 }
 
 func TestRules(t *testing.T) {
+	checkRoot(t)
 	for i, ipt := range mustTestableIptables() {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			runRulesTests(t, ipt)
@@ -427,6 +443,7 @@ func runRulesTests(t *testing.T, ipt *IPTables) {
 
 // TestError checks that we're OK when iptables fails to execute
 func TestError(t *testing.T) {
+	checkRoot(t)
 	ipt, err := New()
 	if err != nil {
 		t.Fatalf("failed to init: %v", err)
@@ -462,6 +479,7 @@ func TestError(t *testing.T) {
 }
 
 func TestIsNotExist(t *testing.T) {
+	checkRoot(t)
 	ipt, err := New()
 	if err != nil {
 		t.Fatalf("failed to init: %v", err)
@@ -531,6 +549,7 @@ func TestIsNotExist(t *testing.T) {
 }
 
 func TestIsNotExistForIPv6(t *testing.T) {
+	checkRoot(t)
 	ipt, err := New(IPFamily(ProtocolIPv6))
 	if err != nil {
 		t.Fatalf("failed to init: %v", err)
