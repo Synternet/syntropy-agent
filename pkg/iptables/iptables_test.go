@@ -33,7 +33,7 @@ func TestProto(t *testing.T) {
 		t.Fatalf("Expected default protocol IPv4, got %v", ipt.Proto())
 	}
 
-	ip4t, err := NewWithProtocol(ProtocolIPv4)
+	ip4t, err := New(IPFamily(ProtocolIPv4))
 	if err != nil {
 		t.Fatalf("NewWithProtocol(ProtocolIPv4) failed: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestProto(t *testing.T) {
 		t.Fatalf("Expected protocol IPv4, got %v", ip4t.Proto())
 	}
 
-	ip6t, err := NewWithProtocol(ProtocolIPv6)
+	ip6t, err := New(IPFamily(ProtocolIPv6))
 	if err != nil {
 		t.Fatalf("NewWithProtocol(ProtocolIPv6) failed: %v", err)
 	}
@@ -95,7 +95,7 @@ func mustTestableIptables() []*IPTables {
 	if err != nil {
 		panic(fmt.Sprintf("New failed: %v", err))
 	}
-	ip6t, err := NewWithProtocol(ProtocolIPv6)
+	ip6t, err := New(IPFamily(ProtocolIPv6))
 	if err != nil {
 		panic(fmt.Sprintf("NewWithProtocol(ProtocolIPv6) failed: %v", err))
 	}
@@ -250,7 +250,7 @@ func TestRules(t *testing.T) {
 }
 
 func runRulesTests(t *testing.T, ipt *IPTables) {
-	t.Logf("testing %s (hasWait=%t, hasCheck=%t)", getIptablesCommand(ipt.Proto()), ipt.hasWait, ipt.hasCheck)
+	t.Logf("testing %s (hasWait=%t, hasCheck=%t)", getIptablesCommand(ipt.Proto(), Default), ipt.hasWait, ipt.hasCheck)
 
 	var address1, address2, subnet1, subnet2 string
 	if ipt.Proto() == ProtocolIPv6 {
@@ -531,7 +531,7 @@ func TestIsNotExist(t *testing.T) {
 }
 
 func TestIsNotExistForIPv6(t *testing.T) {
-	ipt, err := NewWithProtocol(ProtocolIPv6)
+	ipt, err := New(IPFamily(ProtocolIPv6))
 	if err != nil {
 		t.Fatalf("failed to init: %v", err)
 	}
