@@ -23,6 +23,7 @@ func (s *PingStats) Reset() {
 	s.tx = 0
 	s.rx = 0
 	s.rtt = 0
+	s.avgRtt = 0
 }
 
 // Loss returns calculated ping loss
