@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"net"
 	"os"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -48,16 +49,23 @@ func (obj *kubernet) initClient() bool {
 func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 	res := []kubernetesServiceEntry{}
 	srvs, err := obj.klient.CoreV1().Services(config.GetNamespace()).List(obj.ctx, metav1.ListOptions{})
+
 	if err != nil {
 		logger.Error().Println(pkgName, "listing services", err)
+		return res
 	}
+
 	for _, srv := range srvs.Items {
-		if len(srv.Spec.ClusterIPs) == 0 {
+		ip := net.ParseIP(srv.Spec.ClusterIP)
+		if ip == nil {
+			// kubernetes documentation says that ClusterIP may be IP string,
+			// empty string "" or "None". Ignore non valid IPs.
 			continue
 		}
+
 		e := kubernetesServiceEntry{
 			Name:   srv.Name,
-			Subnet: srv.Spec.ClusterIPs[0],
+			Subnet: srv.Spec.ClusterIP,
 			Ports: common.Ports{
 				TCP: []uint16{},
 				UDP: []uint16{},
