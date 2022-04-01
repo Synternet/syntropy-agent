@@ -76,6 +76,7 @@ func New(contype int) (*Agent, error) {
 		err = fmt.Errorf("unexpected controller type %d", contype)
 	}
 	if err != nil {
+		logger.Error().Println(pkgName, "Controller init failure", err)
 		return nil, err
 	}
 
@@ -88,11 +89,13 @@ func New(contype int) (*Agent, error) {
 
 	agent.mole, err = mole.New(agent.controller)
 	if err != nil {
+		logger.Error().Println(pkgName, "Mole init failure", err)
 		return nil, err
 	}
 
 	agent.pinger, err = multiping.New(true)
 	if err != nil {
+		logger.Error().Println(pkgName, "Multiping init failure", err)
 		return nil, err
 	}
 
