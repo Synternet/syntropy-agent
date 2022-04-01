@@ -5,6 +5,7 @@
 package mole
 
 import (
+	"fmt"
 	"io"
 	"sync"
 
@@ -36,12 +37,12 @@ func New(w io.Writer) (*Mole, error) {
 
 	m.wg, err = swireguard.New()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("wireguard: %s", err)
 	}
 
 	m.filter, err = ipfilter.New()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ipfilter: %s", err)
 	}
 
 	m.initControllerRoutes()
