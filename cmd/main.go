@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -31,6 +33,29 @@ func requireRoot() {
 	}
 }
 
+func checkKernelVersion() {
+	// Linux kernel 5.6 was first to have wireguard included in kernel
+	// If version is lower - log warning and try to continue
+	const minVer = 5
+	const minSubver = 6
+
+	utsname := new(unix.Utsname)
+	unix.Uname(utsname)
+	str := string(utsname.Release[0:])
+	parts := strings.Split(str, ".")
+	if len(parts) < 2 {
+		logger.Warning().Println(fullAppName, "Strange kernel version", str)
+		return
+	}
+	v1, _ := strconv.Atoi(parts[0])
+	v2, _ := strconv.Atoi(parts[1])
+
+	if v1 < minVer || (v1 == minVer && v2 < minSubver) {
+		logger.Warning().Println(fullAppName, "Kernel version is:", str)
+		logger.Warning().Println(fullAppName, "Some features may be not fully supported.")
+	}
+}
+
 func main() {
 	exitCode := 0
 	defer func() { os.Exit(exitCode) }()
@@ -42,6 +67,7 @@ func main() {
 	flag.Parse()
 	if *showVersionAndExit {
 		fmt.Printf("%s (%s):\t%s\n\n", fullAppName, execName, config.GetFullVersion())
+		checkKernelVersion()
 		return
 	}
 
@@ -78,6 +104,7 @@ func main() {
 	syntropyNetAgent, err := agent.New(config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
+		checkKernelVersion()
 		exitCode = -int(unix.ENOMEM)
 		return
 	}
@@ -85,6 +112,7 @@ func main() {
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
 	logger.Info().Println(fullAppName, "Local time:", time.Now().Format(env.TimeFormat))
+	checkKernelVersion()
 
 	//Start main agent loop
 	go syntropyNetAgent.Run()
