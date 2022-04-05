@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.2
-	github.com/coreos/go-iptables v0.6.0
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/decred/base58 v1.0.4
 	github.com/docker/docker v20.10.13+incompatible
@@ -16,7 +15,7 @@ require (
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sys v0.0.0-20220317061510-51cd9980dadf
-	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220208144051-fde48d68ee68
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220330030906-9490840b0b01
 	k8s.io/apimachinery v0.23.5
 	k8s.io/client-go v0.23.5
 	pault.ag/go/modprobe v0.1.2
