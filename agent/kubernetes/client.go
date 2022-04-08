@@ -1,16 +1,12 @@
 package kubernetes
 
 import (
+	"fmt"
 	"net"
-	"os"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -18,48 +14,44 @@ const (
 	portUDP = "UDP"
 )
 
-func (obj *kubernet) initClient() bool {
-	logger.Info().Println(pkgName, "trying in cluster config")
-	kConfig, err := rest.InClusterConfig()
+func (obj *kubernet) initClient() error {
+	namespace := config.GetNamespace()
+	if len(namespace) == 0 {
+		return fmt.Errorf("SYNTROPY_NAMESPACE is not set")
+	}
+
+	var err error
+	obj.klient, err = newInCluster(namespace)
+
 	if err != nil {
-		logger.Error().Println(pkgName, "in cluster config", err)
-		logger.Info().Println(pkgName, "try fallback to out of cluster config")
-		homeDir := os.Getenv("HOME")
-		if homeDir == "" {
-			homeDir = "~"
-		}
-		configPath := homeDir + "/.kube/config"
-		kConfig, err = clientcmd.BuildConfigFromFlags("", configPath)
+		logger.Error().Println(pkgName, "in cluster initialisation failed:", err)
+		logger.Info().Println(pkgName, "trying fallback to out of cluster config")
+
+		obj.klient, err = newOutOfCluster(namespace)
 		if err != nil {
-			logger.Error().Println(pkgName, "out of cluster config", err)
-			return false
+			logger.Error().Println(pkgName, "out of cluster initialisation failed:", err)
+			return fmt.Errorf("could not initialise kubernetes client")
 		}
 	}
 
-	obj.klient, err = kubernetes.NewForConfig(kConfig)
-	if err != nil {
-		logger.Error().Println(pkgName, "kubernetes client", err)
-		return false
-	}
-	return true
+	return nil
 }
 
 // Be sure to call initClient() before
 // Caller is responsible to be sure that obj.klient is not nil
 func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 	res := []kubernetesServiceEntry{}
-	srvs, err := obj.klient.CoreV1().Services(config.GetNamespace()).List(obj.ctx, metav1.ListOptions{})
+	srvs, err := obj.klient.GetServices(obj.ctx)
 
 	if err != nil {
 		logger.Error().Println(pkgName, "listing services", err)
 		return res
 	}
 
-	for _, srv := range srvs.Items {
+	for _, srv := range srvs {
 		ip := net.ParseIP(srv.Spec.ClusterIP)
 		if ip == nil {
-			// kubernetes documentation says that ClusterIP may be IP string,
-			// empty string "" or "None". Ignore non valid IPs.
+			// Ignore non valid IPs (may be empty string "" or "none")
 			continue
 		}
 
