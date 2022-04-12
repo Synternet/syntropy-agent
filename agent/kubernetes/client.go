@@ -47,7 +47,7 @@ func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 	srvs, err := obj.klient.GetServices(obj.ctx)
 
 	if err != nil {
-		logger.Error().Println(pkgName, "listing services", err)
+		logger.Debug().Println(pkgName, "listing services", err)
 		return res
 	}
 
