@@ -20,21 +20,24 @@ func (obj *kubernet) initClient() error {
 		return fmt.Errorf("SYNTROPY_NAMESPACE is not set")
 	}
 
-	var err error
-	obj.klient, err = newInCluster(namespace)
+	var inErr, outErr error
+	obj.klient, inErr = newInCluster(namespace)
 
-	if err != nil {
-		logger.Error().Println(pkgName, "in cluster initialisation failed:", err)
-		logger.Info().Println(pkgName, "trying fallback to out of cluster config")
-
-		obj.klient, err = newOutOfCluster(namespace)
-		if err != nil {
-			logger.Error().Println(pkgName, "out of cluster initialisation failed:", err)
-			return fmt.Errorf("could not initialise kubernetes client")
-		}
+	if inErr == nil {
+		logger.Info().Println(pkgName, "using in cluster config")
+		return nil
 	}
 
-	return nil
+	obj.klient, outErr = newOutOfCluster(namespace)
+	if outErr == nil {
+		logger.Info().Println(pkgName, "using out of cluster config")
+		return nil
+	}
+
+	logger.Error().Println(pkgName, "in cluster:", inErr)
+	logger.Error().Println(pkgName, "out of cluster:", inErr)
+
+	return fmt.Errorf("could not initialise kubernetes client")
 }
 
 // Be sure to call initClient() before
