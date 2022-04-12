@@ -18,6 +18,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
 	golang.org/x/sys v0.0.0-20220406163625-3f8b81556e12
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220330030906-9490840b0b01
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	pault.ag/go/modprobe v0.1.2
 )
 
