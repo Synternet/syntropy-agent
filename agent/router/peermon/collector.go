@@ -9,12 +9,12 @@ import (
 var (
 	labels      = []string{"interface", "public_key", "internal_ip", "connection_id", "connection_group_id"}
 	descLatency = prometheus.NewDesc(
-		"latency",
+		"syntropy_platform_latency",
 		"Packet latency to connected peer",
 		labels, nil,
 	)
 	descLoss = prometheus.NewDesc(
-		"packet_loss",
+		"syntropy_platform_packet_loss",
 		"Packet loss to connected peer",
 		labels, nil,
 	)
