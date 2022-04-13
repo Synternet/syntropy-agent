@@ -12,7 +12,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/client-go/kubernetes"
+	"golang.org/x/build/kubernetes"
 )
 
 // TODO (later): in future think about optimising binary size
@@ -25,7 +25,7 @@ const (
 
 type kubernet struct {
 	writer io.Writer
-	klient *kubernetes.Clientset
+	klient *kubernetes.Client
 	msg    kubernetesInfoMessage
 	ctx    context.Context
 }
@@ -37,8 +37,9 @@ func New(w io.Writer) common.Service {
 	kub.msg.MsgType = cmd
 	kub.msg.ID = env.MessageDefaultID
 
-	if !kub.initClient() {
-		logger.Error().Println(pkgName, "failed initialising Kubernetes client")
+	err := kub.initClient()
+	if err != nil {
+		logger.Error().Println(pkgName, err)
 	}
 
 	return &kub
