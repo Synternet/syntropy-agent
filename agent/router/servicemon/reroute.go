@@ -5,60 +5,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
-	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
-	"net"
 )
-
-func addAllowedIp(ifname string, pubkey string, ip string) {
-	wgClient, _ := wgctrl.New()
-	dev, err := wgClient.Device(ifname)
-	if err != nil {
-		return
-	}
-	wgconf := wgtypes.Config{}
-	pcfg := &wgtypes.PeerConfig{}
-	for _, peer := range dev.Peers {
-		if peer.PublicKey.String() == pubkey {
-			_, ipnet, _ := net.ParseCIDR(ip)
-			pcfg.ReplaceAllowedIPs = true
-			pcfg.UpdateOnly = true
-			pcfg.AllowedIPs = append(peer.AllowedIPs, *ipnet)
-			pcfg.PublicKey = peer.PublicKey
-			pcfg.PersistentKeepaliveInterval = &peer.PersistentKeepaliveInterval
-			wgconf.Peers = append(wgconf.Peers, *pcfg)
-		}
-	}
-	wgClient.ConfigureDevice(ifname, wgconf)
-	wgClient.Close()
-}
-
-func removeAllowedIps(ip string) {
-	wgClient, _ := wgctrl.New()
-	devices, err := wgClient.Devices()
-	if err != nil {
-		return
-	}
-	for _, dev := range devices {
-		wgconf := wgtypes.Config{}
-		_, ipnet, _ := net.ParseCIDR(ip)
-		for _, peer := range dev.Peers {
-			pcfg := &wgtypes.PeerConfig{}
-			for _, allowed_ip := range peer.AllowedIPs {
-				if allowed_ip.String() != ipnet.String() {
-					pcfg.AllowedIPs = append(pcfg.AllowedIPs, allowed_ip)
-				}
-			}
-			pcfg.ReplaceAllowedIPs = true
-			pcfg.UpdateOnly = true
-			pcfg.PublicKey = peer.PublicKey
-			pcfg.PersistentKeepaliveInterval = &peer.PersistentKeepaliveInterval
-			wgconf.Peers = append(wgconf.Peers, *pcfg)
-		}
-		wgClient.ConfigureDevice(dev.Name, wgconf)
-	}
-	wgClient.Close()
-}
 
 func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
 	peersActiveData := []*peeradata.Entry{}
@@ -102,8 +49,6 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		// reset active flags
 		oldRoute.ClearFlags(rfActive)
 
-		// TODO Fix this. Currently Allowed ip has to be removed from every peer.
-		removeAllowedIps(destination)
 		// Return route change
 		return peeradata.NewEntry(oldRoute.connectionID, 0, 0)
 
@@ -117,8 +62,6 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		// set active flags
 		newRoute.SetFlag(rfActive)
 
-		// Todo should reuse Mole for setting up allowed ip.
-		addAllowedIp(newRoute.ifname, newRoute.publicKey, destination)
 		// Return route change
 		return peeradata.NewEntry(0, newRoute.connectionID, newRoute.groupID)
 
