@@ -2,6 +2,7 @@ package netstats
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -81,4 +82,18 @@ func (msg *Message) PingProcess(pr *multiping.PingData) {
 			}
 		}
 	}
+}
+
+// Add a single peer statistics to a message
+func (msg *Message) Add(ip string, latency, loss float32) error {
+	for _, ifaceEntry := range msg.Data {
+		for _, peerEntry := range ifaceEntry.Peers {
+			if peerEntry.IP == ip {
+				peerEntry.Latency = latency
+				peerEntry.Loss = loss
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("ip %s not found", ip)
 }
