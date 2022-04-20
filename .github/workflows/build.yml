@@ -108,3 +108,4 @@ jobs:
             syntropynet/agent:stable
             syntropynet/agent:latest
             syntropynet/agent:${{ steps.previoustag.outputs.tag }}
+            
