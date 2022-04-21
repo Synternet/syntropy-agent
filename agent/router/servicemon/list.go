@@ -73,20 +73,23 @@ func (rl *routeList) GetActive() *routeEntry {
 	return nil
 }
 
-func (rl *routeList) Add(re *routeEntry) {
+func (rl *routeList) Add(newRoute *routeEntry) {
 	// Dupplicate entries happen when WSS connection was lost
 	// and after reconnecting controller sends whole config
-	for _, r := range rl.list {
-		if r.gateway == re.gateway {
+	for _, currRoute := range rl.list {
+		if currRoute.gateway == newRoute.gateway {
 			// skip dupplicate entry
+			//but clean delete flag
+			logger.Debug().Println(pkgName, "reset delete", currRoute.connectionID, newRoute.gateway)
+			currRoute.ClearFlags(rfPendingDel)
 			return
 		}
 	}
 
-	re.SetFlag(rfPendingAdd)
+	newRoute.SetFlag(rfPendingAdd)
 	// Note: active flag will be marked on apply
 
-	rl.list = append(rl.list, re)
+	rl.list = append(rl.list, newRoute)
 }
 
 func (rl *routeList) MarkDel(gateway string) {
@@ -107,4 +110,11 @@ func (rl *routeList) Find(gateway string) *routeEntry {
 		}
 	}
 	return nil
+}
+
+func (rl *routeList) Flush() {
+	for _, r := range rl.list {
+		logger.Debug().Println(pkgName, "mark delete", r.connectionID)
+		r.SetFlag(rfPendingDel)
+	}
 }

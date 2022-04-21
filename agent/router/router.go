@@ -102,3 +102,14 @@ func (r *Router) Close() error {
 
 	return nil
 }
+
+func (r *Router) Flush() {
+	r.Lock()
+	defer r.Unlock()
+
+	for _, route := range r.routes {
+		route.peerMonitor.Flush()
+		route.serviceMonitor.Flush()
+	}
+
+}
