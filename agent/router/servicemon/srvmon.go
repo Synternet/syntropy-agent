@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const pkgName = "ServiceMonitor. "
@@ -56,4 +57,24 @@ func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip string) error {
 	sm.routes[ip].MarkDel(netpath.Gateway)
 
 	return nil
+}
+
+func (sm *ServiceMonitor) Close() error {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for ip, rl := range sm.routes {
+		rl.ClearRoute(ip)
+	}
+	return nil
+}
+
+func (sm *ServiceMonitor) Flush() {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for ip, rl := range sm.routes {
+		logger.Debug().Println(pkgName, "Flushing", ip)
+		rl.Flush()
+	}
 }

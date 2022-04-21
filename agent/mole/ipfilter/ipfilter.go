@@ -142,3 +142,9 @@ func (pf *PacketFilter) Close() error {
 	// TODO: cleanup configured iptables rules on exit
 	return nil
 }
+
+func (pf *PacketFilter) Flush() {
+	// TODO: Flush is called when new configuration is received.
+	// Think about marking roles for deletion
+	// NB: need to introduce some kind of cache
+}

@@ -77,3 +77,38 @@ func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 
 	return r.serviceApply()
 }
+
+func (r *Router) Close() error {
+	if !config.CleanupOnExit() {
+		return nil
+	}
+
+	r.Lock()
+	defer r.Unlock()
+
+	var err error
+	for id, route := range r.routes {
+		err = route.peerMonitor.Close()
+		if err != nil {
+			logger.Error().Println(pkgName, "peer monitor", id, "Close", err)
+		}
+
+		err = route.serviceMonitor.Close()
+		if err != nil {
+			logger.Error().Println(pkgName, "service monitor", id, "Close", err)
+		}
+	}
+
+	return nil
+}
+
+func (r *Router) Flush() {
+	r.Lock()
+	defer r.Unlock()
+
+	for _, route := range r.routes {
+		route.peerMonitor.Flush()
+		route.serviceMonitor.Flush()
+	}
+
+}

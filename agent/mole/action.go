@@ -35,7 +35,9 @@ func (m *Mole) Close() error {
 
 // Flush old cache (prepare to build new cache)
 func (m *Mole) Flush() {
+	m.filter.Flush()
 	m.wg.Flush()
+	m.router.Flush()
 }
 
 // Apply pending results (sync cache to reality)
