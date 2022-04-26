@@ -18,7 +18,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerwatch"
-	"github.com/SyntropyNet/syntropy-agent/agent/pingsrv"
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
@@ -156,7 +155,6 @@ func New(contype int) (*Agent, error) {
 		shellcmd.New("wg_info", "wg", "show"),
 		shellcmd.New("routes", "route", "-n"),
 		autoping))
-	agent.addService(pingsrv.New())
 
 	return agent, nil
 }

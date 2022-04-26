@@ -62,11 +62,7 @@ test:
 clean:
 	go clean
 	rm -f $(APPNAME)
-	rm -f twamp
 
 distclean: clean
 	rm -rf target
 	rm -rf wireguard-go
-
-twamp:
-	go build -o twamp pkg/twamp/cmd/main.go
