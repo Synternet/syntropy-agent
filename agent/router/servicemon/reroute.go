@@ -7,11 +7,17 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
-func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) []*peeradata.Entry {
-	peersActiveData := []*peeradata.Entry{}
+func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.Entry {
+	connID := 0
+	if selroute != nil {
+		connID = selroute.ID
+	}
 
 	sm.Lock()
-	defer sm.Unlock()
+	defer func() {
+		sm.connectionID = connID
+		sm.Unlock()
+	}()
 
 	for dest, routeList := range sm.routes {
 		currRoute := routeList.GetActive()
@@ -23,17 +29,14 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) []*peeradata.
 			}
 		}
 
-		ret := routeList.Reroute(newRoute, currRoute, dest)
-		if ret != nil {
-			peersActiveData = append(peersActiveData, ret)
-		}
+		routeList.Reroute(newRoute, currRoute, dest)
 	}
 
-	return peersActiveData
+	return peeradata.NewEntry(sm.connectionID, connID, 0) // TODO: GroupID
 }
 
 // Reroute one routeList (aka Service Group)
-func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string) *peeradata.Entry {
+func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string) error {
 	switch {
 	case newRoute == oldRoute:
 		// Nothing to change
@@ -49,9 +52,6 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		// reset active flags
 		oldRoute.ClearFlags(rfActive)
 
-		// Return route change
-		return peeradata.NewEntry(oldRoute.connectionID, 0, 0)
-
 	case oldRoute == nil:
 		// No previous active route was present. Set new route
 		logger.Info().Println(pkgName, "add route", destination, newRoute.ifname)
@@ -61,9 +61,6 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		}
 		// set active flags
 		newRoute.SetFlag(rfActive)
-
-		// Return route change
-		return peeradata.NewEntry(0, newRoute.connectionID, newRoute.groupID)
 
 	default:
 		// Change the route to new active
@@ -75,8 +72,6 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 		// change active flags
 		oldRoute.ClearFlags(rfActive)
 		newRoute.SetFlag(rfActive)
-
-		// Return route change
-		return peeradata.NewEntry(oldRoute.connectionID, newRoute.connectionID, newRoute.groupID)
 	}
+	return nil
 }
