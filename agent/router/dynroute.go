@@ -35,7 +35,7 @@ func (obj *Router) execute() {
 
 	for _, routeGroup := range obj.routes {
 		rv := routeGroup.serviceMonitor.Reroute(routeGroup.peerMonitor.BestPath())
-		resp.Add(rv...)
+		resp.Add(rv)
 	}
 
 	if len(resp.Data) > 0 {

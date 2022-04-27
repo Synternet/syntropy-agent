@@ -13,11 +13,12 @@ import (
 func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 	var routeStatusCons []*routestatus.Connection
 	var peersActiveData []*peeradata.Entry
-	var routeStatus *routestatus.Connection
-	var padEntry *peeradata.Entry
 	var deleteIPs []string
+
 	sm.Lock()
 	defer sm.Unlock()
+
+	bestRoute := sm.routeMonitor.BestPath()
 
 	for ip, rl := range sm.routes {
 		add, del := rl.Pending()
@@ -30,28 +31,24 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 		rl.Dump()
 
 		if add == count && del == 0 {
-			routeStatus, padEntry = rl.SetRoute(ip)
+			routeStatus, _ := rl.SetRoute(ip)
+			if routeStatus != nil {
+				routeStatusCons = append(routeStatusCons, routeStatus)
+			}
 		} else if del == count && add == 0 {
-			routeStatus, padEntry = rl.ClearRoute(ip)
+			rl.ClearRoute(ip)
 			// It is dangerous to delete map entry while iterating.
 			// Put a mark for later deletion
 			deleteIPs = append(deleteIPs, ip)
 		} else {
-			bestRoute := sm.reroutePath.BestPath()
 			if bestRoute != nil {
-				routeStatus, padEntry = rl.MergeRoutes(ip, bestRoute.IP)
+				rl.MergeRoutes(ip, bestRoute.IP)
 			} else {
-				routeStatus, padEntry = rl.MergeRoutes(ip, peermon.NoRoute)
+				rl.MergeRoutes(ip, peermon.NoRoute)
 			}
 
 		}
 
-		if routeStatus != nil {
-			routeStatusCons = append(routeStatusCons, routeStatus)
-		}
-		if padEntry != nil {
-			peersActiveData = append(peersActiveData, padEntry)
-		}
 	}
 
 	// Safely remove deleted entries
@@ -59,10 +56,21 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 		delete(sm.routes, ip)
 	}
 
+	newConnID := 0
+	// Format response message
+	if len(sm.routes) > 0 && bestRoute != nil {
+		newConnID = bestRoute.ID
+	}
+
+	if sm.connectionID != newConnID {
+		peersActiveData = append(peersActiveData,
+			peeradata.NewEntry(sm.connectionID, newConnID, 0)) // TODO: GroupID
+		sm.connectionID = newConnID
+	}
 	return routeStatusCons, peersActiveData
 }
 
-func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *peeradata.Entry) {
+func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, error) {
 	defer rl.resetPending()
 
 	routeConflict, conflictIfName := netcfg.RouteConflict(destination)
@@ -85,7 +93,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *pee
 			logger.Error().Println(pkgName, "route add error:", err)
 		}
 		return routestatus.NewConnection(route.connectionID, route.groupID, routeRes),
-			peeradata.NewEntry(0, route.connectionID, route.groupID)
+			nil
 	}
 
 	// Route already exists. Check if it was configured earlier and is valid
@@ -100,24 +108,24 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, *pee
 			// Return route added OK
 			return routestatus.NewConnection(route.connectionID, route.groupID,
 					routestatus.NewEntry(destination, nil)),
-				peeradata.NewEntry(0, route.connectionID, route.groupID)
+				nil
 		}
 	}
 
 	// Route exists but is unknown - inform error
 	err := fmt.Errorf("route to %s exists on %s", destination, conflictIfName)
 	logger.Error().Println(pkgName, "route add error:", err)
-	return nil, nil
+	return nil, err
 }
 
-func (rl *routeList) ClearRoute(destination string) (*routestatus.Connection, *peeradata.Entry) {
+func (rl *routeList) ClearRoute(destination string) error {
 	defer rl.resetPending()
 
 	logger.Debug().Println(pkgName, "Apply/ClearRoute", destination)
 
 	route := rl.GetActive()
 	if route == nil {
-		return nil, nil
+		return nil
 	}
 
 	err := netcfg.RouteDel(route.ifname, destination)
@@ -126,11 +134,10 @@ func (rl *routeList) ClearRoute(destination string) (*routestatus.Connection, *p
 	}
 	route.ClearFlags(rfActive)
 
-	return nil,
-		peeradata.NewEntry(route.connectionID, 0, route.groupID)
+	return nil
 }
 
-func (rl *routeList) MergeRoutes(destination string, newgw string) (*routestatus.Connection, *peeradata.Entry) {
+func (rl *routeList) MergeRoutes(destination string, newgw string) error {
 	logger.Debug().Println(pkgName, "Apply/MergeRoute ", destination)
 
 	activeRoute := rl.GetActive()
@@ -159,5 +166,5 @@ func (rl *routeList) MergeRoutes(destination string, newgw string) (*routestatus
 	rl.resetPending()
 
 	// Reuse reroute function to do actual job
-	return nil, rl.Reroute(newRoute, activeRoute, destination)
+	return rl.Reroute(newRoute, activeRoute, destination)
 }

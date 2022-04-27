@@ -13,14 +13,16 @@ const pkgName = "ServiceMonitor. "
 
 type ServiceMonitor struct {
 	sync.Mutex
-	routes      map[string]*routeList
-	reroutePath peermon.PathSelector
+	routes       map[string]*routeList
+	routeMonitor peermon.PathSelector
+	connectionID int
 }
 
 func New(ps peermon.PathSelector) *ServiceMonitor {
 	return &ServiceMonitor{
-		routes:      make(map[string]*routeList),
-		reroutePath: ps,
+		routes:       make(map[string]*routeList),
+		routeMonitor: ps,
+		connectionID: 0,
 	}
 }
 
