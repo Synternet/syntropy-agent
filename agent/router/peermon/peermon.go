@@ -24,6 +24,15 @@ const (
 	reasonLatency
 )
 
+type SelectedRoute struct {
+	IP string // best route IP address
+	ID int    // ConnectionID of the best route
+}
+
+type PathSelector interface {
+	BestPath() *SelectedRoute
+}
+
 type PeerMonitor struct {
 	sync.RWMutex
 	peerList      []*peerInfo
@@ -126,13 +135,13 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 //  * possible lowest latency
 // But in order for not to fluctuate between 2 routes, when latency is the same
 // so once one best route is found - do not switch to another route, unless it is (betterPercent)% better
-func (pm *PeerMonitor) BestPath() string {
+func (pm *PeerMonitor) BestPath() *SelectedRoute {
 	pm.RLock()
 	defer pm.RUnlock()
 
 	if len(pm.peerList) == 0 {
 		pm.lastBest = invalidBestIndex
-		return NoRoute
+		return nil
 	}
 
 	// find currently best route
@@ -153,10 +162,13 @@ func (pm *PeerMonitor) BestPath() string {
 
 	lossThreshold := config.GetRouteDeleteThreshold()
 	if lossThreshold > 0 && pm.peerList[pm.lastBest].Loss()*100 >= float32(lossThreshold) {
-		return NoRoute
+		return nil
 	}
 
-	return pm.peerList[pm.lastBest].ip
+	return &SelectedRoute{
+		IP: pm.peerList[pm.lastBest].ip,
+		ID: pm.peerList[pm.lastBest].connectionID,
+	}
 }
 
 // This function compares currently active best with newly calculated best route
