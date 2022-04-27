@@ -63,10 +63,10 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 		newConnID = bestRoute.ID
 	}
 
-	if sm.connectionID != newConnID {
+	if sm.activeConnectionID != newConnID {
 		peersActiveData = append(peersActiveData,
-			peeradata.NewEntry(sm.connectionID, newConnID, sm.groupID))
-		sm.connectionID = newConnID
+			peeradata.NewEntry(sm.activeConnectionID, newConnID, sm.groupID))
+		sm.activeConnectionID = newConnID
 	}
 	return routeStatusCons, peersActiveData
 }
