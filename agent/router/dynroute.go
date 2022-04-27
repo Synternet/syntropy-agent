@@ -4,12 +4,10 @@
 package router
 
 import (
-	"encoding/json"
 	"io"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (
@@ -35,19 +33,10 @@ func (obj *Router) execute() {
 
 	for _, routeGroup := range obj.routes {
 		rv := routeGroup.serviceMonitor.Reroute(routeGroup.peerMonitor.BestPath())
-		resp.Add(rv)
-	}
-
-	if len(resp.Data) > 0 {
-		resp.Now()
-		raw, err := json.Marshal(resp)
-		if err != nil {
-			logger.Error().Println(pkgName, err)
-			return
+		if rv != nil {
+			resp.Add(rv)
 		}
-
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
-		obj.writer.Write(raw)
 	}
 
+	resp.Send(obj.writer)
 }
