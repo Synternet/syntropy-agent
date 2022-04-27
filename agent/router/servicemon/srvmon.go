@@ -5,22 +5,19 @@ import (
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const pkgName = "ServiceMonitor. "
 
-type PathSelector interface {
-	BestPath() string
-}
-
 type ServiceMonitor struct {
 	sync.Mutex
 	routes      map[string]*routeList
-	reroutePath PathSelector
+	reroutePath peermon.PathSelector
 }
 
-func New(ps PathSelector) *ServiceMonitor {
+func New(ps peermon.PathSelector) *ServiceMonitor {
 	return &ServiceMonitor{
 		routes:      make(map[string]*routeList),
 		reroutePath: ps,

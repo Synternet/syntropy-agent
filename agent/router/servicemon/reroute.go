@@ -7,7 +7,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
-func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
+func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) []*peeradata.Entry {
 	peersActiveData := []*peeradata.Entry{}
 
 	sm.Lock()
@@ -16,10 +16,10 @@ func (sm *ServiceMonitor) Reroute(newgw string) []*peeradata.Entry {
 	for dest, routeList := range sm.routes {
 		currRoute := routeList.GetActive()
 		var newRoute *routeEntry = nil
-		if newgw != peermon.NoRoute {
-			newRoute = routeList.Find(newgw)
+		if selroute != nil {
+			newRoute = routeList.Find(selroute.IP)
 			if newRoute == nil {
-				logger.Error().Println(pkgName, "New route ", newgw, "not found.")
+				logger.Error().Println(pkgName, "New route ", selroute.IP, "not found.")
 			}
 		}
 
