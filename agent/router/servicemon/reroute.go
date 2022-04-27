@@ -14,10 +14,7 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 	}
 
 	sm.Lock()
-	defer func() {
-		sm.connectionID = connID
-		sm.Unlock()
-	}()
+	defer sm.Unlock()
 
 	for dest, routeList := range sm.routes {
 		currRoute := routeList.GetActive()
@@ -32,7 +29,12 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 		routeList.Reroute(newRoute, currRoute, dest)
 	}
 
-	return peeradata.NewEntry(sm.connectionID, connID, 0) // TODO: GroupID
+	var rv *peeradata.Entry
+	if sm.connectionID != connID {
+		rv = peeradata.NewEntry(sm.connectionID, connID, 0) // TODO: GroupID
+		sm.connectionID = connID
+	}
+	return rv
 }
 
 // Reroute one routeList (aka Service Group)
