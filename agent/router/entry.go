@@ -11,17 +11,12 @@ type routerGroupEntry struct {
 	serviceMonitor *servicemon.ServiceMonitor
 }
 
-func newRouteGroupEntry() *routerGroupEntry {
-	rge := &routerGroupEntry{}
-	rge.peerMonitor = peermon.New(config.PeerCheckWindow())
-	rge.serviceMonitor = servicemon.New(rge.peerMonitor)
-	return rge
-}
-
 func (r *Router) findOrCreate(groupID int) *routerGroupEntry {
 	routesGroup, ok := r.routes[groupID]
 	if !ok {
-		routesGroup = newRouteGroupEntry()
+		routesGroup = new(routerGroupEntry)
+		routesGroup.peerMonitor = peermon.New(config.PeerCheckWindow())
+		routesGroup.serviceMonitor = servicemon.New(routesGroup.peerMonitor, groupID)
 		r.routes[groupID] = routesGroup
 	}
 	return routesGroup
