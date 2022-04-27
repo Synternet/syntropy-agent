@@ -31,7 +31,7 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 
 	var rv *peeradata.Entry
 	if sm.connectionID != connID {
-		rv = peeradata.NewEntry(sm.connectionID, connID, 0) // TODO: GroupID
+		rv = peeradata.NewEntry(sm.connectionID, connID, sm.groupID)
 		sm.connectionID = connID
 	}
 	return rv

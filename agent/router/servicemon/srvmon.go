@@ -15,13 +15,15 @@ type ServiceMonitor struct {
 	sync.Mutex
 	routes       map[string]*routeList
 	routeMonitor peermon.PathSelector
+	groupID      int
 	connectionID int
 }
 
-func New(ps peermon.PathSelector) *ServiceMonitor {
+func New(ps peermon.PathSelector, gid int) *ServiceMonitor {
 	return &ServiceMonitor{
 		routes:       make(map[string]*routeList),
 		routeMonitor: ps,
+		groupID:      gid,
 		connectionID: 0,
 	}
 }
