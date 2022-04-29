@@ -113,10 +113,12 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 		}
 
 		for name, net := range c.NetworkSettings.Networks {
-			if net.IPAddress != "" {
-				ci.Networks = append(ci.Networks, name)
-				ci.IPs = append(ci.IPs, net.IPAddress)
+			if net.IPAddress == "" {
+				logger.Warning().Println(pkgName, "Ignoring", name, ": container has no valid network address")
+				continue
 			}
+			ci.Networks = append(ci.Networks, name)
+			ci.IPs = append(ci.IPs, net.IPAddress)
 		}
 
 		for _, p := range c.Ports {
