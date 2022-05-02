@@ -7,9 +7,9 @@ import (
 )
 
 type Entry struct {
-	PreviousConnID int    `json:"prev_connection_id,omitempty"`
+	PreviousConnID int    `json:"prev_connection_id"`
 	ConnectionID   int    `json:"connection_id"`
-	GroupID        int    `json:"connection_group_id,omitempty"`
+	GroupID        int    `json:"connection_group_id"`
 	Timestamp      string `json:"timestamp"`
 }
 
