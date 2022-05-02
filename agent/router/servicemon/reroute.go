@@ -7,6 +7,13 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
+func (sm *ServiceMonitor) Count() int {
+	sm.Lock()
+	defer sm.Unlock()
+
+	return len(sm.routes)
+}
+
 func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.Entry {
 	connID := 0
 	if selroute != nil {
@@ -15,6 +22,11 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 
 	sm.Lock()
 	defer sm.Unlock()
+
+	// nothing to do if no services are configured
+	if len(sm.routes) == 0 {
+		return nil
+	}
 
 	for dest, routeList := range sm.routes {
 		currRoute := routeList.GetActive()
