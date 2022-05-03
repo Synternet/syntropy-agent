@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         go-version: 
-          - 1.17.x
+          - 1.18.x
         wireguard-version:
           - 0.0.20211016
     runs-on: ubuntu-latest
