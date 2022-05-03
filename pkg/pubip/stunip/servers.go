@@ -12,7 +12,5 @@ var stunServers []string = []string{
 	"stun.ipfire.org:3478",
 	"stun.linphone.org:3478",
 	"stun.miwifi.com:3478",
-	"stun.antisip.com:3478",
 	"stun.sip.us:3478",
-	"stun.sipnet.net:3478",
 }
