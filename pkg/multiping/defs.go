@@ -1,6 +1,6 @@
 package multiping
 
-import "net"
+import "net/netip"
 
 const (
 	timeSliceLength  = 8
@@ -26,5 +26,5 @@ type packet struct {
 	nbytes int
 	ttl    int
 	proto  ProtocolVersion
-	src    net.Addr
+	src    netip.Addr
 }

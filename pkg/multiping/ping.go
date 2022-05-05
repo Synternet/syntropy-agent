@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"net/netip"
 	"syscall"
 	"time"
 
@@ -27,7 +28,6 @@ func NewPinger(network, protocol string, id int) *Pinger {
 
 		id:       id,
 		ipaddr:   nil,
-		ipv4:     false,
 		network:  network,
 		protocol: protocol,
 	}
@@ -42,8 +42,7 @@ type Pinger struct {
 	// Tracker: Used to uniquely identify packet when non-priviledged
 	Tracker int64
 
-	ipaddr *net.IPAddr
-	ipv4   bool
+	ipaddr *netip.Addr
 
 	id int
 	// network is one of "ip", "ip4", or "ip6".
@@ -59,14 +58,12 @@ type Pinger struct {
 }
 
 // SetIPAddr sets the ip address of the target host.
-func (p *Pinger) SetIPAddr(ipaddr *net.IPAddr) {
-	p.ipv4 = isIPv4(ipaddr.IP)
-
+func (p *Pinger) SetIPAddr(ipaddr *netip.Addr) {
 	p.ipaddr = ipaddr
 }
 
 // IPAddr returns the ip address of the target host.
-func (p *Pinger) IPAddr() *net.IPAddr {
+func (p *Pinger) IPAddr() *netip.Addr {
 	return p.ipaddr
 }
 
@@ -100,15 +97,17 @@ func (p *Pinger) SendICMP(sequence int) error {
 		return errInvalidIpAddr
 	}
 	var typ icmp.Type
-	if p.ipv4 {
+	if p.ipaddr.Is4() {
 		typ = ipv4.ICMPTypeEcho
 	} else {
 		typ = ipv6.ICMPTypeEchoRequest
 	}
 
-	var dst net.Addr = p.ipaddr
+	var dst net.Addr
 	if p.protocol == "udp" {
-		dst = &net.UDPAddr{IP: p.ipaddr.IP, Zone: p.ipaddr.Zone}
+		dst = &net.UDPAddr{IP: p.ipaddr.AsSlice(), Zone: p.ipaddr.Zone()}
+	} else {
+		dst = &net.IPAddr{IP: p.ipaddr.AsSlice()}
 	}
 
 	t := append(timeToBytes(time.Now()), intToBytes(p.Tracker)...)
@@ -134,7 +133,7 @@ func (p *Pinger) SendICMP(sequence int) error {
 	}
 
 	for {
-		if p.ipv4 {
+		if p.ipaddr.Is4() {
 			if _, err := p.conn4.WriteTo(msgBytes, dst); err != nil {
 				if neterr, ok := err.(*net.OpError); ok {
 					if neterr.Err == syscall.ENOBUFS {

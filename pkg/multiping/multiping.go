@@ -22,6 +22,7 @@ import (
 	"context"
 	"math/rand"
 	"net"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -121,22 +122,6 @@ func (mp *MultiPing) Ping(data *PingData) {
 
 	// Some subfunctions in goroutines will need this pointer to store ping results
 	mp.pingData = data
-	ipAddrs := []*net.IPAddr{}
-
-	// TODO when GO1.18 will have netip struct, use netip address as index instead of string
-	// And remove this address resolve
-	for host, stats := range mp.pingData.entries {
-		ip, err := net.ResolveIPAddr(mp.network, host)
-		if err != nil {
-			// ResolveIP failed. I should not return here, so instead I increment Tx packet count
-			// And this (invalid) host will result to ping loss.
-			// Its up to caller to pass me valid addresses
-			stats.tx++
-			stats.rtt = 0
-			continue
-		}
-		ipAddrs = append(ipAddrs, ip)
-	}
 
 	var wg sync.WaitGroup
 	wg.Add(1) // Sender goroutine
@@ -156,12 +141,10 @@ func (mp *MultiPing) Ping(data *PingData) {
 	// Sender goroutine
 	go func() {
 		defer wg.Done()
-		for _, addr := range ipAddrs {
-			mp.pinger.SetIPAddr(addr)
-			if stats, ok := mp.pingData.entries[addr.IP.String()]; ok {
-				stats.tx++
-				stats.rtt = 0
-			}
+		for addr, stats := range mp.pingData.entries {
+			mp.pinger.SetIPAddr(&addr)
+			stats.tx++
+			stats.rtt = 0
 
 			mp.pinger.SendICMP(mp.sequence)
 			time.Sleep(time.Millisecond)
@@ -172,6 +155,8 @@ func (mp *MultiPing) Ping(data *PingData) {
 
 	// Invalidate pingData pointer (prevent from possible data corruption in future)
 	mp.pingData = nil
+	// Invalidate IP address
+	mp.pinger.SetIPAddr(nil)
 }
 
 func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
@@ -189,6 +174,7 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 			var n, ttl int
 			var err error
 			var src net.Addr
+			var addr netip.Addr
 
 			if proto == ProtocolIpv4 {
 				mp.conn4.SetReadDeadline(time.Now().Add(mp.Timeout / 10))
@@ -219,7 +205,14 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 			}
 
 			packetsWait.Add(1)
-			recv := &packet{bytes: bytes, nbytes: n, ttl: ttl, proto: proto, src: src}
+
+			// TODO: maybe there is more effective way to get netip.Addr from PacketConn ?
+			addr, err = netip.ParseAddr(src.String())
+			if err != nil {
+				// When can this happen ??
+				continue
+			}
+			recv := &packet{bytes: bytes, nbytes: n, ttl: ttl, proto: proto, src: addr}
 			go mp.processPacket(&packetsWait, recv)
 		}
 	}
@@ -272,16 +265,7 @@ func (mp *MultiPing) processPacket(wait *sync.WaitGroup, recv *packet) {
 		return
 	}
 
-	var ip string
-	if mp.protocol == "udp" {
-		if ip, _, err = net.SplitHostPort(recv.src.String()); err != nil {
-			return
-		}
-	} else {
-		ip = recv.src.String()
-	}
-
-	if stats, ok := mp.pingData.entries[ip]; ok {
+	if stats, ok := mp.pingData.entries[recv.src]; ok {
 		stats.rtt = time.Since(timestamp)
 		stats.avgRtt = (time.Duration(stats.rx)*stats.avgRtt + stats.rtt) / time.Duration(stats.rx+1)
 		stats.rx++

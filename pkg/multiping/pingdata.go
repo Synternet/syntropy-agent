@@ -1,6 +1,7 @@
 package multiping
 
 import (
+	"net/netip"
 	"sync"
 	"time"
 )
@@ -52,12 +53,12 @@ func (s *PingStats) Rtt() time.Duration {
 // Use Add, Get and Iterate functions. No internal logic will be exposed.
 type PingData struct {
 	mutex   sync.RWMutex
-	entries map[string]*PingStats
+	entries map[netip.Addr]*PingStats
 }
 
 func NewPingData() *PingData {
 	return &PingData{
-		entries: make(map[string]*PingStats),
+		entries: make(map[netip.Addr]*PingStats),
 	}
 }
 
@@ -66,7 +67,12 @@ func (pr *PingData) Add(hosts ...string) {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
-	for _, ip := range hosts {
+	for _, ipstr := range hosts {
+		ip, err := netip.ParseAddr(ipstr)
+		if err != nil {
+			continue
+		}
+
 		pr.entries[ip] = &PingStats{}
 	}
 }
@@ -76,7 +82,11 @@ func (pr *PingData) Del(hosts ...string) {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
-	for _, ip := range hosts {
+	for _, ipstr := range hosts {
+		ip, err := netip.ParseAddr(ipstr)
+		if err != nil {
+			continue
+		}
 		delete(pr.entries, ip)
 	}
 }
@@ -133,7 +143,12 @@ func (pr *PingData) Count() int {
 }
 
 // Get searches for ping statistics of a host
-func (pr *PingData) Get(ip string) (PingStats, bool) {
+func (pr *PingData) Get(ipstr string) (PingStats, bool) {
+	ip, err := netip.ParseAddr(ipstr)
+	if err != nil {
+		return PingStats{}, false
+	}
+
 	pr.mutex.RLock()
 	defer pr.mutex.RUnlock()
 
@@ -151,6 +166,6 @@ func (pr *PingData) Iterate(callback func(ip string, val PingStats)) {
 	defer pr.mutex.RUnlock()
 
 	for key, val := range pr.entries {
-		callback(key, *val)
+		callback(key.String(), *val)
 	}
 }
