@@ -2,6 +2,7 @@ package multiping
 
 import (
 	"fmt"
+	"net/netip"
 	"testing"
 )
 
@@ -40,31 +41,31 @@ func TestPingData(t *testing.T) {
 func TestAppend(t *testing.T) {
 	// Fake ping data #1
 	data := NewPingData()
-	data.entries["192.168.1.1"] = &PingStats{
+	data.entries[netip.MustParseAddr("192.168.1.1")] = &PingStats{
 		tx:     1,
 		rx:     1,
 		rtt:    100,
 		avgRtt: 100,
 	}
-	data.entries["192.168.1.2"] = &PingStats{
+	data.entries[netip.MustParseAddr("192.168.1.2")] = &PingStats{
 		tx: 1,
 	}
 
 	// fake ping data #2
 	more := NewPingData()
-	more.entries["192.168.1.1"] = &PingStats{
+	more.entries[netip.MustParseAddr("192.168.1.1")] = &PingStats{
 		tx:     2,
 		rx:     2,
 		rtt:    400,
 		avgRtt: 40,
 	}
-	more.entries["192.168.1.2"] = &PingStats{
+	more.entries[netip.MustParseAddr("192.168.1.2")] = &PingStats{
 		tx:     1,
 		rx:     1,
 		rtt:    111,
 		avgRtt: 111,
 	}
-	more.entries["10.10.0.2"] = &PingStats{
+	more.entries[netip.MustParseAddr("10.10.0.2")] = &PingStats{
 		tx:     1,
 		rx:     1,
 		rtt:    102,
