@@ -16,13 +16,13 @@ func TestMultiping(t *testing.T) {
 	}
 
 	var invalidHost = "some.invalid.host"
-	for i := 1; i < maxCount; i++ {
+	for i := 1; i <= maxCount; i++ {
 		data.Add(fmt.Sprintf("127.0.0.%d", i))
 	}
 	data.Add(invalidHost)
 	pinger.Ping(data)
 	if data.Count() != maxCount {
-		t.Errorf("Pinger corrupts ping data")
+		t.Errorf("Pinger accepts invald IP address")
 	}
 
 	val, ok := data.Get("127.0.0.1")
@@ -37,14 +37,14 @@ func TestMultiping(t *testing.T) {
 	}
 
 	val, ok = data.Get(invalidHost)
-	if !ok {
-		t.Errorf("Expected invalid host missing")
+	if ok {
+		t.Errorf("Pinger has invalid host")
 	}
-	if val.Loss() == 0 {
-		t.Errorf("Invalid host ping failed")
+	if val.Loss() != 0 {
+		t.Errorf("Non existing host invalid loss")
 	}
 	if val.Latency() != 0 {
-		t.Errorf("Invalid host bad latency")
+		t.Errorf("Non existing host invalid latency")
 	}
 
 	val, ok = data.Get("no such host")
