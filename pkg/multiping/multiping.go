@@ -124,7 +124,6 @@ func (mp *MultiPing) Ping(data *PingData) {
 	mp.pingData = data
 
 	var wg sync.WaitGroup
-	wg.Add(1) // Sender goroutine
 
 	mp.ctx, mp.cancel = context.WithTimeout(context.Background(), mp.Timeout)
 	defer mp.cancel()
@@ -139,6 +138,7 @@ func (mp *MultiPing) Ping(data *PingData) {
 	}
 
 	// Sender goroutine
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for addr, stats := range mp.pingData.entries {
@@ -204,14 +204,14 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 				}
 			}
 
-			packetsWait.Add(1)
-
 			// TODO: maybe there is more effective way to get netip.Addr from PacketConn ?
 			addr, err = netip.ParseAddr(src.String())
 			if err != nil {
 				// When can this happen ??
 				continue
 			}
+
+			packetsWait.Add(1)
 			recv := &packet{bytes: bytes, nbytes: n, ttl: ttl, proto: proto, src: addr}
 			go mp.processPacket(&packetsWait, recv)
 		}
