@@ -174,7 +174,6 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 			var n, ttl int
 			var err error
 			var src net.Addr
-			var addr netip.Addr
 
 			if proto == ProtocolIpv4 {
 				mp.conn4.SetReadDeadline(time.Now().Add(mp.Timeout / 10))
@@ -205,9 +204,19 @@ func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
 			}
 
 			// TODO: maybe there is more effective way to get netip.Addr from PacketConn ?
-			addr, err = netip.ParseAddr(src.String())
+			var ip string
+			if mp.protocol == "udp" {
+				ip, _, err = net.SplitHostPort(src.String())
+				if err != nil {
+					continue
+				}
+			} else {
+				ip = src.String()
+			}
+
+			var addr netip.Addr
+			addr, err = netip.ParseAddr(ip)
 			if err != nil {
-				// When can this happen ??
 				continue
 			}
 
