@@ -2,6 +2,7 @@ package multiping
 
 import (
 	"fmt"
+	"net/netip"
 	"testing"
 )
 
@@ -15,17 +16,15 @@ func TestMultiping(t *testing.T) {
 		t.Errorf("Multiping constructor failed %s", err)
 	}
 
-	var invalidHost = "some.invalid.host"
 	for i := 1; i <= maxCount; i++ {
-		data.Add(fmt.Sprintf("127.0.0.%d", i))
+		data.Add(netip.MustParseAddr(fmt.Sprintf("127.0.0.%d", i)))
 	}
-	data.Add(invalidHost)
 	pinger.Ping(data)
 	if data.Count() != maxCount {
 		t.Errorf("Pinger accepts invald IP address")
 	}
 
-	val, ok := data.Get("127.0.0.1")
+	val, ok := data.Get(netip.MustParseAddr("127.0.0.1"))
 	if !ok {
 		t.Errorf("Expected localhost missing")
 	}
@@ -36,20 +35,9 @@ func TestMultiping(t *testing.T) {
 		t.Errorf("Localhost invalid latency")
 	}
 
-	val, ok = data.Get(invalidHost)
+	val, ok = data.Get(netip.IPv4Unspecified())
 	if ok {
 		t.Errorf("Pinger has invalid host")
-	}
-	if val.Loss() != 0 {
-		t.Errorf("Non existing host invalid loss")
-	}
-	if val.Latency() != 0 {
-		t.Errorf("Non existing host invalid latency")
-	}
-
-	val, ok = data.Get("no such host")
-	if ok {
-		t.Errorf("Non existing host search failed")
 	}
 	if val.Loss() != 0 {
 		t.Errorf("Non existing host invalid loss")

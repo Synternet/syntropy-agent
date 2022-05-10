@@ -1,6 +1,8 @@
 package autoping
 
 import (
+	"net/netip"
+
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
@@ -31,10 +33,10 @@ func newResponceMsg() autoPingResponse {
 
 func (resp *autoPingResponse) PingProcess(data *multiping.PingData) {
 	// TODO: respect controllers set LimitCount
-	data.Iterate(func(ip string, val multiping.PingStats) {
+	data.Iterate(func(ip netip.Addr, val multiping.PingStats) {
 		resp.Data.Pings = append(resp.Data.Pings,
 			pingResponseEntry{
-				IP:      ip,
+				IP:      ip.String(),
 				Latency: val.Latency(),
 				Loss:    val.Loss(),
 			})

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
@@ -74,7 +75,11 @@ func (msg *Message) Send(writer io.Writer) error {
 func (msg *Message) PingProcess(pr *multiping.PingData) {
 	for _, ifaceEntry := range msg.Data {
 		for _, peerEntry := range ifaceEntry.Peers {
-			val, ok := pr.Get(peerEntry.IP)
+			addr, err := netip.ParseAddr(peerEntry.IP)
+			if err != nil {
+				continue
+			}
+			val, ok := pr.Get(addr)
 			if ok {
 				// format results for controler
 				peerEntry.Latency = val.Latency()

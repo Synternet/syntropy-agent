@@ -1,6 +1,7 @@
 package peermon
 
 import (
+	"net/netip"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
@@ -115,7 +116,11 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 	defer pm.Unlock()
 
 	for _, peer := range pm.peerList {
-		val, ok := pr.Get(peer.ip)
+		addr, err := netip.ParseAddr(peer.ip)
+		if err != nil {
+			continue
+		}
+		val, ok := pr.Get(addr)
 		if !ok {
 			// NOTE: PeerMonitor is not creating its own ping list
 			// It depends on other pingers and is an additional PingClient in their PingProces line

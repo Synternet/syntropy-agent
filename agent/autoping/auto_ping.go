@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -55,7 +56,16 @@ func (obj *AutoPing) Exec(raw []byte) error {
 
 	obj.stop()
 	obj.pingData.Flush()
-	obj.pingData.Add(req.Data.IPs...)
+	for _, ipstr := range req.Data.IPs {
+		ip, err := netip.ParseAddr(ipstr)
+		if err != nil {
+			logger.Warning().Println(pkgName, "invalid address", ipstr, err)
+			continue
+		}
+
+		obj.pingData.Add(ip)
+	}
+
 	if obj.pingData.Count() > 0 {
 		obj.start(time.Duration(req.Data.Interval) * time.Second)
 	}

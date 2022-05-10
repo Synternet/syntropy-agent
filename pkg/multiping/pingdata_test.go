@@ -14,15 +14,15 @@ func TestPingData(t *testing.T) {
 		t.Errorf("Invalid initial PingData count")
 	}
 
-	data.Add("127.0.0.1")
-	data.Add("127.0.0.1")
-	data.Add("127.0.0.1")
+	data.Add(netip.MustParseAddr("127.0.0.1"))
+	data.Add(netip.MustParseAddr("127.0.0.1"))
+	data.Add(netip.MustParseAddr("127.0.0.1"))
 	if data.Count() != 1 {
 		t.Errorf("Duplicate entries check failed")
 	}
 
 	for i := 2; i <= maxCount; i++ {
-		data.Add(fmt.Sprintf("127.0.0.%d", i))
+		data.Add(netip.MustParseAddr(fmt.Sprintf("127.0.0.%d", i)))
 	}
 	if data.Count() != maxCount {
 		t.Errorf("Total count test failed")
@@ -79,7 +79,7 @@ func TestAppend(t *testing.T) {
 	if data.Count() != 3 {
 		t.Errorf("Incorrect append count")
 	}
-	val, _ := data.Get("192.168.1.1")
+	val, _ := data.Get(netip.MustParseAddr("192.168.1.1"))
 	if (val != PingStats{
 		tx:     3,
 		rx:     3,
@@ -88,7 +88,7 @@ func TestAppend(t *testing.T) {
 	}) {
 		t.Errorf("Entry 1 is not equal")
 	}
-	val, _ = data.Get("192.168.1.2")
+	val, _ = data.Get(netip.MustParseAddr("192.168.1.2"))
 	if (val != PingStats{
 		tx:     2,
 		rx:     1,
@@ -98,7 +98,7 @@ func TestAppend(t *testing.T) {
 		t.Errorf("Entry 2 is not equal")
 	}
 
-	val, _ = data.Get("10.10.0.2")
+	val, _ = data.Get(netip.MustParseAddr("10.10.0.2"))
 	if (val != PingStats{
 		tx:     1,
 		rx:     1,
@@ -108,7 +108,7 @@ func TestAppend(t *testing.T) {
 		t.Errorf("Entry 3 is not equal")
 	}
 
-	val, _ = data.Get("10.200.200.200")
+	val, _ = data.Get(netip.MustParseAddr("10.200.200.200"))
 	if (val != PingStats{
 		tx:     0,
 		rx:     0,

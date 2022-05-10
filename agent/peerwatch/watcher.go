@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -49,8 +50,8 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 	obj.pingData.Append(pr)
 
 	// finally cleanup removed peers
-	removeIPs := []string{}
-	obj.pingData.Iterate(func(ip string, val multiping.PingStats) {
+	var removeIPs []netip.Addr
+	obj.pingData.Iterate(func(ip netip.Addr, val multiping.PingStats) {
 		_, found := pr.Get(ip)
 		if !found {
 			// peer not found - add to remove list
@@ -107,7 +108,12 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 			} else {
 				entry.Handshake = p.Stats.LastHandshake.Format(env.TimeFormat)
 				// add the peer to ping list
-				pingData.Add(ip)
+				addr, err := netip.ParseAddr(ip)
+				if err != nil {
+					logger.Warning().Println(pkgName, "invalid address", ip, err)
+					continue
+				}
+				pingData.Add(addr)
 			}
 
 			ifaceData.Peers = append(ifaceData.Peers, entry)

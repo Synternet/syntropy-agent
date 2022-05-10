@@ -63,30 +63,21 @@ func NewPingData() *PingData {
 }
 
 // Add - adds some hosts to be pinged
-func (pr *PingData) Add(hosts ...string) {
+func (pr *PingData) Add(hosts ...netip.Addr) {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
-	for _, ipstr := range hosts {
-		ip, err := netip.ParseAddr(ipstr)
-		if err != nil {
-			continue
-		}
-
+	for _, ip := range hosts {
 		pr.entries[ip] = &PingStats{}
 	}
 }
 
 // Del removes some hosts from ping list
-func (pr *PingData) Del(hosts ...string) {
+func (pr *PingData) Del(hosts ...netip.Addr) {
 	pr.mutex.Lock()
 	defer pr.mutex.Unlock()
 
-	for _, ipstr := range hosts {
-		ip, err := netip.ParseAddr(ipstr)
-		if err != nil {
-			continue
-		}
+	for _, ip := range hosts {
 		delete(pr.entries, ip)
 	}
 }
@@ -143,12 +134,7 @@ func (pr *PingData) Count() int {
 }
 
 // Get searches for ping statistics of a host
-func (pr *PingData) Get(ipstr string) (PingStats, bool) {
-	ip, err := netip.ParseAddr(ipstr)
-	if err != nil {
-		return PingStats{}, false
-	}
-
+func (pr *PingData) Get(ip netip.Addr) (PingStats, bool) {
 	pr.mutex.RLock()
 	defer pr.mutex.RUnlock()
 
@@ -161,11 +147,11 @@ func (pr *PingData) Get(ipstr string) (PingStats, bool) {
 }
 
 // Iterate runs through all hosts and calls callback for stats processing
-func (pr *PingData) Iterate(callback func(ip string, val PingStats)) {
+func (pr *PingData) Iterate(callback func(ip netip.Addr, val PingStats)) {
 	pr.mutex.RLock()
 	defer pr.mutex.RUnlock()
 
 	for key, val := range pr.entries {
-		callback(key.String(), *val)
+		callback(key, *val)
 	}
 }
