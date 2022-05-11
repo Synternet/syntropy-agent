@@ -4,26 +4,30 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"net/netip"
 
 	"github.com/vishvananda/netlink"
 )
 
-func RouteAdd(ifname string, gw string, ip string) error {
+func RouteAdd(ifname string, gw *netip.Addr, ip *netip.Prefix) error {
+	if ip == nil {
+		return fmt.Errorf("no valid IP adress")
+	}
+
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return fmt.Errorf("failed to lookup interface %s", ifname)
 	}
-	gateway := net.ParseIP(gw)
 
 	route := netlink.Route{
 		LinkIndex: iface.Attrs().Index,
-		Gw:        gateway,
+		Dst: &net.IPNet{
+			IP:   ip.Addr().AsSlice(),
+			Mask: net.CIDRMask(ip.Bits(), ip.Addr().BitLen()),
+		},
 	}
-
-	// I need only network address here, no need to "patch" parseCidr's result
-	_, route.Dst, err = net.ParseCIDR(ip)
-	if err != nil {
-		return fmt.Errorf("%s while parsing %s", err.Error(), ip)
+	if gw != nil {
+		route.Gw = gw.AsSlice()
 	}
 
 	if routeExists(iface, route.Dst, route.Gw) {
@@ -45,7 +49,11 @@ func RouteAdd(ifname string, gw string, ip string) error {
 	return nil
 }
 
-func RouteDel(ifname string, ip string) error {
+func RouteDel(ifname string, ip *netip.Prefix) error {
+	if ip == nil {
+		return fmt.Errorf("no valid IP adress")
+	}
+
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return fmt.Errorf("failed to lookup interface %v", ifname)
@@ -56,16 +64,16 @@ func RouteDel(ifname string, ip string) error {
 		return err
 	}
 	for _, r := range routes {
-		if r.Dst != nil && r.Dst.String() == ip {
+		if r.Dst != nil && r.Dst.String() == ip.String() {
 			err = netlink.RouteDel(&r)
 			if err != nil {
 				return fmt.Errorf("route %s del: %s", ip, err.Error())
 			}
-		} else if r.Dst == nil && ip == DefaultRouteIP {
+		} else if r.Dst == nil && ip.Addr().IsUnspecified() && ip.Bits() == 0 {
 			// Deleting default route. Lib returns me nil, but expects Dst to be filled
-			_, r.Dst, err = net.ParseCIDR(ip)
-			if err != nil {
-				return fmt.Errorf("%s while parsing %s", err.Error(), ip)
+			r.Dst = &net.IPNet{
+				IP:   ip.Addr().AsSlice(),
+				Mask: net.CIDRMask(ip.Bits(), ip.Addr().BitLen()),
 			}
 			err = netlink.RouteDel(&r)
 			if err != nil {
@@ -77,23 +85,27 @@ func RouteDel(ifname string, ip string) error {
 	return nil
 }
 
-func RouteReplace(ifname string, gw string, ip string) error {
+func RouteReplace(ifname string, gw *netip.Addr, ip *netip.Prefix) error {
+	if ip == nil {
+		return fmt.Errorf("no valid IP adress")
+	}
+
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return fmt.Errorf("failed to lookup interface %v", ifname)
 	}
-	gateway := net.ParseIP(gw)
 
 	route := netlink.Route{
 		LinkIndex: iface.Attrs().Index,
-		Gw:        gateway,
+		Dst: &net.IPNet{
+			IP:   ip.Addr().AsSlice(),
+			Mask: net.CIDRMask(ip.Bits(), ip.Addr().BitLen()),
+		},
+	}
+	if gw != nil {
+		route.Gw = gw.AsSlice()
 	}
 
-	// I need only network address here, no need to "patch" parseCidr's result
-	_, route.Dst, err = net.ParseCIDR(ip)
-	if err != nil {
-		return fmt.Errorf("%s while parsing %s", err.Error(), ip)
-	}
 	err = netlink.RouteReplace(&route)
 	if err != nil {
 		return fmt.Errorf("route replace %s via %s: %s", ip, gw, err.Error())
@@ -102,10 +114,9 @@ func RouteReplace(ifname string, gw string, ip string) error {
 	return nil
 }
 
-func RouteConflict(ip string) (rc bool, ifname string) {
-	_, dest, err := net.ParseCIDR(ip)
-	if err != nil {
-		return
+func RouteConflict(ip *netip.Prefix) (rc bool, ifname string) {
+	if ip == nil {
+		return false, ""
 	}
 
 	routes, err := netlink.RouteList(nil, 0)
@@ -119,7 +130,7 @@ func RouteConflict(ip string) (rc bool, ifname string) {
 		}
 		// We are already listing required interface routes.
 		// So need only to compare destination and gateway
-		if r.Dst.IP.Equal(dest.IP) {
+		if r.Dst.IP.Equal(ip.Addr().AsSlice()) {
 			rc = true
 			link, err := netlink.LinkByIndex(r.LinkIndex)
 			if err == nil {

@@ -33,7 +33,7 @@ func (m *Mole) Close() error {
 			if entry.gwIfname != "" {
 				logger.Debug().Println(pkgName, "Cleanup peer host route", entry.destIP,
 					"on", entry.gwIfname)
-				err := netcfg.RouteDel(entry.gwIfname, entry.destIP)
+				err := netcfg.RouteDel(entry.gwIfname, &entry.destIP)
 				if err != nil {
 					// Warning and try to continue.
 					logger.Warning().Println(pkgName, "peer host route cleanup", err)

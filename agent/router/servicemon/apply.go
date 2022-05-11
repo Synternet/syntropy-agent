@@ -2,6 +2,7 @@ package servicemon
 
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
@@ -71,9 +72,15 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 }
 
 func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, error) {
+	destAddr, err := netip.ParseAddr(destination)
+	if err != nil {
+		return nil, err
+	}
+	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
+
 	defer rl.resetPending()
 
-	routeConflict, conflictIfName := netcfg.RouteConflict(destination)
+	routeConflict, conflictIfName := netcfg.RouteConflict(&dest)
 	logger.Debug().Println(pkgName, "Apply/SetRoute ", destination)
 
 	if !routeConflict {
@@ -86,7 +93,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, erro
 		// mark route as active
 		route.SetFlag(rfActive)
 		logger.Info().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
-		err := netcfg.RouteAdd(route.ifname, "", destination)
+		err := netcfg.RouteAdd(route.ifname, nil, &dest)
 		routeRes := routestatus.NewEntry(destination, err)
 
 		if err != nil {
@@ -113,12 +120,18 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, erro
 	}
 
 	// Route exists but is unknown - inform error
-	err := fmt.Errorf("route to %s exists on %s", destination, conflictIfName)
+	err = fmt.Errorf("route to %s exists on %s", destination, conflictIfName)
 	logger.Error().Println(pkgName, "route add error:", err)
 	return nil, err
 }
 
 func (rl *routeList) ClearRoute(destination string) error {
+	destAddr, err := netip.ParseAddr(destination)
+	if err != nil {
+		return err
+	}
+	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
+
 	defer rl.resetPending()
 
 	logger.Debug().Println(pkgName, "Apply/ClearRoute", destination)
@@ -128,7 +141,7 @@ func (rl *routeList) ClearRoute(destination string) error {
 		return nil
 	}
 
-	err := netcfg.RouteDel(route.ifname, destination)
+	err = netcfg.RouteDel(route.ifname, &dest)
 	if err != nil {
 		logger.Error().Println(pkgName, destination, "route delete error", err)
 	}

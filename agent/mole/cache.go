@@ -1,9 +1,11 @@
 package mole
 
+import "net/netip"
+
 type peerCacheEntry struct {
 	groupID      int
 	connectionID int
-	destIP       string
+	destIP       netip.Prefix
 	gateway      string
 	gwIfname     string
 }

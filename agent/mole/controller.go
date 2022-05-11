@@ -2,6 +2,7 @@ package mole
 
 import (
 	"net"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -33,22 +34,27 @@ func (m *Mole) initControllerRoutes() {
 		return
 	}
 
-	for _, ip := range addrs {
-		// Agent controlls only IPv4 addresses
-		// Ignore IPv6 for now
-		if ip.To4() == nil {
+	for _, addr := range addrs {
+		ipAddr, ok := netip.AddrFromSlice(addr)
+		if !ok {
 			continue
 		}
-		ipStr := ip.String() + "/32"
-		logger.Info().Println(pkgName, "Controller route add", ipStr, "via", gw, ifname)
-		err = netcfg.RouteAdd(ifname, gw, ipStr)
+		// Agent controlls only IPv4 addresses
+		// Ignore IPv6 for now
+		if !ipAddr.Is4() {
+			continue
+		}
+		dest := netip.PrefixFrom(ipAddr, ipAddr.BitLen())
+
+		logger.Info().Println(pkgName, "Controller route add", dest, "via", gw, ifname)
+		err = netcfg.RouteAdd(ifname, &gw, &dest)
 		if err != nil {
-			logger.Warning().Println(pkgName, "add hostroute to controller", ipStr, "via", gw, ifname, err)
+			logger.Warning().Println(pkgName, "add hostroute to controller", dest, "via", gw, ifname, err)
 			continue
 		}
 		m.cache.controller = append(m.cache.controller, peerCacheEntry{
-			destIP:   ipStr,
-			gateway:  gw,
+			destIP:   dest,
+			gateway:  gw.String(),
 			gwIfname: ifname})
 	}
 }
@@ -60,7 +66,7 @@ func (m *Mole) cleanupControllerRoutes() {
 	for _, c := range m.cache.controller {
 		logger.Debug().Println(pkgName, "Cleanup controller host route",
 			c.destIP, "on", c.gwIfname)
-		err := netcfg.RouteDel(c.gwIfname, c.destIP)
+		err := netcfg.RouteDel(c.gwIfname, &c.destIP)
 		if err != nil {
 			// Warning and try to continue.
 			logger.Warning().Println(pkgName, "controller host route cleanup", err)

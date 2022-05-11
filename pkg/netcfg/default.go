@@ -2,6 +2,8 @@ package netcfg
 
 import (
 	"errors"
+	"fmt"
+	"net/netip"
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
@@ -22,14 +24,14 @@ func ifnameFromIndex(idx int) (string, error) {
 	return l.Attrs().Name, nil
 }
 
-func DefaultRoute() (string, string, error) {
+func DefaultRoute() (netip.Addr, string, error) {
 	var defaultRoute *netlink.Route
 	var ifname string
 	var err error
 
 	routes, err := netlink.RouteList(nil, unix.AF_INET)
 	if err != nil {
-		return "", "", err
+		return netip.IPv4Unspecified(), "", err
 	}
 
 	for idx, r := range routes {
@@ -49,9 +51,17 @@ func DefaultRoute() (string, string, error) {
 	}
 
 	if defaultRoute == nil {
-		return "", "", ErrNotFound
+		return netip.IPv4Unspecified(), "", ErrNotFound
 	}
 
 	ifname, err = ifnameFromIndex(defaultRoute.LinkIndex)
-	return defaultRoute.Gw.String(), ifname, err
+	if err != nil {
+		return netip.IPv4Unspecified(), "", err
+	}
+	addr, ok := netip.AddrFromSlice(defaultRoute.Gw)
+	if !ok {
+		return netip.IPv4Unspecified(), "", fmt.Errorf("Failed parsing IP address %s", defaultRoute.Gw)
+	}
+
+	return addr, ifname, nil
 }

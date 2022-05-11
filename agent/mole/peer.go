@@ -1,6 +1,8 @@
 package mole
 
 import (
+	"net/netip"
+
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -25,21 +27,24 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 		logger.Error().Println(pkgName, "iptables rules add", err)
 	}
 
+	destIP, err := netip.ParseAddr(pi.IP)
+	if err != nil {
+		return err
+	}
+
 	cacheEntry := peerCacheEntry{
 		groupID:      pi.GroupID,
 		connectionID: pi.ConnectionID,
-		// TODO: This quite ugly hack will be fixed upon migration to Go1.18
-		// and using netip struct instead of string
-		destIP: pi.IP + "/32",
+		destIP:       netip.PrefixFrom(destIP, destIP.BitLen()), // single address
 	}
 
 	defaultGw, defaultIfname, err := netcfg.DefaultRoute()
 	if err == nil {
-		cacheEntry.gateway = defaultGw
+		cacheEntry.gateway = defaultGw.String()
 		cacheEntry.gwIfname = defaultIfname
 		logger.Debug().Println(pkgName, "Peer host route add to", cacheEntry.destIP,
 			"via", cacheEntry.gateway, cacheEntry.gwIfname)
-		err = netcfg.RouteAdd(cacheEntry.gwIfname, cacheEntry.gateway, cacheEntry.destIP)
+		err = netcfg.RouteAdd(cacheEntry.gwIfname, &defaultGw, &cacheEntry.destIP)
 		if err != nil {
 			// Add peer host route failed. It should be some route conflict.
 			// In normal case this should not happen.
@@ -69,7 +74,7 @@ func (m *Mole) RemovePeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPat
 		if entry.gwIfname != "" {
 			logger.Debug().Println(pkgName, "Peer host route del to", entry.destIP,
 				"via", entry.gwIfname)
-			err := netcfg.RouteDel(entry.gwIfname, entry.destIP)
+			err := netcfg.RouteDel(entry.gwIfname, &entry.destIP)
 			if err != nil {
 				// Host route deletion failed.
 				// Most probably network configuration has changed.
