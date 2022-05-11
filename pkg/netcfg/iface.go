@@ -5,6 +5,7 @@ package netcfg
 import (
 	"fmt"
 	"net"
+	"net/netip"
 
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
@@ -23,29 +24,17 @@ func setInterfaceState(ifname string, up bool) error {
 	}
 }
 
-func setInterfaceIP(ifname, ip string, add bool) error {
+func setInterfaceIP(ifname string, ip netip.Addr, add bool) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return fmt.Errorf("failed to lookup interface %v", ifname)
 	}
 
-	addr := netlink.Addr{}
-	var ipaddr net.IP
-	// I think it would be better to have it in CIDR notation
-	ipaddr, addr.IPNet, _ = net.ParseCIDR(ip)
-	if addr.IPNet == nil {
-		// But it is plain IP address (with /32 mask in mind)
-		addr.IPNet = &net.IPNet{
-			IP:   net.ParseIP(ip),
-			Mask: net.CIDRMask(32, 32),
-		}
-	} else {
-		// parseCIDR sets only network address (masked) into IPNet
-		// Thus I need to restore correct (full) IP adress in IPNet struct
-		addr.IPNet.IP = ipaddr
-	}
-	if addr.IPNet == nil || addr.IPNet.IP == nil {
-		return fmt.Errorf("error parsing IP address %s", ip)
+	addr := netlink.Addr{
+		IPNet: &net.IPNet{
+			IP:   ip.AsSlice(),
+			Mask: net.CIDRMask(ip.BitLen(), ip.BitLen()),
+		},
 	}
 
 	if add {
@@ -64,18 +53,18 @@ func InterfaceDown(ifname string) error {
 }
 
 // InterfaceIPAdd adds `ip` to interface `ifname`
-func InterfaceIPAdd(ifname, ip string) error {
+func InterfaceIPAdd(ifname string, ip netip.Addr) error {
 	return setInterfaceIP(ifname, ip, true)
 }
 
 // InterfaceIPDel removes `ip` from interface `ifname`
-func InterfaceIPDel(ifname, ip string) error {
+func InterfaceIPDel(ifname string, ip netip.Addr) error {
 	return setInterfaceIP(ifname, ip, false)
 }
 
 // InterfaceIPSet removes old IP addresses from interface `ifname`
 // and sets `ip` as the only address
-func InterfaceIPSet(ifname, ip string) error {
+func InterfaceIPSet(ifname string, ip netip.Addr) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return fmt.Errorf("failed to lookup interface %v", ifname)
@@ -85,7 +74,7 @@ func InterfaceIPSet(ifname, ip string) error {
 	// First remove residual old addresses
 	ifaceAddrs, _ := netlink.AddrList(iface, nl.FAMILY_ALL)
 	for _, addr := range ifaceAddrs {
-		if addr.IP.String() == ip {
+		if addr.IP.Equal(ip.AsSlice()) {
 			exists = true
 			continue
 		}
@@ -98,29 +87,19 @@ func InterfaceIPSet(ifname, ip string) error {
 	}
 
 	// Address is missing - set it
-	addr := netlink.Addr{}
-	var ipaddr net.IP
-	// I think it would be better to have it in CIDR notation
-	ipaddr, addr.IPNet, _ = net.ParseCIDR(ip)
-	if addr.IPNet == nil {
-		// But it is plain IP address (with /32 mask in mind)
-		addr.IPNet = &net.IPNet{
-			IP:   net.ParseIP(ip),
-			Mask: net.CIDRMask(32, 32),
-		}
-	} else {
-		// parseCIDR sets only network address (masked) into IPNet
-		// Thus I need to restore correct (full) IP adress in IPNet struct
-		addr.IPNet.IP = ipaddr
-	}
-	if addr.IPNet == nil || addr.IPNet.IP == nil {
-		return fmt.Errorf("error parsing IP address '%s'", ip)
+	addr := netlink.Addr{
+		IPNet: &net.IPNet{
+			IP:   ip.AsSlice(),
+			Mask: net.CIDRMask(ip.BitLen(), ip.BitLen()),
+		},
 	}
 
 	return netlink.AddrAdd(iface, &addr)
 }
 
-func InterfaceHasIP(ifname, ip string) bool {
+func InterfaceHasIP(ifname string, ipAddress netip.Addr) bool {
+	ip := ipAddress.AsSlice()
+
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		return false
@@ -128,17 +107,18 @@ func InterfaceHasIP(ifname, ip string) bool {
 
 	ifaceAddrs, _ := netlink.AddrList(iface, nl.FAMILY_ALL)
 	for _, addr := range ifaceAddrs {
-		if addr.IP.String() == ip {
+		if addr.IP.Equal(ip) {
 			return true
 		}
 	}
 	return false
 }
 
-func HostHasIP(ip string) bool {
+func HostHasIP(ipAddress netip.Addr) bool {
+	ip := ipAddress.AsSlice()
 	ifaceAddrs, _ := netlink.AddrList(nil, nl.FAMILY_ALL)
 	for _, addr := range ifaceAddrs {
-		if addr.IP.String() == ip {
+		if addr.IP.Equal(ip) {
 			return true
 		}
 	}
