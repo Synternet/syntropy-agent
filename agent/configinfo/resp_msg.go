@@ -23,7 +23,7 @@ type updateAgentConfigMsg struct {
 func (msg *updateAgentConfigMsg) AddInterface(data *swireguard.InterfaceInfo) {
 	e := updateAgentConfigEntry{Function: "create_interface"}
 	e.Data.IfName = data.IfName
-	e.Data.IP = data.IP
+	e.Data.IP = data.IP.String()
 	e.Data.PublicKey = data.PublicKey
 	e.Data.Port = data.Port
 

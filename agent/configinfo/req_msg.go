@@ -1,6 +1,7 @@
 package configinfo
 
 import (
+	"net/netip"
 	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -14,19 +15,25 @@ type configInfoNetworkEntry struct {
 	Port      int    `json:"listen_port,omitempty"`
 }
 
-func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) *swireguard.InterfaceInfo {
+func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) (*swireguard.InterfaceInfo, error) {
 	var ifname string
 	if strings.HasPrefix(ifaceName, env.InterfaceNamePrefix) {
 		ifname = ifaceName
 	} else {
 		ifname = env.InterfaceNamePrefix + ifaceName
 	}
+
+	addr, err := netip.ParseAddr(e.IP)
+	if err != nil {
+		return nil, err
+	}
+
 	return &swireguard.InterfaceInfo{
 		IfName:    ifname,
-		IP:        e.IP,
+		IP:        addr,
 		PublicKey: e.PublicKey,
 		Port:      e.Port,
-	}
+	}, nil
 }
 
 func (e *configInfoVpnEntry) asPeerInfo() *swireguard.PeerInfo {
@@ -49,19 +56,24 @@ func (e *configInfoVpnEntry) asPeerInfo() *swireguard.PeerInfo {
 	}
 }
 
-func (e *configInfoVpnEntry) asInterfaceInfo() *swireguard.InterfaceInfo {
+func (e *configInfoVpnEntry) asInterfaceInfo() (*swireguard.InterfaceInfo, error) {
 	var ifname string
 	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
 		ifname = e.Args.IfName
 	} else {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
+
+	addr, err := netip.ParseAddr(e.Args.InternalIP)
+	if err != nil {
+		return nil, err
+	}
 	return &swireguard.InterfaceInfo{
 		IfName:    ifname,
-		IP:        e.Args.InternalIP,
+		IP:        addr,
 		PublicKey: e.Args.PublicKey,
 		Port:      e.Args.ListenPort,
-	}
+	}, nil
 }
 
 func (e *configInfoVpnEntry) asNetworkPath() *common.SdnNetworkPath {

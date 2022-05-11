@@ -2,6 +2,7 @@ package swireguard
 
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -11,7 +12,7 @@ type InterfaceInfo struct {
 	IfName     string
 	PublicKey  string
 	privateKey string
-	IP         string
+	IP         netip.Addr
 	Port       int
 	peers      []*PeerInfo
 }

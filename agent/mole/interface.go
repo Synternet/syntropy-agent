@@ -26,13 +26,6 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 		return err
 	}
 
-	ip, err := netip.ParseAddr(ii.IP)
-	if err != nil {
-		logger.Error().Println(pkgName, "parse IP", ii.IP, err)
-		// Note: thats one of critical errors
-		return err
-	}
-
 	// Why this config variale configures only forward, and does not impact other iptables rules ???
 	if config.CreateIptablesRules() {
 		err = m.filter.ForwardEnable(ii.IfName)
@@ -52,12 +45,12 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
 	}
-	err = netcfg.InterfaceIPSet(ii.IfName, ip)
+	err = netcfg.InterfaceIPSet(ii.IfName, ii.IP)
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
 
-	m.cache.ifaces[ii.IfName] = ip
+	m.cache.ifaces[ii.IfName] = ii.IP
 
 	// If a host is behind NAT - its port after NAT may change.
 	// And in most cases this will cause problems for SDN agent.
