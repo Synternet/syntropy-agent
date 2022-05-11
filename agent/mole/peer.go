@@ -40,7 +40,7 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 
 	defaultGw, defaultIfname, err := netcfg.DefaultRoute()
 	if err == nil {
-		cacheEntry.gateway = defaultGw.String()
+		cacheEntry.gateway = defaultGw
 		cacheEntry.gwIfname = defaultIfname
 		logger.Debug().Println(pkgName, "Peer host route add to", cacheEntry.destIP,
 			"via", cacheEntry.gateway, cacheEntry.gwIfname)

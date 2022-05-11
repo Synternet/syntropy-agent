@@ -6,7 +6,7 @@ type peerCacheEntry struct {
 	groupID      int
 	connectionID int
 	destIP       netip.Prefix
-	gateway      string
+	gateway      netip.Addr
 	gwIfname     string
 }
 

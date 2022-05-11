@@ -54,7 +54,7 @@ func (m *Mole) initControllerRoutes() {
 		}
 		m.cache.controller = append(m.cache.controller, peerCacheEntry{
 			destIP:   dest,
-			gateway:  gw.String(),
+			gateway:  gw,
 			gwIfname: ifname})
 	}
 }
