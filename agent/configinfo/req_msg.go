@@ -1,6 +1,7 @@
 package configinfo
 
 import (
+	"fmt"
 	"net/netip"
 	"strings"
 
@@ -36,24 +37,42 @@ func (e *configInfoNetworkEntry) asInterfaceInfo(ifaceName string) (*swireguard.
 	}, nil
 }
 
-func (e *configInfoVpnEntry) asPeerInfo() *swireguard.PeerInfo {
+func (e *configInfoVpnEntry) asPeerInfo() (*swireguard.PeerInfo, error) {
 	var ifname string
 	if strings.HasPrefix(e.Args.IfName, env.InterfaceNamePrefix) {
 		ifname = e.Args.IfName
 	} else {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
-	return &swireguard.PeerInfo{
+
+	var err error
+	pi := &swireguard.PeerInfo{
 		IfName:       ifname,
-		IP:           e.Args.EndpointIPv4,
 		PublicKey:    e.Args.PublicKey,
 		ConnectionID: e.Metadata.ConnectionID,
 		GroupID:      e.Metadata.GroupID,
 		AgentID:      e.Metadata.AgentID,
 		Port:         e.Args.EndpointPort,
-		Gateway:      e.Args.GatewayIPv4,
-		AllowedIPs:   e.Args.AllowedIPs,
 	}
+
+	pi.IP, err = netip.ParseAddr(e.Args.EndpointIPv4)
+	if err != nil {
+		return nil, fmt.Errorf("invalid IP address %s: %s", e.Args.EndpointIPv4, err)
+	}
+	pi.Gateway, err = netip.ParseAddr(e.Args.GatewayIPv4)
+	if err != nil {
+		return nil, fmt.Errorf("invalid gateway %s: %s", e.Args.GatewayIPv4, err)
+	}
+
+	for _, ipStr := range e.Args.AllowedIPs {
+		aip, err := netip.ParsePrefix(ipStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid allowed IP %s: %s", ipStr, err)
+		}
+		pi.AllowedIPs = append(pi.AllowedIPs, aip)
+	}
+
+	return pi, nil
 }
 
 func (e *configInfoVpnEntry) asInterfaceInfo() (*swireguard.InterfaceInfo, error) {

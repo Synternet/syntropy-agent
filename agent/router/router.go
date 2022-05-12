@@ -1,6 +1,8 @@
 package router
 
 import (
+	"net/netip"
+
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
@@ -24,7 +26,7 @@ import (
  * TODO ^^^^
  **/
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error {
+func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -32,7 +34,7 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 		// A very dumb protection from "bricking" servers by adding default routes
 		// Allow add default routes only for configured VPN_CLIENT
 		// TODO: there are dosens other ways to act as default route, without 0.0.0.0 IP
-		if !config.IsVPNClient() && ip == netcfg.DefaultRouteIP {
+		if !config.IsVPNClient() && ip.String() == netcfg.DefaultRouteIP {
 			logger.Warning().Println(pkgName, "ignored default route for non configured VPN client")
 			continue
 		}
@@ -45,14 +47,14 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...string) error 
 		if idx == 0 {
 			r.PeerAdd(netpath)
 		} else {
-			r.ServiceAdd(netpath, ip)
+			r.ServiceAdd(netpath, ip.String())
 		}
 	}
 
 	return nil
 }
 
-func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
+func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -65,7 +67,7 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...string) error {
 		if idx == 0 {
 			r.PeerDel(netpath)
 		} else {
-			r.ServiceDel(netpath, ip)
+			r.ServiceDel(netpath, ip.String())
 		}
 	}
 

@@ -40,10 +40,20 @@ func (obj *wgConf) Exec(raw []byte) error {
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
-			err = obj.mole.AddPeer(cmd.asPeerInfo(), cmd.asNetworkPath())
+			pi, err := cmd.asPeerInfo()
+			if err != nil {
+				logger.Warning().Println(pkgName, err)
+				continue
+			}
+			err = obj.mole.AddPeer(pi, cmd.asNetworkPath())
 
 		case "remove_peer":
-			err = obj.mole.RemovePeer(cmd.asPeerInfo(), cmd.asNetworkPath())
+			pi, err := cmd.asPeerInfo()
+			if err != nil {
+				logger.Warning().Println(pkgName, err)
+				continue
+			}
+			err = obj.mole.RemovePeer(pi, cmd.asNetworkPath())
 		}
 
 		if err != nil {

@@ -33,7 +33,7 @@ func (msg *updateAgentConfigMsg) AddInterface(data *swireguard.InterfaceInfo) {
 func (msg *updateAgentConfigMsg) AddPeer(data *swireguard.PeerInfo) {
 	e := updateAgentConfigEntry{Function: "add_peer"}
 	e.Data.IfName = data.IfName
-	e.Data.IP = data.IP
+	e.Data.IP = data.IP.String()
 	e.Data.PublicKey = data.PublicKey
 	e.Data.Port = data.Port
 

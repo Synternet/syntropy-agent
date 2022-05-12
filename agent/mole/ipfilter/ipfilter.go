@@ -5,6 +5,7 @@ package ipfilter
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/iptables"
@@ -91,14 +92,14 @@ func (pf *PacketFilter) processPeerRule(add bool, ip string) error {
 	return err
 }
 
-func (pf *PacketFilter) RulesAdd(ips ...string) error {
+func (pf *PacketFilter) RulesAdd(ips ...netip.Prefix) error {
 	// No need adding rules to non existing chain
 	if !pf.chainCreated {
 		return nil
 	}
 
 	for _, ip := range ips {
-		err := pf.processPeerRule(true, ip)
+		err := pf.processPeerRule(true, ip.String())
 		if err != nil {
 			return err
 		}
@@ -106,14 +107,14 @@ func (pf *PacketFilter) RulesAdd(ips ...string) error {
 	return nil
 }
 
-func (pf *PacketFilter) RulesDel(ips ...string) error {
+func (pf *PacketFilter) RulesDel(ips ...netip.Prefix) error {
 	// No need adding rules to non existing chain
 	if !pf.chainCreated {
 		return nil
 	}
 
 	for _, ip := range ips {
-		err := pf.processPeerRule(false, ip)
+		err := pf.processPeerRule(false, ip.String())
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package swireguard
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -17,10 +18,10 @@ type PeerInfo struct {
 	ConnectionID int
 	GroupID      int
 	AgentID      int
-	IP           string
+	IP           netip.Addr
 	Port         int
-	Gateway      string
-	AllowedIPs   []string
+	Gateway      netip.Addr
+	AllowedIPs   []netip.Prefix
 	Stats        PeerStats
 }
 
@@ -33,19 +34,18 @@ func (pi *PeerInfo) asPeerConfig() (*wgtypes.PeerConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if pi.IP != "" && pi.Port > 0 {
+	if pi.IP.IsValid() && pi.Port > 0 {
 		pcfg.Endpoint = &net.UDPAddr{
-			IP:   net.ParseIP(pi.IP),
+			IP:   pi.IP.AsSlice(),
 			Port: pi.Port,
 		}
 	}
 
 	for _, e := range pi.AllowedIPs {
-		// I need only network address here, no need to "patch" parseCidr's result
-		_, netip, err := net.ParseCIDR(e)
-		if err == nil && netip != nil {
-			pcfg.AllowedIPs = append(pcfg.AllowedIPs, *netip)
-		}
+		pcfg.AllowedIPs = append(pcfg.AllowedIPs, net.IPNet{
+			IP:   e.Addr().AsSlice(),
+			Mask: net.CIDRMask(e.Bits(), e.Addr().BitLen()),
+		})
 	}
 
 	return pcfg, nil

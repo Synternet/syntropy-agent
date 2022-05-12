@@ -27,15 +27,10 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 		logger.Error().Println(pkgName, "iptables rules add", err)
 	}
 
-	destIP, err := netip.ParseAddr(pi.IP)
-	if err != nil {
-		return err
-	}
-
 	cacheEntry := peerCacheEntry{
 		groupID:      pi.GroupID,
 		connectionID: pi.ConnectionID,
-		destIP:       netip.PrefixFrom(destIP, destIP.BitLen()), // single address
+		destIP:       netip.PrefixFrom(pi.IP, pi.IP.BitLen()), // single address
 	}
 
 	defaultGw, defaultIfname, err := netcfg.DefaultRoute()

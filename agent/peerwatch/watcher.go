@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/netip"
-	"strings"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -82,9 +81,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 				continue
 			}
 
-			// AllowedIPs has cidr notation. I need only the address for pinging.
-			ip := strings.Split(p.AllowedIPs[0], "/")[0]
-			if len(ip) == 0 {
+			if !p.AllowedIPs[0].IsValid() {
 				continue
 			}
 
@@ -93,7 +90,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 				ConnectionID: p.ConnectionID,
 				GroupID:      p.GroupID,
 				PublicKey:    p.PublicKey,
-				IP:           ip,
+				IP:           p.AllowedIPs[0].Addr().String(),
 				KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
 				RxBytes:      p.Stats.RxBytes,
 				TxBytes:      p.Stats.TxBytes,
@@ -108,12 +105,7 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 			} else {
 				entry.Handshake = p.Stats.LastHandshake.Format(env.TimeFormat)
 				// add the peer to ping list
-				addr, err := netip.ParseAddr(ip)
-				if err != nil {
-					logger.Warning().Println(pkgName, "invalid address", ip, err)
-					continue
-				}
-				pingData.Add(addr)
+				pingData.Add(p.AllowedIPs[0].Addr())
 			}
 
 			ifaceData.Peers = append(ifaceData.Peers, entry)
