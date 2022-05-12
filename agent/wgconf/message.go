@@ -85,21 +85,27 @@ func (e *wgConfEntry) asPeerInfo() (*swireguard.PeerInfo, error) {
 	return pi, nil
 }
 
-func (e *wgConfEntry) asNetworkPath() *common.SdnNetworkPath {
-	var gw string
-	if len(e.Args.AllowedIPs) > 0 {
-		// Controller sends first IP as connected peers internal IP address
-		// Use this IP as internal routing gateway
-		parts := strings.Split(e.Args.AllowedIPs[0], "/")
-		gw = parts[0]
+func (e *wgConfEntry) asNetworkPath() (*common.SdnNetworkPath, error) {
+	if len(e.Args.AllowedIPs) == 0 {
+		return nil, fmt.Errorf("no IP address is present")
 	}
-	return &common.SdnNetworkPath{
+
+	netpath := &common.SdnNetworkPath{
 		Ifname:       e.Args.IfName,
 		PublicKey:    e.Args.PublicKey,
-		Gateway:      gw,
 		ConnectionID: e.Metadata.ConnectionID,
 		GroupID:      e.Metadata.GroupID,
 	}
+
+	// Controller sends first IP as connected peers internal IP address
+	// Use this IP as internal routing gateway
+	ip, err := netip.ParsePrefix(e.Args.AllowedIPs[0])
+	if err != nil {
+		return nil, fmt.Errorf("failed parsing IP address %s: %s", e.Args.AllowedIPs[0], err)
+	}
+	netpath.Gateway = ip.Addr()
+
+	return netpath, nil
 }
 
 type wgConfMsg struct {

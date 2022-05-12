@@ -2,11 +2,12 @@ package peermon
 
 import (
 	"fmt"
+	"net/netip"
 )
 
 // peerInfo collects stores and calculates moving average of last [SYNTROPY_PEERCHECK_WINDOW] link measurement
 type peerInfo struct {
-	ip           string
+	ip           netip.Addr
 	publicKey    string
 	connectionID int
 	ifname       string

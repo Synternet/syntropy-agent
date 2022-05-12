@@ -10,18 +10,14 @@ import (
 )
 
 func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
-	destAddr, err := netip.ParseAddr(netpath.Gateway)
-	if err != nil {
-		return err
-	}
-	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
+	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
 
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	routesGroup.peerMonitor.AddNode(netpath.Ifname, netpath.PublicKey,
 		netpath.Gateway, netpath.ConnectionID)
 
-	err = netcfg.RouteAdd(netpath.Ifname, nil, &dest)
+	err := netcfg.RouteAdd(netpath.Ifname, nil, &dest)
 	if err != nil {
 		logger.Error().Println(pkgName, netpath.Gateway, "route add error:", err)
 	}
@@ -30,11 +26,7 @@ func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
 }
 
 func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
-	destAddr, err := netip.ParseAddr(netpath.Gateway)
-	if err != nil {
-		return err
-	}
-	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
+	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
 
 	routesGroup, ok := r.find(netpath.GroupID)
 	if !ok {
@@ -48,7 +40,7 @@ func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
 	logger.Debug().Println(pkgName, "Delete peer route to", netpath.Gateway)
 	routesGroup.peerMonitor.DelNode(netpath.Gateway)
 
-	err = netcfg.RouteDel(netpath.Ifname, &dest)
+	err := netcfg.RouteDel(netpath.Ifname, &dest)
 	if err != nil {
 		logger.Error().Println(pkgName, netpath.Gateway, "route delete error", err)
 	}

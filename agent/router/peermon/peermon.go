@@ -16,7 +16,7 @@ const (
 	// For now use simple constant
 	// After migration to Go1.18 and netip structures
 	// I think to use IsZero()/IsValid() or IsUnspecified() instead
-	NoRoute = "no.rou.te"
+//	NoRoute = nil
 )
 
 const (
@@ -26,8 +26,8 @@ const (
 )
 
 type SelectedRoute struct {
-	IP string // best route IP address
-	ID int    // ConnectionID of the best route
+	IP netip.Addr // best route IP address
+	ID int        // ConnectionID of the best route
 }
 
 type PathSelector interface {
@@ -42,6 +42,10 @@ type PeerMonitor struct {
 	changeReason  int
 }
 
+func NoRoute() netip.Addr {
+	return netip.Addr{}
+}
+
 func New(avgSize uint) *PeerMonitor {
 	return &PeerMonitor{
 		lastBest:      invalidBestIndex,
@@ -49,7 +53,7 @@ func New(avgSize uint) *PeerMonitor {
 	}
 }
 
-func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint string, connID int) {
+func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Addr, connID int) {
 	pm.Lock()
 	defer pm.Unlock()
 
@@ -68,7 +72,7 @@ func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint string, connID in
 	e.ip = endpoint
 }
 
-func (pm *PeerMonitor) DelNode(endpoint string) {
+func (pm *PeerMonitor) DelNode(endpoint netip.Addr) {
 	pm.Lock()
 	defer pm.Unlock()
 
@@ -94,7 +98,7 @@ func (pm *PeerMonitor) Peers() []string {
 	rv := []string{}
 
 	for _, peer := range pm.peerList {
-		rv = append(rv, peer.ip)
+		rv = append(rv, peer.ip.String())
 	}
 	return rv
 }
@@ -107,7 +111,7 @@ func (pm *PeerMonitor) Dump() {
 			mark = "*"
 		}
 		logger.Debug().Printf("%s%s %s\t%s\t%fms\t%f%%\n",
-			pkgName, mark, e.ip, e.ifname, e.Latency(), 100*e.Loss())
+			pkgName, mark, e.ip.String(), e.ifname, e.Latency(), 100*e.Loss())
 	}
 }
 
@@ -116,11 +120,8 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 	defer pm.Unlock()
 
 	for _, peer := range pm.peerList {
-		addr, err := netip.ParseAddr(peer.ip)
-		if err != nil {
-			continue
-		}
-		val, ok := pr.Get(addr)
+
+		val, ok := pr.Get(peer.ip)
 		if !ok {
 			// NOTE: PeerMonitor is not creating its own ping list
 			// It depends on other pingers and is an additional PingClient in their PingProces line

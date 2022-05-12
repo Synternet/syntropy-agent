@@ -45,7 +45,12 @@ func (obj *wgConf) Exec(raw []byte) error {
 				logger.Warning().Println(pkgName, err)
 				continue
 			}
-			err = obj.mole.AddPeer(pi, cmd.asNetworkPath())
+			netpath, err := cmd.asNetworkPath()
+			if err != nil {
+				logger.Warning().Println(pkgName, err)
+				continue
+			}
+			err = obj.mole.AddPeer(pi, netpath)
 
 		case "remove_peer":
 			pi, err := cmd.asPeerInfo()
@@ -53,7 +58,12 @@ func (obj *wgConf) Exec(raw []byte) error {
 				logger.Warning().Println(pkgName, err)
 				continue
 			}
-			err = obj.mole.RemovePeer(pi, cmd.asNetworkPath())
+			netpath, err := cmd.asNetworkPath()
+			if err != nil {
+				logger.Warning().Println(pkgName, err)
+				continue
+			}
+			err = obj.mole.RemovePeer(pi, netpath)
 		}
 
 		if err != nil {

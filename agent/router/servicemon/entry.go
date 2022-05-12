@@ -1,6 +1,9 @@
 package servicemon
 
-import "fmt"
+import (
+	"fmt"
+	"net/netip"
+)
 
 type routeFlag uint8
 
@@ -15,7 +18,7 @@ const (
 type routeEntry struct {
 	ifname       string
 	publicKey    string
-	gateway      string
+	gateway      netip.Addr
 	connectionID int
 	groupID      int
 	flags        routeFlag

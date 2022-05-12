@@ -52,12 +52,8 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 }
 
 // Reroute one routeList (aka Service Group)
-func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string) error {
-	destAddr, err := netip.ParseAddr(destination)
-	if err != nil {
-		return err
-	}
-	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
+func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination netip.Prefix) error {
+	var err error
 	switch {
 	case newRoute == oldRoute:
 		// Nothing to change
@@ -66,7 +62,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 	case newRoute == nil:
 		// Delete active route
 		logger.Info().Println(pkgName, "remove route", destination, oldRoute.ifname)
-		err = netcfg.RouteDel(oldRoute.ifname, &dest)
+		err = netcfg.RouteDel(oldRoute.ifname, &destination)
 		if err != nil {
 			logger.Error().Println(pkgName, "could not remove route to", destination, "via", oldRoute.ifname)
 		}
@@ -76,7 +72,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 	case oldRoute == nil:
 		// No previous active route was present. Set new route
 		logger.Info().Println(pkgName, "add route", destination, newRoute.ifname)
-		err = netcfg.RouteAdd(newRoute.ifname, nil, &dest)
+		err = netcfg.RouteAdd(newRoute.ifname, nil, &destination)
 		if err != nil {
 			logger.Error().Println(pkgName, "could not add route to", destination, "via", newRoute.ifname)
 		}
@@ -86,7 +82,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination string)
 	default:
 		// Change the route to new active
 		logger.Info().Println(pkgName, "replace route", destination, oldRoute.ifname, "->", newRoute.ifname)
-		err := netcfg.RouteReplace(newRoute.ifname, nil, &dest)
+		err := netcfg.RouteReplace(newRoute.ifname, nil, &destination)
 		if err != nil {
 			logger.Error().Println(pkgName, "could not change routes to", destination, "via", newRoute.ifname)
 		}

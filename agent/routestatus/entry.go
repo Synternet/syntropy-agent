@@ -1,5 +1,7 @@
 package routestatus
 
+import "net/netip"
+
 const (
 	statusOK    = "OK"
 	statusError = "ERROR"
@@ -11,9 +13,9 @@ type Entry struct {
 	Message string `json:"msg,omitempty"`
 }
 
-func NewEntry(ip string, err error) *Entry {
+func NewEntry(ip netip.Prefix, err error) *Entry {
 	rse := &Entry{
-		IP: ip,
+		IP: ip.String(),
 	}
 
 	if err == nil {

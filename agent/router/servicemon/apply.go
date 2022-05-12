@@ -14,7 +14,7 @@ import (
 func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 	var routeStatusCons []*routestatus.Connection
 	var peersActiveData []*peeradata.Entry
-	var deleteIPs []string
+	var deleteIPs []netip.Prefix
 
 	sm.Lock()
 	defer sm.Unlock()
@@ -45,7 +45,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			if bestRoute != nil {
 				rl.MergeRoutes(ip, bestRoute.IP)
 			} else {
-				rl.MergeRoutes(ip, peermon.NoRoute)
+				rl.MergeRoutes(ip, peermon.NoRoute())
 			}
 
 		}
@@ -71,16 +71,10 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 	return routeStatusCons, peersActiveData
 }
 
-func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, error) {
-	destAddr, err := netip.ParseAddr(destination)
-	if err != nil {
-		return nil, err
-	}
-	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
-
+func (rl *routeList) SetRoute(destination netip.Prefix) (*routestatus.Connection, error) {
 	defer rl.resetPending()
 
-	routeConflict, conflictIfName := netcfg.RouteConflict(&dest)
+	routeConflict, conflictIfName := netcfg.RouteConflict(&destination)
 	logger.Debug().Println(pkgName, "Apply/SetRoute ", destination)
 
 	if !routeConflict {
@@ -93,7 +87,7 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, erro
 		// mark route as active
 		route.SetFlag(rfActive)
 		logger.Info().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
-		err := netcfg.RouteAdd(route.ifname, nil, &dest)
+		err := netcfg.RouteAdd(route.ifname, nil, &destination)
 		routeRes := routestatus.NewEntry(destination, err)
 
 		if err != nil {
@@ -120,18 +114,12 @@ func (rl *routeList) SetRoute(destination string) (*routestatus.Connection, erro
 	}
 
 	// Route exists but is unknown - inform error
-	err = fmt.Errorf("route to %s exists on %s", destination, conflictIfName)
+	err := fmt.Errorf("route to %s exists on %s", destination, conflictIfName)
 	logger.Error().Println(pkgName, "route add error:", err)
 	return nil, err
 }
 
-func (rl *routeList) ClearRoute(destination string) error {
-	destAddr, err := netip.ParseAddr(destination)
-	if err != nil {
-		return err
-	}
-	dest := netip.PrefixFrom(destAddr, destAddr.BitLen())
-
+func (rl *routeList) ClearRoute(destination netip.Prefix) error {
 	defer rl.resetPending()
 
 	logger.Debug().Println(pkgName, "Apply/ClearRoute", destination)
@@ -141,7 +129,7 @@ func (rl *routeList) ClearRoute(destination string) error {
 		return nil
 	}
 
-	err = netcfg.RouteDel(route.ifname, &dest)
+	err := netcfg.RouteDel(route.ifname, &destination)
 	if err != nil {
 		logger.Error().Println(pkgName, destination, "route delete error", err)
 	}
@@ -150,12 +138,12 @@ func (rl *routeList) ClearRoute(destination string) error {
 	return nil
 }
 
-func (rl *routeList) MergeRoutes(destination string, newgw string) error {
+func (rl *routeList) MergeRoutes(destination netip.Prefix, newgw netip.Addr) error {
 	logger.Debug().Println(pkgName, "Apply/MergeRoute ", destination)
 
 	activeRoute := rl.GetActive()
 	var newRoute *routeEntry
-	if newgw != peermon.NoRoute {
+	if newgw.IsValid() {
 		newRoute = rl.Find(newgw)
 		// check if route change is needed
 		// I think this both cases should never happen

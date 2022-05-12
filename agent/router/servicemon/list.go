@@ -1,6 +1,8 @@
 package servicemon
 
 import (
+	"net/netip"
+
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -92,7 +94,7 @@ func (rl *routeList) Add(newRoute *routeEntry) {
 	rl.list = append(rl.list, newRoute)
 }
 
-func (rl *routeList) MarkDel(gateway string) {
+func (rl *routeList) MarkDel(gateway netip.Addr) {
 	// Dupplicate entries happen when WSS connection was lost
 	// and after reconnecting controller sends whole config
 	for _, r := range rl.list {
@@ -103,7 +105,7 @@ func (rl *routeList) MarkDel(gateway string) {
 	}
 }
 
-func (rl *routeList) Find(gateway string) *routeEntry {
+func (rl *routeList) Find(gateway netip.Addr) *routeEntry {
 	for _, r := range rl.list {
 		if r.gateway == gateway {
 			return r

@@ -32,7 +32,7 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) 
 		if idx == 0 {
 			r.PeerAdd(netpath)
 		} else {
-			r.ServiceAdd(netpath, ip.String())
+			r.ServiceAdd(netpath, ip)
 		}
 	}
 
@@ -52,7 +52,7 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) e
 		if idx == 0 {
 			r.PeerDel(netpath)
 		} else {
-			r.ServiceDel(netpath, ip.String())
+			r.ServiceDel(netpath, ip)
 		}
 	}
 

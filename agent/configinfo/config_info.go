@@ -125,7 +125,12 @@ func (obj *configInfo) Exec(raw []byte) error {
 				logger.Warning().Println(pkgName, err)
 				continue
 			}
-			err = obj.mole.AddPeer(pi, cmd.asNetworkPath())
+			netpath, err := cmd.asNetworkPath()
+			if err != nil {
+				logger.Warning().Println(pkgName, err)
+				continue
+			}
+			err = obj.mole.AddPeer(pi, netpath)
 
 		case "create_interface":
 			wgi, err := cmd.asInterfaceInfo()

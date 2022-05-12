@@ -1,19 +1,21 @@
 package router
 
 import (
+	"net/netip"
+
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
-func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination string) error {
+func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	return routesGroup.serviceMonitor.Add(netpath, destination)
 }
 
-func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination string) error {
+func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
 	routesGroup, ok := r.find(netpath.GroupID)
 	if !ok {
 		// Was asked to delete non-existing service route.

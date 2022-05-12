@@ -2,6 +2,7 @@ package servicemon
 
 import (
 	"fmt"
+	"net/netip"
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -13,7 +14,7 @@ const pkgName = "ServiceMonitor. "
 
 type ServiceMonitor struct {
 	sync.Mutex
-	routes             map[string]*routeList
+	routes             map[netip.Prefix]*routeList
 	routeMonitor       peermon.PathSelector
 	groupID            int
 	activeConnectionID int
@@ -21,14 +22,14 @@ type ServiceMonitor struct {
 
 func New(ps peermon.PathSelector, gid int) *ServiceMonitor {
 	return &ServiceMonitor{
-		routes:             make(map[string]*routeList),
+		routes:             make(map[netip.Prefix]*routeList),
 		routeMonitor:       ps,
 		groupID:            gid,
 		activeConnectionID: 0,
 	}
 }
 
-func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip string) error {
+func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip netip.Prefix) error {
 	sm.Lock()
 	defer sm.Unlock()
 
@@ -47,7 +48,7 @@ func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip string) error {
 	return nil
 }
 
-func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip string) error {
+func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip netip.Prefix) error {
 	sm.Lock()
 	defer sm.Unlock()
 
