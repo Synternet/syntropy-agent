@@ -69,7 +69,7 @@ func RouteDel(ifname string, ip *netip.Prefix) error {
 			if err != nil {
 				return fmt.Errorf("route %s del: %s", ip, err.Error())
 			}
-		} else if r.Dst == nil && ip.Addr().IsUnspecified() && ip.Bits() == 0 {
+		} else if r.Dst == nil && IsDefaultRoute(ip) {
 			// Deleting default route. Lib returns me nil, but expects Dst to be filled
 			r.Dst = &net.IPNet{
 				IP:   ip.Addr().AsSlice(),

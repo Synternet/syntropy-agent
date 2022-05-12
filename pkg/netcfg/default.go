@@ -13,8 +13,6 @@ import (
 
 var ErrNotFound = errors.New("default route not found")
 
-const DefaultRouteIP = "0.0.0.0/0"
-
 func ifnameFromIndex(idx int) (string, error) {
 	l, err := netlink.LinkByIndex(idx)
 	if err != nil {
@@ -22,6 +20,11 @@ func ifnameFromIndex(idx int) (string, error) {
 	}
 
 	return l.Attrs().Name, nil
+}
+
+// IsDefaultRoute returns true if addr == 0.0.0.0/0
+func IsDefaultRoute(addr *netip.Prefix) bool {
+	return addr.Addr().IsUnspecified() && addr.Bits() == 0
 }
 
 func DefaultRoute() (netip.Addr, string, error) {

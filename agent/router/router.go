@@ -33,8 +33,8 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) 
 	for idx, ip := range dest {
 		// A very dumb protection from "bricking" servers by adding default routes
 		// Allow add default routes only for configured VPN_CLIENT
-		// TODO: there are dosens other ways to act as default route, without 0.0.0.0 IP
-		if !config.IsVPNClient() && ip.String() == netcfg.DefaultRouteIP {
+		// TODO: there are dosens other ways to act as default route, without 0.0.0.0/0 IP
+		if !config.IsVPNClient() && netcfg.IsDefaultRoute(&ip) {
 			logger.Warning().Println(pkgName, "ignored default route for non configured VPN client")
 			continue
 		}
