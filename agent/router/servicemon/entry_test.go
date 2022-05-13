@@ -1,6 +1,9 @@
 package servicemon
 
-import "testing"
+import (
+	"net/netip"
+	"testing"
+)
 
 func TestEntry(t *testing.T) {
 	rl := routeList{}
@@ -12,11 +15,11 @@ func TestEntry(t *testing.T) {
 	// Add few routes and test
 	rl.Add(&routeEntry{
 		ifname:  "eth0",
-		gateway: "1.1.1.1",
+		gateway: netip.MustParseAddr("1.1.1.1"),
 	})
 	rl.Add(&routeEntry{
 		ifname:  "eth1",
-		gateway: "2.2.2.2",
+		gateway: netip.MustParseAddr("2.2.2.2"),
 	})
 	if rl.Count() != 2 {
 		t.Error("Invalid route list cout")
@@ -25,7 +28,7 @@ func TestEntry(t *testing.T) {
 	// Add dupplicate entry
 	rl.Add(&routeEntry{
 		ifname:  "eth1",
-		gateway: "2.2.2.2",
+		gateway: netip.MustParseAddr("2.2.2.2"),
 	})
 	if rl.Count() != 2 {
 		t.Error("Dupplicate route added")
