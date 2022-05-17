@@ -37,6 +37,25 @@ func (obj *configInfo) Name() string {
 	return cmd
 }
 
+func (obj *configInfo) processInterface(e *configInfoNetworkEntry, name string, resp *updateAgentConfigMsg) {
+	if e == nil {
+		return
+	}
+	wgi, err := e.asInterfaceInfo(name)
+	if err != nil {
+		logger.Error().Println(pkgName, "parse network", name, "failed", err)
+		return
+	}
+	err = obj.mole.CreateInterface(wgi)
+	if err != nil {
+		logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
+	}
+
+	if e.PublicKey != wgi.PublicKey || e.Port != wgi.Port {
+		resp.AddInterface(wgi)
+	}
+}
+
 func (obj *configInfo) Exec(raw []byte) error {
 	var req configInfoMsg
 	err := json.Unmarshal(raw, &req)
@@ -73,7 +92,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		os.Exit(0)
 	}
 
-	resp := updateAgentConfigMsg{
+	resp := &updateAgentConfigMsg{
 		MessageHeader: req.MessageHeader,
 		Data:          []updateAgentConfigEntry{},
 	}
@@ -83,30 +102,11 @@ func (obj *configInfo) Exec(raw []byte) error {
 	// Drop old cache and will build a new cache from zero
 	obj.mole.Flush()
 
-	processInterface := func(e *configInfoNetworkEntry, name string) {
-		if e == nil {
-			return
-		}
-		wgi, err := req.Data.Network.Public.asInterfaceInfo(name)
-		if err != nil {
-			logger.Error().Println(pkgName, "parse network", name, "failed", err)
-			return
-		}
-		err = obj.mole.CreateInterface(wgi)
-		if err != nil {
-			logger.Error().Printf("%s Create interface %s error: %s\n", pkgName, wgi.IfName, err)
-		}
-
-		if e.PublicKey != wgi.PublicKey || e.Port != wgi.Port {
-			resp.AddInterface(wgi)
-		}
-	}
-
 	// create missing interfaces
-	processInterface(req.Data.Network.Public, "PUBLIC")
-	processInterface(req.Data.Network.Sdn1, "SDN1")
-	processInterface(req.Data.Network.Sdn2, "SDN2")
-	processInterface(req.Data.Network.Sdn3, "SDN3")
+	obj.processInterface(req.Data.Network.Public, "PUBLIC", resp)
+	obj.processInterface(req.Data.Network.Sdn1, "SDN1", resp)
+	obj.processInterface(req.Data.Network.Sdn2, "SDN2", resp)
+	obj.processInterface(req.Data.Network.Sdn3, "SDN3", resp)
 
 	for _, subnetwork := range req.Data.Subnetworks {
 		if subnetwork.Type == "DOCKER" {
