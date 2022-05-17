@@ -62,5 +62,10 @@ func initDeviceID() {
 		devID = cpuSerial()
 	}
 
-	cache.deviceID = devID
+	/**
+	  Some deployment tools (like Ansible) change DeviceID from time to time.
+	  Noted that the changes is only case change UPPER<->lower case.
+	  Lowercasing Device IDs solves this problem for deployment.
+	**/
+	cache.deviceID = strings.ToLower(devID)
 }
