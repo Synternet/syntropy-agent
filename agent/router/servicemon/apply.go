@@ -5,7 +5,6 @@ import (
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
@@ -43,9 +42,9 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			deleteIPs = append(deleteIPs, ip)
 		} else {
 			if bestRoute != nil {
-				rl.MergeRoutes(ip, bestRoute.IP)
+				rl.MergeRoutes(ip, &bestRoute.IP)
 			} else {
-				rl.MergeRoutes(ip, peermon.NoRoute())
+				rl.MergeRoutes(ip, nil)
 			}
 
 		}
@@ -138,13 +137,13 @@ func (rl *routeList) ClearRoute(destination netip.Prefix) error {
 	return nil
 }
 
-func (rl *routeList) MergeRoutes(destination netip.Prefix, newgw netip.Addr) error {
+func (rl *routeList) MergeRoutes(destination netip.Prefix, newgw *netip.Addr) error {
 	logger.Debug().Println(pkgName, "Apply/MergeRoute ", destination)
 
 	activeRoute := rl.GetActive()
 	var newRoute *routeEntry
-	if newgw.IsValid() {
-		newRoute = rl.Find(newgw)
+	if newgw != nil && newgw.IsValid() {
+		newRoute = rl.Find(*newgw)
 		// check if route change is needed
 		// I think this both cases should never happen
 		if newRoute == nil {

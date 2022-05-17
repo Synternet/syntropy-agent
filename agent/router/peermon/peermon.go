@@ -11,12 +11,8 @@ import (
 
 const (
 	pkgName = "PeerMonitor. "
-	// internal use
+	// Best route index is not set yet
 	invalidBestIndex = -1
-	// For now use simple constant
-	// After migration to Go1.18 and netip structures
-	// I think to use IsZero()/IsValid() or IsUnspecified() instead
-//	NoRoute = nil
 )
 
 const (
@@ -40,10 +36,6 @@ type PeerMonitor struct {
 	avgWindowSize uint
 	lastBest      int
 	changeReason  int
-}
-
-func NoRoute() netip.Addr {
-	return netip.Addr{}
 }
 
 func New(avgSize uint) *PeerMonitor {
