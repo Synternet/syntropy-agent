@@ -2,7 +2,6 @@ package peerwatch
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/netip"
 	"time"
@@ -117,12 +116,11 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 	// pingData now contains all connected peers on all interfaces
 	// Perform ping and process results, if I have any connected peers
 	// Do nothing if no peers are configured
-	if pingData.Count() == 0 {
-		return nil
+	if pingData.Count() > 0 {
+		// Ping the connected peers
+		obj.pinger.Ping(pingData)
 	}
 
-	// Ping the connected peers
-	obj.pinger.Ping(pingData)
 	// Some other users (e.g. PeerMonitor) are also interested in these results
 	// NOTE: optimisation - ping statistics are not yet added to IFACES_PEERS_BW_DATA message (resp)
 	obj.PingProcess(pingData)
@@ -137,19 +135,14 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 		// Fill message with ping statistics
 		resp.PingProcess(obj.pingData)
 
-		// Reset statistics for the next ping period
-		obj.pingData.Reset()
-
 		// Send peers statistics to controller
-		resp.Now()
-		raw, err := json.Marshal(resp)
+		err := resp.Send(obj.writer)
 		if err != nil {
-			logger.Error().Println(pkgName, "json", err)
-			return err
+			logger.Debug().Println(pkgName, "Send error", err)
 		}
 
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
-		obj.writer.Write(raw)
+		// Reset statistics for the next ping period
+		obj.pingData.Reset()
 	}
 
 	return nil
