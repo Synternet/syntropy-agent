@@ -37,11 +37,6 @@ func New(w io.Writer) common.Service {
 	kub.msg.MsgType = cmd
 	kub.msg.ID = env.MessageDefaultID
 
-	err := kub.initClient()
-	if err != nil {
-		logger.Error().Println(pkgName, err)
-	}
-
 	return &kub
 }
 
@@ -65,13 +60,15 @@ func (obj *kubernet) execute() {
 }
 
 func (obj *kubernet) Run(ctx context.Context) error {
-	if obj.ctx != nil {
+	if obj.klient != nil {
 		return fmt.Errorf("kubernetes watcher already running")
 	}
 	obj.ctx = ctx
 
-	if obj.klient == nil {
-		return fmt.Errorf("could not connect to kubernetes cluster")
+	err := obj.initClient()
+	if err != nil {
+		logger.Error().Println(pkgName, err)
+		return err
 	}
 
 	go func() {
@@ -81,6 +78,8 @@ func (obj *kubernet) Run(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				logger.Debug().Println(pkgName, "stopping", cmd)
+				obj.klient.Close()
+				obj.klient = nil
 				return
 			case <-ticker.C:
 				obj.execute()
