@@ -78,6 +78,9 @@ func (obj *AutoPing) PingProcess(pr *multiping.PingData) {
 
 	resp.PingProcess(pr)
 
+	// Clear old statistics
+	pr.Reset()
+
 	if len(resp.Data.Pings) > 0 {
 		var err error
 		obj.Lock()
