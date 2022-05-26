@@ -65,6 +65,7 @@ func Init() {
 	// Default values: diff >= 10ms and at least 10% better
 	cache.rerouteThresholds.diff = 10
 	cache.rerouteThresholds.ratio = 1.1
+	initRouteStrategy()
 }
 
 func Close() {
@@ -94,5 +95,16 @@ func initDebugLevel() {
 		cache.debugLevel = logger.ErrorLevel
 	default:
 		cache.debugLevel = logger.InfoLevel
+	}
+}
+
+func initRouteStrategy() {
+	switch strings.ToUpper(os.Getenv("SYNTROPY_ROUTE_STRATEGY")) {
+	case "speed":
+		cache.routeStrategy = RouteStrategySpeed
+	case "other":
+		cache.routeStrategy = RouteStrategyDirectRoute
+	default:
+		cache.routeStrategy = RouteStrategySpeed
 	}
 }

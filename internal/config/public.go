@@ -15,6 +15,13 @@ const (
 	ContainerTypeHost       = "host"
 )
 
+const (
+	// SYNTROPY_ROUTE_STRATEGY=speed
+	RouteStrategySpeed = iota
+	// SYNTROPY_ROUTE_STRATEGY=dr
+	RouteStrategyDirectRoute
+)
+
 func GetControllerType() int {
 	return cache.controllerType
 }
@@ -147,4 +154,8 @@ func PeerCheckWindow() uint {
 
 func GetRouteDeleteThreshold() uint {
 	return cache.routeDelThreshold
+}
+
+func GetRouteStrategy() int {
+	return cache.routeStrategy
 }

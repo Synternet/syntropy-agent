@@ -4,6 +4,7 @@ import (
 	"net/netip"
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -40,11 +41,17 @@ type PeerMonitor struct {
 }
 
 func New(avgSize uint) *PeerMonitor {
-	return &PeerMonitor{
+	pm := &PeerMonitor{
 		lastBest:      invalidBestIndex,
 		avgWindowSize: avgSize,
-		pathSelector:  bestPathLowestLatency,
 	}
+	if config.GetRouteStrategy() == config.RouteStrategyDirectRoute {
+		pm.pathSelector = bestPathPreferPublic
+	} else {
+		pm.pathSelector = bestPathLowestLatency
+	}
+
+	return pm
 }
 
 func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Addr, connID int) {

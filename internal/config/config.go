@@ -56,6 +56,7 @@ type configCache struct {
 		rerouteWindow uint
 	}
 	routeDelThreshold uint
+	routeStrategy     int
 }
 
 var cache configCache
