@@ -3,6 +3,9 @@ package peermon
 import (
 	"fmt"
 	"net/netip"
+	"strings"
+
+	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
 
 // peerInfo collects stores and calculates moving average of last [SYNTROPY_PEERCHECK_WINDOW] link measurement
@@ -69,6 +72,10 @@ func (node *peerInfo) StatsIncomplete() bool {
 		}
 	}
 	return count != cap(node.latency)
+}
+
+func (node *peerInfo) IsPublic() bool {
+	return strings.HasSuffix(node.ifname, env.InterfaceNamePublicSuffix)
 }
 
 func (node *peerInfo) String() string {

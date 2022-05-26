@@ -10,6 +10,8 @@ const (
 	TimeFormat = time.RFC3339
 	// Prefix of all agent configured interfaces.
 	InterfaceNamePrefix = "SYNTROPY_"
+	// Public interface name suffix
+	InterfaceNamePublicSuffix = "PUBLIC"
 	// Default value for agent initiated messages to controller
 	MessageDefaultID = "-"
 
