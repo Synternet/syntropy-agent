@@ -3,7 +3,6 @@ package router
 import (
 	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/agent/router/servicemon"
-	"github.com/SyntropyNet/syntropy-agent/internal/config"
 )
 
 type routerGroupEntry struct {
@@ -15,7 +14,7 @@ func (r *Router) findOrCreate(groupID int) *routerGroupEntry {
 	routesGroup, ok := r.routes[groupID]
 	if !ok {
 		routesGroup = new(routerGroupEntry)
-		routesGroup.peerMonitor = peermon.New(config.PeerCheckWindow())
+		routesGroup.peerMonitor = peermon.New(&r.pmCfg)
 		routesGroup.serviceMonitor = servicemon.New(routesGroup.peerMonitor, groupID)
 		r.routes[groupID] = routesGroup
 	}

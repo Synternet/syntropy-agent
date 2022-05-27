@@ -1,7 +1,5 @@
 package peermon
 
-import "github.com/SyntropyNet/syntropy-agent/internal/config"
-
 // bestRouteIndex searches and returns current best route
 // (using moving average)
 func (pm *PeerMonitor) bestRouteIndex() int {
@@ -44,9 +42,8 @@ func bestPathLowestLatency(pm *PeerMonitor) (index, reason int) {
 	}
 
 	// apply thresholds
-	diff, ratio := config.RerouteThresholds()
-	if pm.peerList[pm.lastBest].Latency()/pm.peerList[newIdx].Latency() >= ratio &&
-		pm.peerList[pm.lastBest].Latency()-pm.peerList[newIdx].Latency() >= diff {
+	if pm.peerList[pm.lastBest].Latency()/pm.peerList[newIdx].Latency() >= pm.config.RerouteRatio &&
+		pm.peerList[pm.lastBest].Latency()-pm.peerList[newIdx].Latency() >= pm.config.RerouteDiff {
 		return newIdx, reasonLatency
 	}
 
@@ -81,9 +78,8 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 	}
 
 	// apply thresholds
-	diff, ratio := config.RerouteThresholds()
-	if pm.peerList[publicIdx].Latency()/pm.peerList[newIdx].Latency() >= ratio &&
-		pm.peerList[publicIdx].Latency()-pm.peerList[newIdx].Latency() >= diff {
+	if pm.peerList[publicIdx].Latency()/pm.peerList[newIdx].Latency() >= pm.config.RerouteRatio &&
+		pm.peerList[publicIdx].Latency()-pm.peerList[newIdx].Latency() >= pm.config.RerouteDiff {
 		return newIdx, reasonLatency
 	}
 
@@ -108,8 +104,7 @@ func (pm *PeerMonitor) BestPath() *SelectedRoute {
 
 	pm.lastBest, pm.changeReason = pm.pathSelector(pm)
 
-	lossThreshold := config.GetRouteDeleteThreshold()
-	if lossThreshold > 0 && pm.peerList[pm.lastBest].Loss()*100 >= float32(lossThreshold) {
+	if pm.config.RouteDeleteLossThreshold > 0 && pm.peerList[pm.lastBest].Loss()*100 >= pm.config.RouteDeleteLossThreshold {
 		return nil
 	}
 

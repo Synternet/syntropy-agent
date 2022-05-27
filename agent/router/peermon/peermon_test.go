@@ -8,8 +8,14 @@ import (
 )
 
 func TestPeerMonitor(t *testing.T) {
-	count := 24
-	pm := New(uint(count))
+	cfg := PeerMonitorConfig{
+		AverageSize:              24,
+		RouteStrategy:            config.RouteStrategySpeed,
+		RerouteRatio:             1.1,
+		RerouteDiff:              10,
+		RouteDeleteLossThreshold: 0,
+	}
+	pm := New(&cfg)
 
 	addNode := func(ip netip.Addr) {
 		pm.AddNode("ifname", "PublicKey", ip, 0)
@@ -18,7 +24,7 @@ func TestPeerMonitor(t *testing.T) {
 	fillStats := func(endpoint netip.Addr, latency, loss float32) {
 		for _, peer := range pm.peerList {
 			if peer.ip == endpoint {
-				for i := 0; i < count; i++ {
+				for i := 0; i < int(cfg.AverageSize); i++ {
 					peer.Add(latency, loss)
 				}
 			}
@@ -43,7 +49,8 @@ func TestPeerMonitor(t *testing.T) {
 	}
 
 	// Test without thresholds
-	config.SetRerouteThresholds(0, 1)
+	cfg.RerouteDiff = 0
+	cfg.RerouteRatio = 1
 	pm.lastBest = 0
 	fillStats(netip.MustParseAddr("1.1.1.2"), 100, 0)
 	fillStats(netip.MustParseAddr("2.2.2.2"), 145, 0)
@@ -55,14 +62,16 @@ func TestPeerMonitor(t *testing.T) {
 	}
 
 	// Set thresholds and test
-	config.SetRerouteThresholds(10, 1.05)
+	cfg.RerouteDiff = 10
+	cfg.RerouteRatio = 1.05
 	pm.lastBest = 0
 	best = pm.BestPath()
 	if best.IP != netip.MustParseAddr("1.1.1.2") {
 		t.Errorf("Test with too big threshold %s", best.IP)
 	}
 
-	config.SetRerouteThresholds(5, 1.05)
+	cfg.RerouteDiff = 5
+	cfg.RerouteRatio = 1.05
 	pm.lastBest = 0
 	best = pm.BestPath()
 	if best.IP != netip.MustParseAddr("4.4.4.2") {

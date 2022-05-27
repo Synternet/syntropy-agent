@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
+	"github.com/SyntropyNet/syntropy-agent/internal/config"
 )
 
 const (
@@ -19,12 +21,21 @@ type Router struct {
 	sync.Mutex
 	writer io.Writer
 	routes map[int]*routerGroupEntry // route list ordered by group_id
+	pmCfg  peermon.PeerMonitorConfig
 }
 
 func New(w io.Writer) *Router {
+	diff, ratio := config.RerouteThresholds()
 	return &Router{
 		writer: w,
 		routes: make(map[int]*routerGroupEntry),
+		pmCfg: peermon.PeerMonitorConfig{
+			AverageSize:              config.PeerCheckWindow(),
+			RouteStrategy:            config.GetRouteStrategy(),
+			RerouteRatio:             ratio,
+			RerouteDiff:              diff,
+			RouteDeleteLossThreshold: float32(config.GetRouteDeleteThreshold()),
+		},
 	}
 }
 

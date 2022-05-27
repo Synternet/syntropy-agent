@@ -32,20 +32,20 @@ type PathSelector interface {
 
 type PeerMonitor struct {
 	sync.RWMutex
-	peerList      []*peerInfo
-	avgWindowSize uint
-	lastBest      int
-	changeReason  int
+	config       *PeerMonitorConfig
+	peerList     []*peerInfo
+	lastBest     int
+	changeReason int
 
 	pathSelector func(pm *PeerMonitor) (index, reason int)
 }
 
-func New(avgSize uint) *PeerMonitor {
+func New(cfg *PeerMonitorConfig) *PeerMonitor {
 	pm := &PeerMonitor{
-		lastBest:      invalidBestIndex,
-		avgWindowSize: avgSize,
+		lastBest: invalidBestIndex,
+		config:   cfg,
 	}
-	if config.GetRouteStrategy() == config.RouteStrategyDirectRoute {
+	if cfg.RouteStrategy == config.RouteStrategyDirectRoute {
 		pm.pathSelector = bestPathPreferPublic
 	} else {
 		pm.pathSelector = bestPathLowestLatency
@@ -64,7 +64,7 @@ func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Addr, connI
 		}
 	}
 
-	e := newPeerInfo(pm.avgWindowSize)
+	e := newPeerInfo(pm.config.AverageSize)
 	pm.peerList = append(pm.peerList, e)
 
 	e.ifname = ifname
