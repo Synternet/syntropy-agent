@@ -20,6 +20,10 @@ func (pm *PeerMonitor) bestRouteIndex() int {
 	return bestIdx
 }
 
+func (pm *PeerMonitor) isLastBestValid() bool {
+	return pm.lastBest != invalidBestIndex && pm.lastBest < len(pm.peerList)
+}
+
 // This function compares currently active best with newly calculated best route
 // And compares if route should be changed taken into account route change thresholds
 // It changes PeerMonitor's lastBest and changeReason members
@@ -27,7 +31,7 @@ func bestPathLowestLatency(pm *PeerMonitor) (index, reason int) {
 	newIdx := pm.bestRouteIndex()
 
 	// No previous best route yet - choose the best
-	if pm.lastBest == invalidBestIndex || pm.lastBest >= len(pm.peerList) {
+	if !pm.isLastBestValid() {
 		return newIdx, reasonNewRoute
 	}
 
@@ -61,13 +65,13 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 
 	newIdx := pm.bestRouteIndex()
 
-	// No previous best route yet
-	// (or the best route still does not completed full stats cycle)
-	// try choosing public (only if it is usable)
-	if pm.lastBest == invalidBestIndex ||
-		pm.lastBest >= len(pm.peerList) ||
-		pm.peerList[newIdx].StatsIncomplete() {
-		if pm.peerList[publicIdx].Loss() == 0 && pm.peerList[publicIdx].Latency() > 0 {
+	// best route still does not completed full stats cycle
+	if pm.peerList[newIdx].StatsIncomplete() {
+		if pm.isLastBestValid() {
+			// Use last best, if it was selected alredy
+			return pm.lastBest, reasonNoChange
+		} else if pm.peerList[publicIdx].Loss() == 0 && pm.peerList[publicIdx].Latency() > 0 {
+			// Fallback to public, if it is usable
 			return publicIdx, reasonNewRoute
 		}
 	}
@@ -81,6 +85,12 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 	if pm.peerList[publicIdx].Latency()/pm.peerList[newIdx].Latency() >= pm.config.RerouteRatio &&
 		pm.peerList[publicIdx].Latency()-pm.peerList[newIdx].Latency() >= pm.config.RerouteDiff {
 		return newIdx, reasonLatency
+	}
+
+	// No previous best route yet,
+	// and best route `newIdx` is not better than public - fallback to public
+	if !pm.isLastBestValid() {
+		return publicIdx, reasonNewRoute
 	}
 
 	return pm.lastBest, reasonNoChange

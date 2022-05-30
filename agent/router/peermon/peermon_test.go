@@ -29,7 +29,6 @@ func TestPeerMonitor(t *testing.T) {
 				}
 			}
 		}
-
 	}
 
 	addNode(netip.MustParseAddr("1.1.1.2"))
