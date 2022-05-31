@@ -55,7 +55,6 @@ func (e *wgConfEntry) asPeerInfo() (*swireguard.PeerInfo, error) {
 		ifname = env.InterfaceNamePrefix + e.Args.IfName
 	}
 
-	var err error
 	pi := &swireguard.PeerInfo{
 		IfName:       ifname,
 		PublicKey:    e.Args.PublicKey,
@@ -65,14 +64,10 @@ func (e *wgConfEntry) asPeerInfo() (*swireguard.PeerInfo, error) {
 		Port:         e.Args.EndpointPort,
 	}
 
-	pi.IP, err = netip.ParseAddr(e.Args.EndpointIPv4)
-	if err != nil {
-		return nil, fmt.Errorf("invalid IP address %s: %s", e.Args.EndpointIPv4, err)
-	}
-	pi.Gateway, err = netip.ParseAddr(e.Args.GatewayIPv4)
-	if err != nil {
-		return nil, fmt.Errorf("invalid gateway %s: %s", e.Args.GatewayIPv4, err)
-	}
+	// These values may be absent on peer delete messages. Ignore errors.
+	// Don't worry about values - they will be taken from cache
+	pi.IP, _ = netip.ParseAddr(e.Args.EndpointIPv4)
+	pi.Gateway, _ = netip.ParseAddr(e.Args.GatewayIPv4)
 
 	for _, ipStr := range e.Args.AllowedIPs {
 		aip, err := netip.ParsePrefix(ipStr)
