@@ -114,10 +114,10 @@ func (wg *Wireguard) RemovePeer(pi *PeerInfo) error {
 
 // applyPeers does a synchronisation from cache to OS WG interface
 // adds missing, and removes residual peers
-func (wg *Wireguard) applyPeers(ii *InterfaceInfo) error {
+func (wg *Wireguard) applyPeers(ii *InterfaceInfo) (allowedIPs []netip.Prefix, err error) {
 	dev, err := wg.wgc.Device(ii.IfName)
 	if err != nil {
-		return err
+		return
 	}
 
 	wgconf := wgtypes.Config{
@@ -157,14 +157,22 @@ func (wg *Wireguard) applyPeers(ii *InterfaceInfo) error {
 				PublicKey: osPeer.PublicKey,
 				Remove:    true,
 			})
+
+			for _, aIP := range osPeer.AllowedIPs {
+				addr, ok := netip.AddrFromSlice(aIP.IP)
+				if !ok {
+					continue
+				}
+				bitlen, _ := aIP.Mask.Size()
+				allowedIPs = append(allowedIPs, netip.PrefixFrom(addr, bitlen))
+			}
 		}
 	}
 
 	// apply changes if needed
 	if len(wgconf.Peers) > 0 {
-		return wg.wgc.ConfigureDevice(ii.IfName, wgconf)
+		err = wg.wgc.ConfigureDevice(ii.IfName, wgconf)
 	}
 
-	// no changes needed
-	return nil
+	return
 }

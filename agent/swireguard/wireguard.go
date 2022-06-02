@@ -8,6 +8,7 @@ It also collects peer status, monitores latency, and other releated work
 package swireguard
 
 import (
+	"net/netip"
 	"strings"
 	"sync"
 
@@ -79,13 +80,13 @@ func (wg *Wireguard) Flush() {
 
 // Apply function setups cached WG configuration,
 // and cleans up resident configuration
-func (wg *Wireguard) Apply() error {
+func (wg *Wireguard) Apply() (allowedIPs []netip.Prefix, err error) {
 	wg.RLock()
 	defer wg.RUnlock()
 
 	osDevs, err := wg.wgc.Devices()
 	if err != nil {
-		return err
+		return
 	}
 
 	// remove resident devices (created by already terminated agent)
@@ -101,6 +102,16 @@ func (wg *Wireguard) Apply() error {
 		if !found {
 			if strings.HasPrefix(osDev.Name, env.InterfaceNamePrefix) ||
 				wg.RemoveNonSyntropyInterfaces {
+				for _, peer := range osDev.Peers {
+					for _, aIP := range peer.AllowedIPs {
+						addr, ok := netip.AddrFromSlice(aIP.IP)
+						if !ok {
+							continue
+						}
+						bitlen, _ := aIP.Mask.Size()
+						allowedIPs = append(allowedIPs, netip.PrefixFrom(addr, bitlen))
+					}
+				}
 				wg.RemoveInterface(&InterfaceInfo{
 					IfName: osDev.Name,
 				})
@@ -111,7 +122,7 @@ func (wg *Wireguard) Apply() error {
 	// reread OS setup - it may has changed
 	osDevs, err = wg.wgc.Devices()
 	if err != nil {
-		return err
+		return
 	}
 	// create missing devices
 	for _, agentDev := range wg.devices {
@@ -125,8 +136,12 @@ func (wg *Wireguard) Apply() error {
 		if !found {
 			wg.CreateInterface(agentDev)
 		}
-		wg.applyPeers(agentDev)
+		ips, err := wg.applyPeers(agentDev)
+		if err != nil {
+			return allowedIPs, err
+		}
+		allowedIPs = append(allowedIPs, ips...)
 	}
 
-	return nil
+	return allowedIPs, err
 }

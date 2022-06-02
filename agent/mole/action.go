@@ -72,13 +72,22 @@ func (m *Mole) Flush() {
 // Apply pending results (sync cache to reality)
 // Send some messages to controller (Writter), if needed
 func (m *Mole) Apply() {
-	err := m.wg.Apply()
+	delRoutes, err := m.wg.Apply()
 	if err != nil {
 		logger.Error().Println(pkgName, "wireguard apply", err)
 	}
 
 	routeStatusMessage := routestatus.New()
 	peersActiveDataMessage := peeradata.NewMessage()
+
+	// check and delete routes
+	for _, r := range delRoutes {
+		ok, ifname := netcfg.RouteConflict(&r)
+		if ok {
+			logger.Info().Println(pkgName, "Deleting leftover route", r, ifname)
+			netcfg.RouteDel(ifname, &r)
+		}
+	}
 
 	routeRes, peersData := m.router.Apply()
 
