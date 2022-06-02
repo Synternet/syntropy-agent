@@ -92,6 +92,18 @@ func (pm *PeerMonitor) DelNode(endpoint netip.Addr) {
 	}
 }
 
+func (pm *PeerMonitor) HasNode(endpoint netip.Addr) bool {
+	pm.Lock()
+	defer pm.Unlock()
+
+	for _, peer := range pm.peerList {
+		if peer.ip == endpoint {
+			return true
+		}
+	}
+	return false
+}
+
 func (pm *PeerMonitor) Peers() []string {
 	pm.RLock()
 	defer pm.RUnlock()

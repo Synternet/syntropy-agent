@@ -66,6 +66,19 @@ func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 	return r.serviceApply()
 }
 
+func (r *Router) HasRoute(ip netip.Prefix) bool {
+	r.Lock()
+	defer r.Unlock()
+
+	for _, route := range r.routes {
+		if route.peerMonitor.HasNode(ip.Addr()) || route.serviceMonitor.Has(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (r *Router) Close() error {
 	if !config.CleanupOnExit() {
 		return nil
