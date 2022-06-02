@@ -36,9 +36,9 @@ func RouteAdd(ifname string, gw *netip.Addr, ip *netip.Prefix) error {
 		return nil
 	}
 
-	err = checkRouteConflicts(route.Dst)
-	if err != nil {
-		return err
+	exists, ifname := RouteSearch(ip)
+	if exists {
+		return fmt.Errorf("route conflict: %s exists on %s", ip.String(), ifname)
 	}
 
 	err = netlink.RouteAdd(&route)
@@ -164,29 +164,4 @@ func routeExists(link netlink.Link, dst *net.IPNet, gw net.IP) bool {
 		}
 	}
 	return false
-}
-
-func checkRouteConflicts(dst *net.IPNet) error {
-	if dst == nil {
-		return nil // we can have several default routes, right
-	}
-	routes, err := netlink.RouteList(nil, 0)
-	if err != nil {
-		// Cannot list routes. Should be quite a problem on the system.
-		return err
-	}
-
-	for _, r := range routes {
-		if r.Dst == nil {
-			continue
-		}
-		// In this case do not worry about correct rule already existing.
-		// This case was already checked in `routeExists()`, and code should never reach here
-		// If I am here - then we have a dupplicate route.
-		// Error out and do not add additional conflict route
-		if r.Dst.String() == dst.String() {
-			return fmt.Errorf("route conflict %s vs %s [%d]", dst.String(), r.Dst.String(), r.LinkIndex)
-		}
-	}
-	return nil
 }
