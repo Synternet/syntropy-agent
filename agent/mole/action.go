@@ -82,8 +82,8 @@ func (m *Mole) Apply() {
 
 	// check and delete routes
 	for _, r := range delRoutes {
-		ok, ifname := netcfg.RouteConflict(&r)
-		if ok {
+		found, ifname := netcfg.RouteSearch(&r)
+		if found {
 			logger.Info().Println(pkgName, "Deleting leftover route", r, ifname)
 			netcfg.RouteDel(ifname, &r)
 		}

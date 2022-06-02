@@ -114,7 +114,7 @@ func RouteReplace(ifname string, gw *netip.Addr, ip *netip.Prefix) error {
 	return nil
 }
 
-func RouteConflict(ip *netip.Prefix) (rc bool, ifname string) {
+func RouteSearch(ip *netip.Prefix) (found bool, ifname string) {
 	if ip == nil {
 		return false, ""
 	}
@@ -131,7 +131,7 @@ func RouteConflict(ip *netip.Prefix) (rc bool, ifname string) {
 		// We are already listing required interface routes.
 		// So need only to compare destination and gateway
 		if r.Dst.IP.Equal(ip.Addr().AsSlice()) {
-			rc = true
+			found = true
 			link, err := netlink.LinkByIndex(r.LinkIndex)
 			if err == nil {
 				ifname = link.Attrs().Name
@@ -139,7 +139,7 @@ func RouteConflict(ip *netip.Prefix) (rc bool, ifname string) {
 		}
 	}
 
-	return rc, ifname
+	return
 }
 
 func routeExists(link netlink.Link, dst *net.IPNet, gw net.IP) bool {

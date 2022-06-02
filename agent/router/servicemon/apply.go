@@ -73,7 +73,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 func (rl *routeList) SetRoute(destination netip.Prefix) (*routestatus.Connection, error) {
 	defer rl.resetPending()
 
-	routeConflict, conflictIfName := netcfg.RouteConflict(&destination)
+	routeConflict, conflictIfName := netcfg.RouteSearch(&destination)
 	logger.Debug().Println(pkgName, "Apply/SetRoute ", destination)
 
 	if !routeConflict {
