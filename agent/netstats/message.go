@@ -81,9 +81,13 @@ func (msg *Message) PingProcess(pr *multiping.PingData) {
 			}
 			val, ok := pr.Get(addr)
 			if ok {
-				// format results for controler
-				peerEntry.Latency = val.Latency()
-				peerEntry.Loss = val.Loss()
+				if val.Valid() {
+					// format results for controler
+					peerEntry.Latency = val.Latency()
+					peerEntry.Loss = val.Loss()
+				} else {
+					logger.Warning().Println(pkgName, "Invalid ping stats for", addr)
+				}
 			}
 		}
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
@@ -34,11 +35,15 @@ func newResponceMsg() autoPingResponse {
 func (resp *autoPingResponse) PingProcess(data *multiping.PingData) {
 	// TODO: respect controllers set LimitCount
 	data.Iterate(func(ip netip.Addr, val multiping.PingStats) {
-		resp.Data.Pings = append(resp.Data.Pings,
-			pingResponseEntry{
-				IP:      ip.String(),
-				Latency: val.Latency(),
-				Loss:    val.Loss(),
-			})
+		if val.Valid() {
+			resp.Data.Pings = append(resp.Data.Pings,
+				pingResponseEntry{
+					IP:      ip.String(),
+					Latency: val.Latency(),
+					Loss:    val.Loss(),
+				})
+		} else {
+			logger.Warning().Println(pkgName, "Invalid ping stats for", ip.String())
+		}
 	})
 }
