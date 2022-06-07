@@ -27,9 +27,13 @@ func (s *PingStats) Reset() {
 	s.avgRtt = 0
 }
 
+func (s *PingStats) Valid() bool {
+	return s.tx > 0 && s.tx >= s.rx
+}
+
 // Loss returns calculated ping loss
 func (s *PingStats) Loss() float32 {
-	if s.tx > 0 {
+	if s.Valid() {
 		return float32(s.tx-s.rx) / float32(s.tx)
 	}
 	return 0
@@ -37,7 +41,7 @@ func (s *PingStats) Loss() float32 {
 
 // Latency returns average latency in miliseconds
 func (s *PingStats) Latency() float32 {
-	if s.rx > 0 {
+	if s.Valid() && s.rx > 0 {
 		return float32(s.avgRtt.Microseconds()) / 1000
 	} else {
 		return 0
