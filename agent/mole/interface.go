@@ -8,7 +8,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
-	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/webip"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
 )
 
 func isSdnInterface(ifname string) bool {
@@ -57,14 +57,15 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	// Try detecting NAT and send port as 0 - this way SDN agent will try guessing my port.
 	// NOTE: this increases load on SDN agent so use this only when necessary.
 	if isSdnInterface(ii.IfName) {
-		publicIP, err := webip.PublicIP()
-		if err != nil {
-			logger.Error().Println(pkgName, "Error getting public IP", err)
-		} else {
+		// TODO: GetPublicIP
+		publicIP := pubip.GetPublicIp()
+		if !publicIP.IsUnspecified() {
 			pubip, ok := netip.AddrFromSlice(publicIP)
 			if ok && !netcfg.HostHasIP(pubip) {
 				ii.Port = 0
 			}
+		} else {
+			logger.Error().Println(pkgName, "Error getting public IP")
 		}
 	}
 
