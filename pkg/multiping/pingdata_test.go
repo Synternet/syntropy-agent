@@ -125,33 +125,25 @@ const (
 )
 
 func TestLossValidation(t *testing.T) {
-	// try listing corner cases here
-	testEntries := []PingStats{
-		{tx: 0, rx: 0}, // invalid values
-		{tx: 1, rx: 1},
-		{tx: 1, rx: 0},
-		{tx: 0, rx: 1}, // invalid values
-		{tx: 2, rx: 1},
-		{tx: 1, rx: 2}, // invalid values
-		{tx: 222, rx: 125},
-		{tx: 111, rx: 225}, // invalid values
-		{tx: MaxUint, rx: 0},
-		{tx: MaxUint, rx: 10},
-		{tx: 0, rx: MaxUint},           // invalid values
-		{tx: 100, rx: MaxUint},         // invalid values
-		{tx: MaxUint / 2, rx: MaxUint}, // invalid values
-		{tx: MaxUint, rx: MaxUint / 2},
-		{tx: MaxUint / 2, rx: MaxUint / 2},
-		{tx: MaxUint - 1, rx: MaxUint}, // invalid values
-		{tx: MaxUint, rx: MaxUint - 1},
-		{tx: MaxUint - 1, rx: MaxUint - 1},
-		{tx: MaxUint, rx: MaxUint},
-	}
+	var stats PingStats
 
-	for _, e := range testEntries {
-		loss := e.Loss()
-		if loss < 0 || loss > 1 {
-			t.Errorf("Invalid loss %f (tx: %d, rx: %d)", loss, e.tx, e.rx)
+	// This test is oriented to 64bits cpu
+	// it works also for 32bits as well, just some tests will be dupplicate
+	for i := 0; i <= 64; i++ {
+		for j := 0; j <= 64; j++ {
+			// test loss
+			loss := stats.Loss()
+			if loss < 0 || loss > 1 {
+				t.Errorf("Invalid loss %f (tx: %d, rx: %d)", loss, stats.tx, stats.rx)
+			}
+
+			// Testing all possible values would take a quite a long time
+			// So bitshifting is an optimisation which test all the range
+			// and is way faster
+			stats.rx = (stats.rx << 1) + 1
 		}
+		// bitshift tx value
+		stats.tx = (stats.tx << 1) + 1
+		stats.rx = 0
 	}
 }
