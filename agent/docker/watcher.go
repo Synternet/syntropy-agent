@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
+	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -20,13 +21,22 @@ const (
 )
 
 type dockerWatcher struct {
-	writer io.Writer
-	cli    *client.Client
-	ctx    context.Context
+	writer           io.Writer
+	cli              *client.Client
+	ctx              context.Context
+	containerInfoMsg containerInfoMessage
+	networkInfoMsg   networkInfoMessage
 }
 
 func New(w io.Writer) DockerService {
-	return &dockerWatcher{writer: w}
+	obj := &dockerWatcher{writer: w}
+
+	obj.containerInfoMsg.ID = env.MessageDefaultID
+	obj.containerInfoMsg.MsgType = cmdContainer
+	obj.networkInfoMsg.ID = env.MessageDefaultID
+	obj.networkInfoMsg.MsgType = cmdNetwork
+
+	return obj
 }
 
 func (obj *dockerWatcher) Name() string {
@@ -56,41 +66,44 @@ func (obj *dockerWatcher) run() {
 			}
 			switch msg.Type {
 			case events.NetworkEventType:
-
 				if msg.Action == "create" || msg.Action == "destroy" {
-					resp := networkInfoMessage{
-						Data: obj.NetworkInfo(),
-					}
-					resp.ID = env.MessageDefaultID
-					resp.MsgType = cmdNetwork
-					resp.Now()
-					raw, err := json.Marshal(resp)
-					if err == nil {
-						logger.Debug().Println(pkgName, "Sending: ", string(raw))
-						_, err = obj.writer.Write(raw)
-					}
-					if err != nil {
-						logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
+					data := obj.NetworkInfo()
+
+					if !cmp.Equal(data, obj.networkInfoMsg.Data) {
+						obj.networkInfoMsg.Data = data
+						obj.networkInfoMsg.Now()
+
+						raw, err := json.Marshal(obj.networkInfoMsg)
+						if err == nil {
+							logger.Debug().Println(pkgName, "Sending: ", string(raw))
+							_, err = obj.writer.Write(raw)
+						}
+						if err != nil {
+							logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
+						}
 					}
 				}
+
 			case events.ContainerEventType:
 				if msg.Action == "create" || msg.Action == "destroy" ||
 					msg.Action == "start" || msg.Action == "stop" {
-					resp := containerInfoMessage{
-						Data: obj.ContainerInfo(),
-					}
-					resp.ID = env.MessageDefaultID
-					resp.MsgType = cmdContainer
-					resp.Now()
-					raw, err := json.Marshal(resp)
-					if err == nil {
-						logger.Debug().Println(pkgName, "Sending: ", string(raw))
-						_, err = obj.writer.Write(raw)
-					}
-					if err != nil {
-						logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
+					data := obj.ContainerInfo()
+
+					if !cmp.Equal(data, obj.containerInfoMsg.Data) {
+						obj.containerInfoMsg.Data = data
+						obj.containerInfoMsg.Now()
+
+						raw, err := json.Marshal(obj.containerInfoMsg)
+						if err == nil {
+							logger.Debug().Println(pkgName, "Sending: ", string(raw))
+							_, err = obj.writer.Write(raw)
+						}
+						if err != nil {
+							logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
+						}
 					}
 				}
+
 			default:
 				logger.Debug().Println(pkgName, "Unhandled message", msg.Type, msg.Action)
 			}
