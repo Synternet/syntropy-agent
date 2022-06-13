@@ -56,7 +56,6 @@ type MultiPing struct {
 }
 
 func New(privileged bool) (*MultiPing, error) {
-	var err error
 	protocol := "udp"
 	if privileged {
 		protocol = "icmp"
@@ -75,14 +74,24 @@ func New(privileged bool) (*MultiPing, error) {
 	mp.pinger.SetPrivileged(privileged)
 	mp.pinger.Tracker = mp.Tracker
 
-	// ipv4
-	mp.conn4, err = icmp.ListenPacket(ipv4Proto[protocol], "")
+	// try initialise connections to test that everything's working
+	err := mp.restart()
 	if err != nil {
-		return nil, err
+		mp.close()
+	}
+
+	return mp, nil
+}
+
+func (mp *MultiPing) restart() (err error) {
+	// ipv4
+	mp.conn4, err = icmp.ListenPacket(ipv4Proto[mp.protocol], "")
+	if err != nil {
+		return err
 	}
 	err = mp.conn4.IPv4PacketConn().SetControlMessage(ipv4.FlagTTL, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// ipv6 (note IPv6 may be disabled on OS and may fail)
@@ -91,18 +100,35 @@ func New(privileged bool) (*MultiPing, error) {
 		mp.conn6.IPv6PacketConn().SetControlMessage(ipv6.FlagHopLimit, true)
 	}
 
-	mp.pinger.SetConns(mp.conn4, mp.conn6)
+	mp.pinger.conn4 = mp.conn4
+	mp.pinger.conn6 = mp.conn6
+	mp.sequence++
 
-	return mp, nil
+	return nil
 }
 
-func (mp *MultiPing) Close() {
+// closes active connections
+func (mp *MultiPing) close() {
 	if mp.conn4 != nil {
 		mp.conn4.Close()
 	}
 	if mp.conn6 != nil {
 		mp.conn6.Close()
 	}
+}
+
+// cleanup cannot be done in close, because some goroutines may be using struct members
+func (mp *MultiPing) cleanup() {
+	// invalidate connections
+	mp.pinger.conn4 = nil
+	mp.pinger.conn6 = nil
+	mp.conn4 = nil
+	mp.conn6 = nil
+
+	// Invalidate pingData pointer (prevent from possible data corruption in future)
+	mp.pingData = nil
+	// Invalidate IP address
+	mp.pinger.SetIPAddr(nil)
 }
 
 // Ping is blocking function and runs for mp.Timeout time and pings all hosts in data
@@ -114,7 +140,11 @@ func (mp *MultiPing) Ping(data *PingData) {
 	// Lock the pinger - its instance may be reused by several clients
 	mp.Lock()
 	defer mp.Unlock()
-	mp.sequence++
+
+	err := mp.restart()
+	if err != nil {
+		return
+	}
 
 	// lock the results data
 	data.mutex.Lock()
@@ -151,79 +181,77 @@ func (mp *MultiPing) Ping(data *PingData) {
 		}
 	}()
 
+	// wait for timeout and close connections
+	<-mp.ctx.Done()
+	mp.close()
+
+	// wait for all goroutines to terminate
 	wg.Wait()
 
-	// Invalidate pingData pointer (prevent from possible data corruption in future)
-	mp.pingData = nil
-	// Invalidate IP address
-	mp.pinger.SetIPAddr(nil)
+	mp.cleanup()
 }
 
 func (mp *MultiPing) batchRecvICMP(wg *sync.WaitGroup, proto ProtocolVersion) {
-	defer wg.Done()
 
 	var packetsWait sync.WaitGroup
 
+	defer func() {
+		packetsWait.Wait()
+		wg.Done()
+	}()
+
 	for {
-		select {
-		case <-mp.ctx.Done():
-			packetsWait.Wait()
+		bytes := make([]byte, 512)
+		var n, ttl int
+		var err error
+		var src net.Addr
+
+		if proto == ProtocolIpv4 {
+			mp.conn4.SetReadDeadline(time.Now().Add(mp.Timeout))
+
+			var cm *ipv4.ControlMessage
+			n, cm, src, err = mp.conn4.IPv4PacketConn().ReadFrom(bytes)
+			if cm != nil {
+				ttl = cm.TTL
+			}
+		} else {
+			mp.conn6.SetReadDeadline(time.Now().Add(mp.Timeout))
+
+			var cm *ipv6.ControlMessage
+			n, cm, src, err = mp.conn6.IPv6PacketConn().ReadFrom(bytes)
+			if cm != nil {
+				ttl = cm.HopLimit
+			}
+		}
+
+		// Error reeading from connection. Can happen one of 2:
+		//  * connections are closed after context timeout (most probably)
+		//  * other unhanled erros (when can they happen?)
+		// In either case terminate and exit
+		if err != nil {
 			return
-		default:
-			bytes := make([]byte, 512)
-			var n, ttl int
-			var err error
-			var src net.Addr
+		}
 
-			if proto == ProtocolIpv4 {
-				mp.conn4.SetReadDeadline(time.Now().Add(mp.Timeout / 10))
-
-				var cm *ipv4.ControlMessage
-				n, cm, src, err = mp.conn4.IPv4PacketConn().ReadFrom(bytes)
-				if cm != nil {
-					ttl = cm.TTL
-				}
-			} else {
-				mp.conn6.SetReadDeadline(time.Now().Add(mp.Timeout / 10))
-
-				var cm *ipv6.ControlMessage
-				n, cm, src, err = mp.conn6.IPv6PacketConn().ReadFrom(bytes)
-				if cm != nil {
-					ttl = cm.HopLimit
-				}
-			}
-			// Error reeading from connection
-			if err != nil {
-				if neterr, ok := err.(*net.OpError); ok {
-					if neterr.Timeout() {
-						continue
-					} else {
-						return
-					}
-				}
-			}
-
-			// TODO: maybe there is more effective way to get netip.Addr from PacketConn ?
-			var ip string
-			if mp.protocol == "udp" {
-				ip, _, err = net.SplitHostPort(src.String())
-				if err != nil {
-					continue
-				}
-			} else {
-				ip = src.String()
-			}
-
-			var addr netip.Addr
-			addr, err = netip.ParseAddr(ip)
+		// TODO: maybe there is more effective way to get netip.Addr from PacketConn ?
+		var ip string
+		if mp.protocol == "udp" {
+			ip, _, err = net.SplitHostPort(src.String())
 			if err != nil {
 				continue
 			}
-
-			packetsWait.Add(1)
-			recv := &packet{bytes: bytes, nbytes: n, ttl: ttl, proto: proto, src: addr}
-			go mp.processPacket(&packetsWait, recv)
+		} else {
+			ip = src.String()
 		}
+
+		var addr netip.Addr
+		addr, err = netip.ParseAddr(ip)
+		if err != nil {
+			continue
+		}
+
+		packetsWait.Add(1)
+		recv := &packet{bytes: bytes, nbytes: n, ttl: ttl, proto: proto, src: addr}
+		go mp.processPacket(&packetsWait, recv)
 	}
 }
 

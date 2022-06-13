@@ -157,12 +157,6 @@ func (p *Pinger) SendICMP(sequence int) error {
 	return nil
 }
 
-// SetConns set ipv4 and ipv6 conn
-func (p *Pinger) SetConns(conn4 *icmp.PacketConn, conn6 *icmp.PacketConn) {
-	p.conn4 = conn4
-	p.conn6 = conn6
-}
-
 func bytesToTime(b []byte) time.Time {
 	var nsec int64
 	for i := uint8(0); i < 8; i++ {
