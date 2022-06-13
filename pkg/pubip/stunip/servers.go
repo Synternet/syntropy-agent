@@ -1,6 +1,7 @@
 package stunip
 
 var stunServers []string = []string{
+	"stun.syntropystack.com:3478",
 	"stun.l.google.com:19302",
 	"stun1.l.google.com:19302",
 	"stun2.l.google.com:19302",
