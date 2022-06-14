@@ -57,7 +57,6 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	// Try detecting NAT and send port as 0 - this way SDN agent will try guessing my port.
 	// NOTE: this increases load on SDN agent so use this only when necessary.
 	if isSdnInterface(ii.IfName) {
-		// TODO: GetPublicIP
 		publicIP := pubip.GetPublicIp()
 		if !publicIP.IsUnspecified() {
 			pubip, ok := netip.AddrFromSlice(publicIP)

@@ -12,8 +12,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
-// TODO: review `-nft` and `-legacy` usage
-
 type PacketFilter struct {
 	ipt          *iptables.IPTables
 	chainCreated bool
@@ -134,7 +132,6 @@ func (pf *PacketFilter) ForwardEnable(ifname string) error {
 		return errors.New("could not parse default route interface")
 	}
 
-	// TODO correctly handle masquarate in nf_tables case
 	masquaradeRule := []string{"-o", dri, "-j", "MASQUERADE"}
 	return pf.ipt.AppendUnique(natTable, "POSTROUTING", masquaradeRule...)
 }

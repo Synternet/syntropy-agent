@@ -15,9 +15,6 @@ import (
 	"golang.org/x/build/kubernetes"
 )
 
-// TODO (later): in future think about optimising binary size
-// and using GO stdlib kubernetes package
-// (premature optimisation is the root of all evil)
 const (
 	pkgName = "Kubernetes. "
 	cmd     = "KUBERNETES_SERVICE_INFO"
