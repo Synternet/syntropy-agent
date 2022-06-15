@@ -15,6 +15,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/beevik/ntp"
 	"golang.org/x/sys/unix"
 )
 
@@ -53,6 +54,28 @@ func checkKernelVersion() {
 	if v1 < minVer || (v1 == minVer && v2 < minSubver) {
 		logger.Warning().Println(fullAppName, "Kernel version is:", str)
 		logger.Warning().Println(fullAppName, "Some features may be not fully supported.")
+	}
+}
+
+// checkTime gets current time from NTP servers pool
+// and checks if local time is accurate.
+// Prints warning to log if time differs by more than 10 seconds
+func checkTime() {
+	const toleratedDiff = 10 * time.Second
+
+	// Default options have 5 second timeout before error
+	ntpTime, err := ntp.Time("pool.ntp.org")
+	if err != nil {
+		logger.Error().Println(fullAppName, "NTP error", err)
+		return
+	}
+
+	localTime := time.Now()
+	timeDiff := localTime.Sub(ntpTime)
+
+	if timeDiff > toleratedDiff || timeDiff < -toleratedDiff {
+		logger.Warning().Println(fullAppName, "Inaccurate time. Local:", localTime.Format(time.Stamp),
+			"NTP:", ntpTime.Format(time.Stamp))
 	}
 }
 
@@ -111,8 +134,8 @@ func main() {
 
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
-	logger.Info().Println(fullAppName, "Local time:", time.Now().Format(env.TimeFormat))
 	checkKernelVersion()
+	checkTime()
 
 	//Start main agent loop
 	go syntropyNetAgent.Run()

@@ -3,6 +3,7 @@ module github.com/SyntropyNet/syntropy-agent
 go 1.18
 
 require (
+	github.com/beevik/ntp v0.3.0
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.2
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/decred/base58 v1.0.4
