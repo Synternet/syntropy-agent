@@ -2,15 +2,46 @@ package swireguard
 
 import (
 	"time"
+
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+const mega = 10000000
+
 type PeerStats struct {
-	TxBytes       int64
-	RxBytes       int64
+	TxBytesTotal  int64
+	RxBytesTotal  int64
+	TxBytesDiff   int64
+	RxBytesDiff   int64
 	TxSpeedMbps   float32
 	RxSpeedMbps   float32
 	LastHandshake time.Time
 	timestamp     time.Time
+}
+
+func (ps *PeerStats) update(wgp *wgtypes.Peer) {
+	// Calculate statistics first
+	// First time run there will be no timestamp, so skip stats calculation
+	if !ps.timestamp.IsZero() {
+		ps.TxBytesDiff = wgp.TransmitBytes - ps.TxBytesTotal
+		ps.RxBytesDiff = wgp.ReceiveBytes - ps.RxBytesTotal
+		// TODO: overwrap handling ^^^
+		// 100% loaded 10G link it will take ~467years, 100G - ~46years, 1T ~4.6years
+
+		timeDiff := float32(time.Since(ps.timestamp) / time.Second)
+		if timeDiff > 0 {
+			ps.TxSpeedMbps = float32(ps.TxBytesDiff) / timeDiff / mega
+			ps.RxSpeedMbps = float32(ps.RxBytesDiff) / timeDiff / mega
+		}
+	}
+
+	// Then update Tx/Rx bytes for the next time
+	ps.TxBytesTotal = wgp.TransmitBytes
+	ps.RxBytesTotal = wgp.ReceiveBytes
+
+	// timestamp, handshake, etc
+	ps.timestamp = time.Now()
+	ps.LastHandshake = wgp.LastHandshakeTime
 }
 
 func (wg *Wireguard) PeerStatsUpdate() {
@@ -23,26 +54,11 @@ func (wg *Wireguard) PeerStatsUpdate() {
 		for _, osPeer := range osDev.Peers {
 			for _, agentPeer := range agentDev.peers {
 				if agentPeer.PublicKey == osPeer.PublicKey.String() {
-					// Calculate statistics first
-					if !agentPeer.Stats.timestamp.IsZero() {
-						diff := float32(time.Since(agentPeer.Stats.timestamp) / time.Second)
-						if diff > 0 {
-							agentPeer.Stats.TxSpeedMbps = float32(osPeer.TransmitBytes-agentPeer.Stats.TxBytes) / diff / 1000000
-							agentPeer.Stats.RxSpeedMbps = float32(osPeer.ReceiveBytes-agentPeer.Stats.RxBytes) / diff / 1000000
-						}
-					}
-					// Then update Tx/Rx bytes for the next time
-					agentPeer.Stats.TxBytes = osPeer.TransmitBytes
-					agentPeer.Stats.RxBytes = osPeer.ReceiveBytes
-
-					// timestamp, handshake, etc
-					agentPeer.Stats.timestamp = time.Now()
-					agentPeer.Stats.LastHandshake = osPeer.LastHandshakeTime
+					agentPeer.Stats.update(&osPeer)
 					// skip to next peer on external loop
 					break
 				}
 			}
-
 		}
 	}
 }

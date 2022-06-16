@@ -91,8 +91,8 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 				PublicKey:    p.PublicKey,
 				IP:           p.AllowedIPs[0].Addr().String(),
 				KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
-				RxBytes:      p.Stats.RxBytes,
-				TxBytes:      p.Stats.TxBytes,
+				RxBytes:      p.Stats.RxBytesDiff, // Controler is expecting bytes received during report period
+				TxBytes:      p.Stats.TxBytesDiff, // Controler is expecting bytes sent during report period
 				RxSpeed:      p.Stats.RxSpeedMbps,
 				TxSpeed:      p.Stats.TxSpeedMbps,
 			}
