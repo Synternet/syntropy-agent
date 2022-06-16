@@ -80,6 +80,10 @@ func (m *Mole) Apply() {
 		logger.Error().Println(pkgName, "wireguard apply", err)
 	}
 
+	// store initial new peers counters values
+	// Note: PeerStatsInit is quite smart and does not reset existing peers stats
+	m.wg.PeerStatsInit()
+
 	// check and delete routes
 	for _, r := range delRoutes {
 		if m.router.HasRoute(r) {
