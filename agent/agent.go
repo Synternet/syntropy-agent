@@ -21,6 +21,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
+	"github.com/SyntropyNet/syntropy-agent/agent/twampsrv"
 	"github.com/SyntropyNet/syntropy-agent/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent/controller"
 	"github.com/SyntropyNet/syntropy-agent/controller/blockchain"
@@ -155,6 +156,8 @@ func New(contype int) (*Agent, error) {
 		shellcmd.New("wg_info", "wg", "show"),
 		shellcmd.New("routes", "route", "-n"),
 		autoping))
+
+	agent.addService(twampsrv.New())
 
 	return agent, nil
 }
