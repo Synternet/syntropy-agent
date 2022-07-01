@@ -61,7 +61,9 @@ func (obj *kubernet) monitorServices() ([]kubernetesServiceEntry, error) {
 			logger.Error().Println(pkgName, namespace, "Get Services error:", err)
 			// close kubernetes client and continue on next namespace
 			klient.Close()
-			continue
+			// note its better to not report anything to controller is some kind of temporary error occurs.
+			// if atleast one namespace is reported to controller as empty all services will be removed
+			return nil, err
 		}
 
 		// parse and add the services
