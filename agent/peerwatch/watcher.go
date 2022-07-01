@@ -132,8 +132,8 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 					KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
 					RxBytes:      p.Stats.RxBytesDiff, // Controler is expecting bytes received during report period
 					TxBytes:      p.Stats.TxBytesDiff, // Controler is expecting bytes sent during report period
-					RxSpeed:      p.Stats.RxSpeedMbps,
-					TxSpeed:      p.Stats.TxSpeedMbps,
+					RxSpeed:      p.Stats.RxSpeedMBps,
+					TxSpeed:      p.Stats.TxSpeedMBps,
 				}
 
 				if p.Stats.LastHandshake.IsZero() {

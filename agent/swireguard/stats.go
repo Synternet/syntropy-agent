@@ -6,15 +6,15 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-const mega = 10000000
+const mega = 1_000_000
 
 type PeerStats struct {
 	TxBytesTotal  int64
 	RxBytesTotal  int64
 	TxBytesDiff   int64
 	RxBytesDiff   int64
-	TxSpeedMbps   float32
-	RxSpeedMbps   float32
+	TxSpeedMBps   float32
+	RxSpeedMBps   float32
 	LastHandshake time.Time
 	timestamp     time.Time
 }
@@ -38,8 +38,8 @@ func (ps *PeerStats) update(wgp *wgtypes.Peer, init bool) {
 
 		timeDiff := float32(time.Since(ps.timestamp) / time.Second)
 		if timeDiff > 0 {
-			ps.TxSpeedMbps = float32(ps.TxBytesDiff) / timeDiff / mega
-			ps.RxSpeedMbps = float32(ps.RxBytesDiff) / timeDiff / mega
+			ps.TxSpeedMBps = float32(ps.TxBytesDiff) / timeDiff / mega
+			ps.RxSpeedMBps = float32(ps.RxBytesDiff) / timeDiff / mega
 		}
 	}
 
