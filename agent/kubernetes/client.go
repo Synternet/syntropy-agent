@@ -42,13 +42,13 @@ func (obj *kubernet) initClient() error {
 
 // Be sure to call initClient() before
 // Caller is responsible to be sure that obj.klient is not nil
-func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
+func (obj *kubernet) monitorServices() ([]kubernetesServiceEntry, error) {
 	res := []kubernetesServiceEntry{}
 	srvs, err := obj.klient.GetServices(obj.ctx)
 
 	if err != nil {
-		logger.Debug().Println(pkgName, "listing services", err)
-		return res
+		logger.Warning().Println(pkgName, "listing services", err)
+		return res, err
 	}
 
 	for _, srv := range srvs {
@@ -78,5 +78,5 @@ func (obj *kubernet) monitorServices() []kubernetesServiceEntry {
 		res = append(res, e)
 	}
 
-	return res
+	return res, nil
 }

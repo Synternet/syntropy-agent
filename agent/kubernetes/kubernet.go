@@ -42,7 +42,13 @@ func (obj *kubernet) Name() string {
 }
 
 func (obj *kubernet) execute() {
-	services := obj.monitorServices()
+	services, err := obj.monitorServices()
+
+	if err != nil {
+		// If error occurred agent should not send empty services list, because it will be treated as valid message.
+		return
+	}
+
 	if !cmp.Equal(services, obj.msg.Data) {
 		obj.msg.Data = services
 		obj.msg.Now()
