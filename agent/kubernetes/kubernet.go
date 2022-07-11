@@ -45,7 +45,9 @@ func (obj *kubernet) execute() {
 	services, err := obj.monitorServices()
 
 	if err != nil {
-		// If error occurred agent should not send empty services list, because it will be treated as valid message.
+		// If error occurred agent should not send empty services list,
+		// because it will be treated as valid message.
+		logger.Warning().Println(pkgName, "listing services", err)
 		return
 	}
 
