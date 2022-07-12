@@ -6,6 +6,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/netstats"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
@@ -91,7 +92,8 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 				continue
 			}
 
-			if !p.AllowedIPs[0].IsValid() {
+			ipAddr := p.AllowedIPs[0]
+			if !ipAddr.IsValid() {
 				continue
 			}
 
@@ -100,7 +102,7 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 				ConnectionID: p.ConnectionID,
 				GroupID:      p.GroupID,
 				PublicKey:    p.PublicKey,
-				IP:           p.AllowedIPs[0].Addr().String(),
+				IP:           ipAddr.Addr().String(),
 				KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
 				RxBytes:      p.Stats.RxBytesDiff, // Controler is expecting bytes received during report period
 				TxBytes:      p.Stats.TxBytesDiff, // Controler is expecting bytes sent during report period
@@ -114,14 +116,20 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 				entry.Handshake = p.Stats.LastHandshake.Format(env.TimeFormat)
 			}
 
+			stats, ok := obj.pingData.Get(netip.Addr(ipAddr.Addr()))
+			if ok && stats.Valid() {
+				entry.Loss = stats.Loss()
+				entry.Latency = stats.Latency()
+			} else {
+				entry.Loss = netstats.PingLoss
+				logger.Warning().Println(pkgName, "No or invalid ping stats for", ipAddr)
+			}
+
 			ifaceData.Peers = append(ifaceData.Peers, entry)
 		}
 
 		resp.Data = append(resp.Data, ifaceData)
 	}
-
-	// Fill message with ping statistics
-	resp.PingProcess(obj.pingData)
 
 	// Reset statistics and counter for the next ping period
 	obj.pingData.Reset()
