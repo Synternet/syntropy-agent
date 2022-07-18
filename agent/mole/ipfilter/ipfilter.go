@@ -74,19 +74,32 @@ func (pf *PacketFilter) CreateChain() error {
 	return nil
 }
 
-func (pf *PacketFilter) processPeerRule(add bool, ip netip.Prefix) error {
+func (pf *PacketFilter) processPeerRule(add bool, ip netip.Prefix) (err error) {
 	// No need adding rules to non existing chain
 	if !pf.chainCreated {
 		return nil
 	}
 
-	var err error
+	// Add source rule
+	const sourceDestIdx = 2
 	rule := []string{"-p", "all", "-s", ip.String(), "-j", "ACCEPT"}
 	if add {
 		err = pf.ipt.AppendUnique(defaultTable, syntropyChain, rule...)
 	} else {
 		err = pf.ipt.DeleteIfExists(defaultTable, syntropyChain, rule...)
 	}
+	if err != nil {
+		return err
+	}
+
+	// and destination rule also
+	rule[sourceDestIdx] = "-d"
+	if add {
+		err = pf.ipt.AppendUnique(defaultTable, syntropyChain, rule...)
+	} else {
+		err = pf.ipt.DeleteIfExists(defaultTable, syntropyChain, rule...)
+	}
+
 	return err
 }
 
