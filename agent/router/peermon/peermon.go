@@ -14,13 +14,6 @@ const (
 	invalidBestIndex = -1
 )
 
-const (
-	reasonNoChange = iota
-	reasonNewRoute
-	reasonLoss
-	reasonLatency
-)
-
 type SelectedRoute struct {
 	IP netip.Addr // best route IP address
 	ID int        // ConnectionID of the best route
