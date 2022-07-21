@@ -11,6 +11,7 @@ type Entry struct {
 	ConnectionID   int    `json:"connection_id"`
 	GroupID        int    `json:"connection_group_id"`
 	Timestamp      string `json:"timestamp"`
+	Reason         string `json:"route_change_reason,omitempty"`
 }
 
 func NewEntry(prevID, connID, grID int) *Entry {
