@@ -27,34 +27,38 @@ func (pm *PeerMonitor) isLastBestValid() bool {
 // This function compares currently active best with newly calculated best route
 // And compares if route should be changed taken into account route change thresholds
 // It changes PeerMonitor's lastBest and changeReason members
-func bestPathLowestLatency(pm *PeerMonitor) (index, reason int) {
+func bestPathLowestLatency(pm *PeerMonitor) (index int, reason *RouteChangeReason) {
 	newIdx := pm.bestRouteIndex()
 
 	// No previous best route yet - choose the best
 	if !pm.isLastBestValid() {
-		return newIdx, reasonNewRoute
+		return newIdx, NewReason(reasonNewRoute, 0, 0)
 	}
 
 	// lower loss is a must
 	if pm.peerList[newIdx].Loss() < pm.peerList[pm.lastBest].Loss() {
-		return newIdx, reasonLoss
+		return newIdx, NewReason(reasonLoss,
+			pm.peerList[pm.lastBest].Loss(),
+			pm.peerList[newIdx].Loss())
 	}
 
 	// cannot compare latencies, if one does not have full statistics yet
 	if pm.peerList[newIdx].StatsIncomplete() {
-		return pm.lastBest, reasonNoChange
+		return pm.lastBest, NewReason(reasonNoChange, 0, 0)
 	}
 
 	// apply thresholds
 	if pm.peerList[pm.lastBest].Latency()/pm.peerList[newIdx].Latency() >= pm.config.RerouteRatio &&
 		pm.peerList[pm.lastBest].Latency()-pm.peerList[newIdx].Latency() >= pm.config.RerouteDiff {
-		return newIdx, reasonLatency
+		return newIdx, NewReason(reasonLatency,
+			pm.peerList[pm.lastBest].Latency(),
+			pm.peerList[newIdx].Latency())
 	}
 
-	return pm.lastBest, reasonNoChange
+	return pm.lastBest, NewReason(reasonNoChange, 0, 0)
 }
 
-func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
+func bestPathPreferPublic(pm *PeerMonitor) (index int, reason *RouteChangeReason) {
 	var publicIdx int
 	for i := 0; i < len(pm.peerList); i++ {
 		if pm.peerList[i].IsPublic() {
@@ -69,31 +73,33 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 	if pm.peerList[newIdx].StatsIncomplete() {
 		if pm.isLastBestValid() {
 			// Use last best, if it was selected alredy
-			return pm.lastBest, reasonNoChange
+			return pm.lastBest, NewReason(reasonNoChange, 0, 0)
 		} else if pm.peerList[publicIdx].Loss() == 0 && pm.peerList[publicIdx].Latency() > 0 {
 			// Fallback to public, if it is usable
-			return publicIdx, reasonNewRoute
+			return publicIdx, NewReason(reasonNewRoute, 0, 0)
 		}
 	}
 
 	// lower loss is a must
 	if pm.peerList[newIdx].Loss() < pm.peerList[publicIdx].Loss() {
-		return newIdx, reasonLoss
+		return newIdx, NewReason(reasonLoss, 0, 0)
 	}
 
 	// apply thresholds
 	if pm.peerList[publicIdx].Latency()/pm.peerList[newIdx].Latency() >= pm.config.RerouteRatio &&
 		pm.peerList[publicIdx].Latency()-pm.peerList[newIdx].Latency() >= pm.config.RerouteDiff {
-		return newIdx, reasonLatency
+		return newIdx, NewReason(reasonLatency,
+			pm.peerList[publicIdx].Latency(),
+			pm.peerList[newIdx].Latency())
 	}
 
 	// No previous best route yet,
 	// and best route `newIdx` is not better than public - fallback to public
 	if !pm.isLastBestValid() {
-		return publicIdx, reasonNewRoute
+		return publicIdx, NewReason(reasonNewRoute, 0, 0)
 	}
 
-	return pm.lastBest, reasonNoChange
+	return pm.lastBest, NewReason(reasonNoChange, 0, 0)
 }
 
 // BestPath returns best route gateway.
@@ -105,21 +111,23 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 func (pm *PeerMonitor) BestPath() *SelectedRoute {
 	pm.RLock()
 	defer pm.RUnlock()
+	route := &SelectedRoute{}
 
 	if len(pm.peerList) == 0 {
 		pm.lastBest = invalidBestIndex
-		pm.changeReason = reasonNewRoute
-		return nil
+		route.Reason = NewReason(reasonNewRoute, 0, 0)
+		return route
 	}
 
-	pm.lastBest, pm.changeReason = pm.pathSelector(pm)
+	pm.lastBest, route.Reason = pm.pathSelector(pm)
 
 	if pm.config.RouteDeleteLossThreshold > 0 && pm.peerList[pm.lastBest].Loss()*100 >= pm.config.RouteDeleteLossThreshold {
-		return nil
+		route.Reason = NewReason(reasonRouteDelete, 0, 0)
+		return route
 	}
 
-	return &SelectedRoute{
-		IP: pm.peerList[pm.lastBest].ip,
-		ID: pm.peerList[pm.lastBest].connectionID,
-	}
+	route.IP = &pm.peerList[pm.lastBest].ip
+	route.ID = pm.peerList[pm.lastBest].connectionID
+
+	return route
 }

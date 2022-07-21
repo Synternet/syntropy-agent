@@ -41,12 +41,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			// Put a mark for later deletion
 			deleteIPs = append(deleteIPs, ip)
 		} else {
-			if bestRoute != nil {
-				rl.MergeRoutes(ip, &bestRoute.IP)
-			} else {
-				rl.MergeRoutes(ip, nil)
-			}
-
+			rl.MergeRoutes(ip, bestRoute.IP)
 		}
 
 	}

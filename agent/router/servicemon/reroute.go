@@ -33,8 +33,8 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 	for dest, routeList := range sm.routes {
 		currRoute := routeList.GetActive()
 		var newRoute *routeEntry = nil
-		if selroute != nil {
-			newRoute = routeList.Find(selroute.IP)
+		if selroute != nil && selroute.IP != nil {
+			newRoute = routeList.Find(*selroute.IP)
 			if newRoute == nil {
 				logger.Error().Println(pkgName, "New route ", selroute.IP, "not found.")
 			}

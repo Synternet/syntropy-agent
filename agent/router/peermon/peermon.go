@@ -15,8 +15,9 @@ const (
 )
 
 type SelectedRoute struct {
-	IP netip.Addr // best route IP address
-	ID int        // ConnectionID of the best route
+	IP     *netip.Addr // best route IP address
+	ID     int         // ConnectionID of the best route
+	Reason *RouteChangeReason
 }
 
 type PathSelector interface {
@@ -25,12 +26,11 @@ type PathSelector interface {
 
 type PeerMonitor struct {
 	sync.RWMutex
-	config       *PeerMonitorConfig
-	peerList     []*peerInfo
-	lastBest     int
-	changeReason int
+	config   *PeerMonitorConfig
+	peerList []*peerInfo
+	lastBest int
 
-	pathSelector func(pm *PeerMonitor) (index, reason int)
+	pathSelector func(pm *PeerMonitor) (index int, reason *RouteChangeReason)
 }
 
 func New(cfg *PeerMonitorConfig) *PeerMonitor {

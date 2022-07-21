@@ -7,6 +7,7 @@ const (
 	reasonNewRoute
 	reasonLoss
 	reasonLatency
+	reasonRouteDelete
 )
 
 type RouteChangeReason struct {
@@ -15,15 +16,15 @@ type RouteChangeReason struct {
 	newval float32
 }
 
-func NewReason(r int, o, n float32) RouteChangeReason {
-	return RouteChangeReason{
+func NewReason(r int, o, n float32) *RouteChangeReason {
+	return &RouteChangeReason{
 		reason: r,
 		oldval: o,
 		newval: n,
 	}
 }
 
-func (rr RouteChangeReason) Reason() string {
+func (rr *RouteChangeReason) Reason() string {
 	switch rr.reason {
 	case reasonNoChange:
 		return "nochange"
@@ -33,16 +34,18 @@ func (rr RouteChangeReason) Reason() string {
 		return "loss"
 	case reasonLatency:
 		return "latency"
+	case reasonRouteDelete:
+		return "delete"
 	default:
 		return "unknown"
 	}
 }
 
-func (rr RouteChangeReason) Value() float32 {
+func (rr *RouteChangeReason) Value() float32 {
 	// TODO: should I return new value, diff or both ?
 	return rr.newval
 }
 
-func (rr RouteChangeReason) String() string {
+func (rr *RouteChangeReason) String() string {
 	return fmt.Sprintf("%s: %f vs %f", rr.Reason(), rr.oldval, rr.newval)
 }
