@@ -111,11 +111,15 @@ func bestPathPreferPublic(pm *PeerMonitor) (index int, reason *RouteChangeReason
 func (pm *PeerMonitor) BestPath() *SelectedRoute {
 	pm.RLock()
 	defer pm.RUnlock()
-	route := &SelectedRoute{}
+	route := &SelectedRoute{
+		ID: 0, // Ivalidate last ID
+		// IP is empty value, so  IP.IsValid()==true means delete route
+		// Reason will be set bellow
+	}
 
 	if len(pm.peerList) == 0 {
 		pm.lastBest = invalidBestIndex
-		route.Reason = NewReason(reasonNewRoute, 0, 0)
+		route.Reason = NewReason(reasonRouteDelete, 0, 0)
 		return route
 	}
 
@@ -126,7 +130,7 @@ func (pm *PeerMonitor) BestPath() *SelectedRoute {
 		return route
 	}
 
-	route.IP = &pm.peerList[pm.lastBest].ip
+	route.IP = pm.peerList[pm.lastBest].ip
 	route.ID = pm.peerList[pm.lastBest].connectionID
 
 	return route

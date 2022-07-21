@@ -41,7 +41,13 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			// Put a mark for later deletion
 			deleteIPs = append(deleteIPs, ip)
 		} else {
-			rl.MergeRoutes(ip, bestRoute.IP)
+			// If route is valid - apply it.
+			// Invalid IP means delete current route
+			if bestRoute.IP.IsValid() {
+				rl.MergeRoutes(ip, &bestRoute.IP)
+			} else {
+				rl.MergeRoutes(ip, nil)
+			}
 		}
 
 	}
