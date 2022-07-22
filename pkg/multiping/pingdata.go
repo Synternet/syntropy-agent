@@ -1,6 +1,8 @@
 package multiping
 
 import (
+	"fmt"
+	"io"
 	"net/netip"
 	"sync"
 	"time"
@@ -51,6 +53,11 @@ func (s *PingStats) Latency() float32 {
 // Rtt returns last packet rtt
 func (s *PingStats) Rtt() time.Duration {
 	return s.rtt
+}
+
+func (s *PingStats) String() string {
+	return fmt.Sprintf("tx=%d, rx=%d, rtt=%s, avgRtt=%s",
+		s.tx, s.rx, s.rtt, s.avgRtt)
 }
 
 // Ping data. Holds host information and ping statistics.
@@ -158,4 +165,15 @@ func (pr *PingData) Iterate(callback func(ip netip.Addr, val PingStats)) {
 	for key, val := range pr.entries {
 		callback(key, *val)
 	}
+}
+
+func (pr *PingData) Dump(w io.Writer, title ...string) {
+	for _, l := range title {
+		w.Write([]byte(l))
+	}
+
+	pr.Iterate(func(ip netip.Addr, val PingStats) {
+		line := fmt.Sprintf("%s: %s\n", ip, val.String())
+		w.Write([]byte(line))
+	})
 }
