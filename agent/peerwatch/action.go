@@ -44,10 +44,8 @@ func (obj *wgPeerWatcher) monitorPeers(wgdevs []*swireguard.InterfaceInfo) error
 				continue
 			}
 
-			if !p.Stats.LastHandshake.IsZero() {
-				// add the peer with handshake to ping list
-				pingData.Add(p.AllowedIPs[0].Addr())
-			}
+			// add the peer to ping list
+			pingData.Add(p.AllowedIPs[0].Addr())
 		}
 	}
 	// pingData now contains all connected peers on all interfaces
