@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"time"
 
@@ -51,6 +52,18 @@ func New() (controller.Controller, error) {
 	return &cc, nil
 }
 
+func delay(cmd string) {
+	arr := strings.Fields(cmd)
+	seconds, err := strconv.Atoi(arr[1])
+	if err != nil {
+		logger.Error().Println(pkgName, "Sleep errror", err)
+		return
+	}
+	delay := time.Duration(seconds) * time.Second
+	logger.Debug().Println(pkgName, "Sleep", delay)
+	time.Sleep(delay)
+}
+
 func (cc *ScriptController) Recv() ([]byte, error) {
 	// Some delay before starting
 	time.Sleep(cc.timeout)
@@ -59,6 +72,10 @@ func (cc *ScriptController) Recv() ([]byte, error) {
 		cc.index++
 		if fname == "" || fname[0] == '#' {
 			logger.Debug().Printf("%s Skip \"%s\"\n", pkgName, fname)
+			continue
+		}
+		if strings.HasPrefix(fname, "sleep") {
+			delay(fname)
 			continue
 		}
 		msg, err := ioutil.ReadFile(scriptPath + "/" + fname)
