@@ -21,7 +21,7 @@ const (
 )
 
 type AutoPing struct {
-	sync.RWMutex
+	sync.Mutex
 	ctx      context.Context
 	writer   io.Writer
 	pinger   *multiping.MultiPing
@@ -35,7 +35,12 @@ func New(w io.Writer, p *multiping.MultiPing) *AutoPing {
 		writer:   w,
 		pinger:   p,
 		pingData: multiping.NewPingData(),
+		timer:    time.NewTicker(time.Second),
 	}
+
+	// Stop ticker so no ticks will be scheduled
+	// Will reset timer on demand later
+	ap.timer.Stop()
 
 	return &ap
 }
@@ -54,7 +59,10 @@ func (obj *AutoPing) Exec(raw []byte) error {
 	obj.Lock()
 	defer obj.Unlock()
 
-	obj.stop()
+	// stop the timer
+	obj.timer.Stop()
+
+	// set new autoping data
 	obj.pingData.Flush()
 	for _, ipstr := range req.Data.IPs {
 		ip, err := netip.ParseAddr(ipstr)
@@ -62,72 +70,43 @@ func (obj *AutoPing) Exec(raw []byte) error {
 			logger.Warning().Println(pkgName, "invalid address", ipstr, err)
 			continue
 		}
-
 		obj.pingData.Add(ip)
 	}
 
-	if obj.pingData.Count() > 0 {
-		obj.start(time.Duration(req.Data.Interval) * time.Second)
+	// Reschedule ping ticker
+	if obj.pingData.Count() > 0 && req.Data.Interval > 0 {
+		obj.timer.Reset(time.Duration(req.Data.Interval) * time.Second)
 	}
 
 	return nil
 }
 
-func (obj *AutoPing) PingProcess(pr *multiping.PingData) {
-	resp := newResponceMsg()
+func (obj *AutoPing) pingAction() {
+	obj.Lock()
+	defer obj.Unlock()
 
-	resp.PingProcess(pr)
-
-	// Clear old statistics
-	pr.Reset()
-
-	if len(resp.Data.Pings) > 0 {
-		var err error
-		obj.Lock()
-		obj.results, err = json.Marshal(resp)
-		obj.Unlock()
-		if err != nil {
-			logger.Error().Println(pkgName, "Process Ping Results: ", err)
-			return
-		}
-
-		obj.RLock()
-		obj.writer.Write(obj.results)
-		obj.RUnlock()
-	}
-}
-
-func (obj *AutoPing) stop() {
-	if obj.timer != nil {
-		obj.timer.Stop()
-		obj.timer = nil
-	}
-}
-
-func (obj *AutoPing) start(period time.Duration) {
-	if obj.ctx == nil {
-		logger.Error().Println(pkgName, "service is not started")
+	if obj.pingData.Count() <= 0 {
 		return
 	}
 
-	obj.timer = time.NewTicker(period)
-	go func() {
-		// Don't wait for ticker and do the first ping asap
-		obj.pinger.Ping(obj.pingData)
-		obj.PingProcess(obj.pingData)
+	// perform pinging
+	obj.pinger.Ping(obj.pingData)
 
-		defer obj.timer.Stop()
-		for {
-			select {
-			case <-obj.ctx.Done():
-				logger.Debug().Println(pkgName, "stopping", cmd)
-				return
-			case <-obj.timer.C:
-				obj.pinger.Ping(obj.pingData)
-				obj.PingProcess(obj.pingData)
-			}
-		}
-	}()
+	// Process results
+	resp := newResponceMsg()
+	resp.PingProcess(obj.pingData)
+
+	// Clear old statistics
+	obj.pingData.Reset()
+
+	// marshal and report results
+	var err error
+	obj.results, err = json.Marshal(resp)
+	if err != nil {
+		logger.Error().Println(pkgName, "Process Ping Results: ", err)
+	} else {
+		obj.writer.Write(obj.results)
+	}
 }
 
 func (obj *AutoPing) Run(ctx context.Context) error {
@@ -136,12 +115,26 @@ func (obj *AutoPing) Run(ctx context.Context) error {
 	}
 	obj.ctx = ctx
 
+	go func() {
+		for {
+			select {
+			case <-obj.ctx.Done():
+				logger.Debug().Println(pkgName, "stopping", cmd)
+				obj.timer.Stop()
+				obj.pingData.Flush()
+				return
+			case <-obj.timer.C:
+				obj.pingAction()
+			}
+		}
+	}()
+
 	return nil
 }
 
 func (obj *AutoPing) SupportInfo() *common.KeyValue {
-	obj.RLock()
-	defer obj.RUnlock()
+	obj.Lock()
+	defer obj.Unlock()
 
 	return &common.KeyValue{
 		Key:   cmd,
