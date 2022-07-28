@@ -6,9 +6,17 @@ func TestPeerInfo(t *testing.T) {
 	valuesCount := 20
 	pi := newPeerInfo(uint(valuesCount))
 
+	// Test if empty results are valid
+	if pi.Valid() {
+		t.Errorf("invalid results (false expected)")
+	}
+
 	// test incomplete results
 	for i := 0; i < 3; i++ {
 		pi.Add(float32(i), 0)
+	}
+	if !pi.Valid() {
+		t.Errorf("invalid results (true expected)")
 	}
 	if pi.Loss() != 0 {
 		t.Errorf("invalid loss (0 expected)")
