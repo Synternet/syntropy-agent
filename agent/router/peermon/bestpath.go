@@ -7,10 +7,15 @@ func (pm *PeerMonitor) bestRouteIndex() int {
 	bestIdx := 0
 	for i := bestIdx + 1; i < len(pm.peerList); i++ {
 		switch {
+		// Ignore invalid ping results (have no results about it, cannot say anyting)
+		case !pm.peerList[i].Valid():
+			continue
+		// Best loss is always must
 		case pm.peerList[i].Loss() > pm.peerList[bestIdx].Loss():
 			continue
 		case pm.peerList[i].Loss() < pm.peerList[bestIdx].Loss():
 			bestIdx = i
+		// compare peer with lower latency
 		case pm.peerList[i].Latency() > 0 &&
 			pm.peerList[i].Latency() < pm.peerList[bestIdx].Latency():
 			bestIdx = i

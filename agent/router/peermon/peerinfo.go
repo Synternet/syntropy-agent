@@ -74,6 +74,18 @@ func (node *peerInfo) StatsIncomplete() bool {
 	return count != cap(node.latency)
 }
 
+func (node *peerInfo) Valid() bool {
+	var sumLatency float32
+	var sumLoss float32
+	for _, val := range node.latency {
+		sumLatency = sumLatency + val
+	}
+	for _, val := range node.loss {
+		sumLoss = sumLoss + val
+	}
+	return (sumLatency > 0) || (sumLoss > 0)
+}
+
 func (node *peerInfo) IsPublic() bool {
 	return strings.HasSuffix(node.ifname, env.InterfaceNamePublicSuffix)
 }
