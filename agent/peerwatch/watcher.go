@@ -98,16 +98,16 @@ func (obj *wgPeerWatcher) execute(ctx context.Context) error {
 			}
 
 			if p.Stats.LastHandshake.IsZero() {
-				// If peer has no handshake - no reason to ping it
-				// Mark as lost at once and do not bother with it
+				// If peer has no handshake - mark as lost at once
 				entry.Loss = netstats.PingLoss
 			} else {
 				entry.Handshake = p.Stats.LastHandshake.Format(env.TimeFormat)
-				// add the peer to ping list
-				pingData.Add(p.AllowedIPs[0].Addr())
 			}
 
 			ifaceData.Peers = append(ifaceData.Peers, entry)
+
+			// always add the peer to ping list
+			pingData.Add(p.AllowedIPs[0].Addr())
 		}
 
 		resp.Data = append(resp.Data, ifaceData)
