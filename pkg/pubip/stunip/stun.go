@@ -63,7 +63,11 @@ func checkStunServer(srv string) (net.IP, error) {
 	defer c.Close()
 
 	// Building binding request with random transaction id.
-	message := stun.MustBuild(stun.TransactionID, stun.BindingRequest)
+	message, err := stun.Build(stun.TransactionID, stun.BindingRequest)
+	if err != nil {
+		return ip, err
+	}
+
 	// Sending request to STUN server, waiting for response message.
 	err = c.Do(message, callback)
 
