@@ -197,6 +197,12 @@ func (cc *CloudController) close(terminate bool) error {
 		cc.SetState(stopped)
 	}
 
+	//	gorilla/websocket concurency:
+	//		Connections support one concurrent reader and one concurrent writer.
+	//		Applications are responsible for ensuring that no more than one goroutine calls the write methods
+	cc.Lock()
+	defer cc.Unlock()
+
 	// Cleanly close the connection by sending a close message and then
 	// waiting (with timeout) for the server to close the connection.
 	err := cc.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
