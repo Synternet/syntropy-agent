@@ -10,11 +10,13 @@ func TestStunServerList(t *testing.T) {
 	for _, srv := range stunServers {
 		ip, err := checkStunServer(srv)
 		if err != nil {
-			t.Errorf("STUN server %s failed %s", srv, err)
+			t.Logf("STUN server %s failed: %s", srv, err)
+			continue
+		} else if ip == nil {
+			t.Errorf("STUN server %s invalid resolve <nil>: %s", srv, err)
+			continue
 		}
-		if ip == nil {
-			t.Errorf("STUN server %s invalid resolve <nil> %s", srv, err)
-		}
+
 		if prevIP.IsUnspecified() {
 			prevIP = ip
 		} else if !ip.Equal(prevIP) {
