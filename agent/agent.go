@@ -29,6 +29,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
 )
 
 const pkgName = "SyntropyAgent. "
@@ -78,6 +79,7 @@ func New(contype int) (*Agent, error) {
 		logger.Error().Println(pkgName, "Controller init failure", err)
 		return nil, err
 	}
+	logger.Info().Println(pkgName, "Public IP: ", pubip.GetPublicIp().String(), "/", pubip.Provider())
 
 	agent := &Agent{
 		controller: controller,
