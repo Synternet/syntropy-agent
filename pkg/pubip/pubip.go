@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/stunip"
 	"github.com/SyntropyNet/syntropy-agent/pkg/pubip/webip"
 )
@@ -18,7 +17,6 @@ const (
 	providerStun = iota
 	providerWeb
 )
-const pkgName = "PublicIP. "
 
 var publicIP struct {
 	L              sync.Mutex
@@ -59,32 +57,22 @@ func GetPublicIp() net.IP {
 		// Try STUN servers first
 		if publicIP.provider == providerStun {
 			ip, err = stunip.PublicIP()
-			if err == nil {
-				logger.Info().Println(pkgName, "Public IP (STUN):", ip.String())
-			} else {
+			if err != nil {
 				// *All* STUN servers failed (internally in stunip package)
 				// Reason may be - some corps have big and strict firewalls
 				// Fallback to Web IP services (most probably 443 port is open)
 				// And don't try stun again
 				publicIP.provider = providerWeb
-				// TODO think about configurable logger here and not use agent's logger
-				// This would increase package reusability
-				logger.Warning().Println(pkgName, "STUN failed", err, ". Fallback to WebIP getting.")
 			}
 		}
 
 		// Web service is a fallback
 		if publicIP.provider == providerWeb {
 			ip, err = webip.PublicIP()
-			if err == nil {
-				logger.Info().Println(pkgName, "Public IP (Web):", ip.String())
-			} else {
+			if err != nil {
 				// WebIP is a fallback. If it is failing - we may have some serious problems.
 				// Try fallback to STUN again. But chances are low to get it working...
 				publicIP.provider = providerStun
-				// TODO think about configurable logger here and not use agent's logger
-				// This would increase package reusability
-				logger.Error().Println(pkgName, "WebIP failed:", err, ". Will (re)try STUN next time.")
 			}
 		}
 
