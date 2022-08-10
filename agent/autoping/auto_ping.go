@@ -76,6 +76,10 @@ func (obj *AutoPing) Exec(raw []byte) error {
 	// Reschedule ping ticker
 	if obj.pingData.Count() > 0 && req.Data.Interval > 0 {
 		obj.timer.Reset(time.Duration(req.Data.Interval) * time.Second)
+		// We want first ping result asap, so first iteration is now.
+		// PingAction uses a lock inside, thus I do this in separate goroutine,
+		// after the unlocked in defer
+		go obj.pingAction()
 	}
 
 	return nil
