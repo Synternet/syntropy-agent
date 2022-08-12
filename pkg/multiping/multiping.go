@@ -78,7 +78,11 @@ func New(privileged bool) (*MultiPing, error) {
 	err := mp.restart()
 	if err != nil {
 		mp.close()
+		return nil, err
 	}
+
+	// Reset sequence. It will be incremented in mp.restart on every ping
+	mp.sequence = 0
 
 	return mp, nil
 }
@@ -103,6 +107,11 @@ func (mp *MultiPing) restart() (err error) {
 	mp.pinger.conn4 = mp.conn4
 	mp.pinger.conn6 = mp.conn6
 	mp.sequence++
+	// I use zero sequence number in statistics struct
+	// to detect duplicates, thus don't use it as valid sequence number
+	if mp.sequence == 0 {
+		mp.sequence++
+	}
 
 	return nil
 }
@@ -175,6 +184,7 @@ func (mp *MultiPing) Ping(data *PingData) {
 			mp.pinger.SetIPAddr(&addr)
 			stats.tx++
 			stats.rtt = 0
+			stats.sequence = mp.sequence
 
 			mp.pinger.SendICMP(mp.sequence)
 			time.Sleep(time.Millisecond)
@@ -303,8 +313,13 @@ func (mp *MultiPing) processPacket(wait *sync.WaitGroup, recv *packet) {
 	}
 
 	if stats, ok := mp.pingData.entries[recv.src]; ok {
-		stats.rtt = time.Since(timestamp)
-		stats.avgRtt = (time.Duration(stats.rx)*stats.avgRtt + stats.rtt) / time.Duration(stats.rx+1)
-		stats.rx++
+		if stats.sequence == pkt.Seq {
+			stats.sequence = 0
+			stats.rtt = time.Since(timestamp)
+			stats.avgRtt = (time.Duration(stats.rx)*stats.avgRtt + stats.rtt) / time.Duration(stats.rx+1)
+			stats.rx++
+		} else {
+			stats.dup++
+		}
 	}
 }
