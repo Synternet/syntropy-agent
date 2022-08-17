@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"golang.org/x/build/kubernetes"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,25 +18,26 @@ type clientConfig struct {
 	ClientKeyFile  string
 }
 
-func newOutOfCluster(namespace string) (*kubernetes.Client, error) {
+func (obj *kubernet) initOutOfCluster() error {
 	config, err := parseConfig()
 	if err != nil {
-		return nil, fmt.Errorf("kubernetes config parsing: %s", err)
+		return fmt.Errorf("kubernetes config parsing: %s", err)
 	}
 
 	caCert, err := ioutil.ReadFile(config.CaAuthFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
 	cert, err := tls.LoadX509KeyPair(config.ClientCertFile, config.ClientKeyFile)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	client := &http.Client{
+	obj.baseURL = config.BaseURL
+	obj.httpClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs:      caCertPool,
@@ -46,7 +46,7 @@ func newOutOfCluster(namespace string) (*kubernetes.Client, error) {
 		},
 	}
 
-	return kubernetes.NewClient(config.BaseURL, namespace, client)
+	return nil
 }
 
 type clusterEntry struct {

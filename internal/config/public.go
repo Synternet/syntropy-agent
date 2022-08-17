@@ -99,8 +99,8 @@ func GetContainerType() string {
 	return cache.containerType
 }
 
-func GetNamespace() string {
-	return cache.kubernetesNamespace
+func GetNamespace() []string {
+	return cache.kubernetesNamespaces
 }
 
 func GetLocationLatitude() float32 {
