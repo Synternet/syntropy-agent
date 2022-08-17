@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -12,7 +13,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/build/kubernetes"
 )
 
 const (
@@ -21,10 +21,12 @@ const (
 )
 
 type kubernet struct {
-	writer io.Writer
-	klient *kubernetes.Client
-	msg    kubernetesInfoMessage
-	ctx    context.Context
+	writer     io.Writer
+	httpClient *http.Client
+	baseURL    string
+	namespaces []string
+	msg        kubernetesInfoMessage
+	ctx        context.Context
 }
 
 func New(w io.Writer) common.Service {
@@ -65,7 +67,7 @@ func (obj *kubernet) execute() {
 }
 
 func (obj *kubernet) Run(ctx context.Context) error {
-	if obj.klient != nil {
+	if obj.ctx != nil {
 		return fmt.Errorf("kubernetes watcher already running")
 	}
 	obj.ctx = ctx
@@ -83,8 +85,8 @@ func (obj *kubernet) Run(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				logger.Debug().Println(pkgName, "stopping", cmd)
-				obj.klient.Close()
-				obj.klient = nil
+				obj.httpClient.CloseIdleConnections()
+				obj.httpClient = nil
 				return
 			case <-ticker.C:
 				obj.execute()

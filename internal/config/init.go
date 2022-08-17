@@ -34,7 +34,10 @@ func Init() {
 	initBool(&cache.servicesStatus, "SYNTROPY_SERVICES_STATUS", false)
 	initPortsRange()
 	cache.containerType = strings.ToLower(os.Getenv("SYNTROPY_NETWORK_API"))
-	initString(&cache.kubernetesNamespace, "SYNTROPY_NAMESPACE", "")
+
+	var k8sNamespaces string
+	initString(&k8sNamespaces, "SYNTROPY_NAMESPACE", "")
+	cache.kubernetesNamespaces = strings.Split(k8sNamespaces, ",")
 
 	initAllowedIPs()
 	initLocation()
