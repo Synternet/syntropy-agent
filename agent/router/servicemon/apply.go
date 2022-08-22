@@ -57,17 +57,18 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 		delete(sm.routes, ip)
 	}
 
-	newConnID := 0
 	// Format response message
-	if len(sm.routes) > 0 && bestRoute != nil {
+	// Note: always send it, even if no services are configured
+	newConnID := 0
+	if bestRoute != nil {
 		newConnID = bestRoute.ID
 	}
-
 	if sm.activeConnectionID != newConnID {
 		peersActiveData = append(peersActiveData,
 			peeradata.NewEntry(sm.activeConnectionID, newConnID, sm.groupID))
 		sm.activeConnectionID = newConnID
 	}
+
 	return routeStatusCons, peersActiveData
 }
 
