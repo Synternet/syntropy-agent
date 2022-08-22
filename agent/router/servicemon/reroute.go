@@ -16,10 +16,19 @@ func (sm *ServiceMonitor) Count() int {
 	return len(sm.routes)
 }
 
-func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.Entry {
+func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) (rv *peeradata.Entry) {
 	connID := 0
 	if selroute != nil {
 		connID = selroute.ID
+	}
+
+	// Setup response early so I can do returns easy when needed
+	if sm.activeConnectionID != connID {
+		rv = peeradata.NewEntry(sm.activeConnectionID, connID, sm.groupID)
+		if selroute != nil {
+			rv.Reason = selroute.Reason.Reason()
+		}
+		sm.activeConnectionID = connID
 	}
 
 	sm.Lock()
@@ -27,7 +36,7 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 
 	// nothing to do if no services are configured
 	if len(sm.routes) == 0 {
-		return nil
+		return
 	}
 
 	for dest, routeList := range sm.routes {
@@ -43,15 +52,7 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) *peeradata.En
 		routeList.Reroute(newRoute, currRoute, dest)
 	}
 
-	var rv *peeradata.Entry
-	if sm.activeConnectionID != connID {
-		rv = peeradata.NewEntry(sm.activeConnectionID, connID, sm.groupID)
-		if selroute != nil {
-			rv.Reason = selroute.Reason.Reason()
-		}
-		sm.activeConnectionID = connID
-	}
-	return rv
+	return
 }
 
 // Reroute one routeList (aka Service Group)

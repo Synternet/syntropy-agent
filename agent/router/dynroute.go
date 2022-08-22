@@ -43,11 +43,6 @@ func (obj *Router) execute() {
 	resp := peeradata.NewMessage()
 
 	for _, routeGroup := range obj.routes {
-		// Nothing to do on when no services are configured
-		if routeGroup.serviceMonitor.Count() == 0 {
-			continue
-		}
-
 		// Change routes to configured services
 		// and build a message to controler
 		rv := routeGroup.serviceMonitor.Reroute(routeGroup.peerMonitor.BestPath())
