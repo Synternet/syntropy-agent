@@ -65,6 +65,9 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 			}
 		} else {
 			logger.Error().Println(pkgName, "Error getting public IP")
+			// Could not get public IP - thus cannod detect if NAT is present
+			// Give more work for SDN agent and tell him to detect the port
+			ii.Port = 0
 		}
 	}
 
