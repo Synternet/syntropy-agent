@@ -47,8 +47,8 @@ type MultiPing struct {
 	pinger   *Pinger
 	pingData *PingData
 
-	id       int
-	sequence int    // ICMP seq number. Incremented on every ping
+	id       uint16
+	sequence uint16 // ICMP seq number. Incremented on every ping
 	network  string // one of "ip", "ip4", or "ip6"
 	protocol string // protocol is "icmp" or "udp".
 	conn4    *icmp.PacketConn
@@ -64,7 +64,7 @@ func New(privileged bool) (*MultiPing, error) {
 	rand.Seed(time.Now().UnixNano())
 	mp := &MultiPing{
 		Timeout:  time.Second,
-		id:       rand.Intn(0xffff),
+		id:       uint16(rand.Intn(0xffff)),
 		network:  "ip",
 		protocol: protocol,
 		Tracker:  rand.Int63(),
@@ -286,7 +286,7 @@ func (mp *MultiPing) processPacket(wait *sync.WaitGroup, recv *packet) {
 	// If we are priviledged, we can match icmp.ID
 	if mp.protocol == "icmp" {
 		// Check if reply from same ID
-		if pkt.ID != mp.id {
+		if uint16(pkt.ID) != mp.id {
 			return
 		}
 	}
