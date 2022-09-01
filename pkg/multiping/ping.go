@@ -22,7 +22,7 @@ var errInvalidIpAddr = errors.New("invalid ip address")
 //  * make all functions private
 
 // NewPinger returns a new Pinger instance
-func NewPinger(network, protocol string, id int) *Pinger {
+func NewPinger(network, protocol string, id uint16) *Pinger {
 	p := &Pinger{
 		Size: timeSliceLength,
 
@@ -44,7 +44,7 @@ type Pinger struct {
 
 	ipaddr *netip.Addr
 
-	id int
+	id uint16
 	// network is one of "ip", "ip4", or "ip6".
 	network string
 	// protocol is "icmp" or "udp".
@@ -92,7 +92,7 @@ func (p *Pinger) Privileged() bool {
 	return p.protocol == "icmp"
 }
 
-func (p *Pinger) SendICMP(sequence int) error {
+func (p *Pinger) SendICMP(sequence uint16) error {
 	if p.ipaddr == nil {
 		return errInvalidIpAddr
 	}
@@ -116,8 +116,8 @@ func (p *Pinger) SendICMP(sequence int) error {
 	}
 
 	body := &icmp.Echo{
-		ID:   p.id,
-		Seq:  sequence,
+		ID:   int(p.id),     // ICMP packet's id field is uint16, not sure why Echo struct has int there
+		Seq:  int(sequence), // ICMP packet's sequence field is uint16, not sure why Echo struct has int there
 		Data: t,
 	}
 
