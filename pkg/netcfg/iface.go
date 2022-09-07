@@ -6,10 +6,45 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"os"
 
 	"github.com/vishvananda/netlink"
 	"github.com/vishvananda/netlink/nl"
 )
+
+type RPFilterMode int
+
+const (
+	RPFilterNoValidation = iota
+	RPFilterStrict
+	RPFilterLoose
+)
+
+const rpFilterFileFormat = "/proc/sys/net/ipv4/conf/%s/rp_filter"
+
+func setInterfaceRPFilter(ifname string, mode RPFilterMode) error {
+	_, err := netlink.LinkByName(ifname)
+	if err != nil {
+		return fmt.Errorf("failed to lookup interface %v", ifname)
+	}
+
+	// I could only find this way to set the rp_filter value, it does
+	// not seem to have an applicable method via netlink or other syscalls.
+	// There is the sysctl syscall, but documentation says it's deprecated
+	// and no longer exists on newer kernels, points to using /proc/* system instead.
+	proc, err := os.OpenFile(fmt.Sprintf(rpFilterFileFormat, ifname), os.O_WRONLY|os.O_TRUNC, 0611)
+	if err != nil {
+		return fmt.Errorf("failed to open rp_filter for %v: %v", ifname, err)
+	}
+	defer proc.Close()
+
+	_, err = proc.WriteString(fmt.Sprintf("%d\n", mode))
+	if err != nil {
+		return fmt.Errorf("failed to write to rp_filter for %v: %v", ifname, err)
+	}
+
+	return nil
+}
 
 func setInterfaceState(ifname string, up bool) error {
 	iface, err := netlink.LinkByName(ifname)
@@ -132,4 +167,8 @@ func InterfaceSetMTU(ifname string, mtu uint32) error {
 	}
 
 	return netlink.LinkSetMTU(iface, int(mtu))
+}
+
+func InterfaceSetRPFilter(ifname string, mode RPFilterMode) error {
+	return setInterfaceRPFilter(ifname, mode)
 }
