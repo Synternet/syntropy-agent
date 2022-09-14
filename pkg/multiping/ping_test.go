@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"net/netip"
 	"testing"
+	"time"
 
 	"golang.org/x/net/icmp"
 )
@@ -43,6 +44,19 @@ func TestPingPacket(t *testing.T) {
 
 		if data.ID != int(id) {
 			t.Fatalf("Invalid ID")
+		}
+
+		timestamp := bytesToTime(data.Data[:timeSliceLength])
+		tracker := bytesToInt(data.Data[timeSliceLength:])
+
+		timeDiff := time.Now().Sub(timestamp)
+
+		if timeDiff < 0 || timeDiff > time.Second {
+			t.Fatalf("Invalid time diff %s", timeDiff.String())
+		}
+
+		if tracker != pinger.Tracker {
+			t.Fatalf("Invalid tracker")
 		}
 
 		if seq == 0xffff {
