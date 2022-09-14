@@ -27,7 +27,7 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 	}
 
 	if err := netcfg.InterfaceSetRPFilter(ii.IfName, netcfg.RPFilterLoose); err != nil {
-		logger.Error().Println(pkgName, "rp filter error: ", err)
+		logger.Warning().Println(pkgName, "rp filter error", err)
 	}
 
 	// Why this config variale configures only forward, and does not impact other iptables rules ???
