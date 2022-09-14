@@ -34,13 +34,13 @@ func setInterfaceRPFilter(ifname string, mode RPFilterMode) error {
 	// and no longer exists on newer kernels, points to using /proc/* system instead.
 	proc, err := os.OpenFile(fmt.Sprintf(rpFilterFileFormat, ifname), os.O_WRONLY|os.O_TRUNC, 0611)
 	if err != nil {
-		return fmt.Errorf("failed to open rp_filter for %v: %v", ifname, err)
+		return fmt.Errorf("failed to configure rp_filter for %v: %w", ifname, err)
 	}
 	defer proc.Close()
 
 	_, err = proc.WriteString(fmt.Sprintf("%d\n", mode))
 	if err != nil {
-		return fmt.Errorf("failed to write to rp_filter for %v: %v", ifname, err)
+		return fmt.Errorf("failed to configure rp_filter for %v: %v", ifname, err)
 	}
 
 	return nil
