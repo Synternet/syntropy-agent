@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"math/rand"
 	"net"
 	"net/netip"
 	"syscall"
@@ -30,6 +31,8 @@ func NewPinger(network, protocol string, id uint16) *Pinger {
 		ipaddr:   nil,
 		network:  network,
 		protocol: protocol,
+
+		Tracker: int64(rand.Uint64()),
 	}
 	return p
 }
