@@ -81,8 +81,9 @@ func New(privileged bool) (*MultiPing, error) {
 		return nil, err
 	}
 
-	// Reset sequence. It will be incremented in mp.restart on every ping
-	mp.sequence = 0
+	// Sequence counter. It will be incremented in mp.restart on every ping
+	// Start with quite big initial value, so overwrap will occure fast (easier debugin)
+	mp.sequence = 0xfff0
 
 	return mp, nil
 }
@@ -110,18 +111,8 @@ func (mp *MultiPing) restart() (err error) {
 	// I use zero sequence number in statistics struct
 	// to detect duplicates, thus don't use it as valid sequence number
 	if mp.sequence == 0 {
-		println("------------------------")
-		println("MULTIPING OVERWRAP !!!!")
-		println("MULTIPING OVERWRAP !!!!")
-		println("MULTIPING OVERWRAP !!!!")
-		println("MULTIPING OVERWRAP !!!!")
-		println("MULTIPING OVERWRAP !!!!")
-		println("MULTIPING OVERWRAP !!!!")
-		println("MULTIPING OVERWRAP !!!!")
-		println("------------------------")
 		mp.sequence++
 	}
-	println("MultiPing SEQ", mp.sequence)
 
 	return nil
 }
