@@ -15,16 +15,20 @@ type PingClient interface {
 
 // A single host ping statistics
 type PingStats struct {
-	tx     uint
-	rx     uint
-	rtt    time.Duration
-	avgRtt time.Duration
+	sequence uint16
+	tx       uint
+	rx       uint
+	dup      uint
+	rtt      time.Duration
+	avgRtt   time.Duration
 }
 
 // Reset statistics to zero values
 func (s *PingStats) Reset() {
 	s.tx = 0
 	s.rx = 0
+	s.dup = 0
+	s.sequence = 0
 	s.rtt = 0
 	s.avgRtt = 0
 }
@@ -48,6 +52,10 @@ func (s *PingStats) Latency() float32 {
 	} else {
 		return 0
 	}
+}
+
+func (s *PingStats) Duplicate() uint {
+	return s.dup
 }
 
 // Rtt returns last packet rtt
