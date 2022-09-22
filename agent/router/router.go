@@ -63,7 +63,25 @@ func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 	r.Lock()
 	defer r.Unlock()
 
-	return r.serviceApply()
+	routeStatusCons := []*routestatus.Connection{}
+	peersActiveData := []*peeradata.Entry{}
+
+	// Avoid endless execution, thus limit iteration to 3 times
+	for iteration := 3; iteration > 0; iteration-- {
+		r.peersApply()
+		rsc, pad := r.serviceApply()
+		routeStatusCons = append(routeStatusCons, rsc...)
+		peersActiveData = append(peersActiveData, pad...)
+
+		// Check and mark as resolved IP conflicting addresses
+		// If any IP conflict was resolved - try smart services reconfiguration
+		if r.ipConflictResolve() == 0 {
+			// No need to retry if no IP conflict was resolved
+			break
+		}
+	}
+
+	return routeStatusCons, peersActiveData
 }
 
 func (r *Router) HasRoute(ip netip.Prefix) bool {
@@ -91,6 +109,13 @@ func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
 	}
 
 	return false
+}
+
+func (r *Router) ipConflictResolve() (count int) {
+	for _, routeGroup := range r.routes {
+		count += routeGroup.serviceMonitor.ResolveIpConflict(r.HasIpConflict)
+	}
+	return count
 }
 
 func (r *Router) Close() error {

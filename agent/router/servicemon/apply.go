@@ -77,6 +77,23 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 	return routeStatusCons, peersActiveData
 }
 
+func (sm *ServiceMonitor) ResolveIpConflict(isIPconflict func(netip.Prefix, int) bool) (count int) {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for ip, rl := range sm.routes {
+		if rl.Disabled() {
+			// check if IP conflict still present
+			if !isIPconflict(ip, 0) { // TODO
+				// clear disabled flag and increment updated services count
+				rl.flags &= ^rlfDisabled
+				count++
+			}
+		}
+	}
+	return count
+}
+
 func (rl *routeList) setRoute(destination netip.Prefix) (*routestatus.Connection, error) {
 	defer rl.resetPending()
 
@@ -99,7 +116,7 @@ func (rl *routeList) setRoute(destination netip.Prefix) (*routestatus.Connection
 		if err != nil {
 			logger.Error().Println(pkgName, "route add error:", err)
 		}
-		return routestatus.NewConnection(route.connectionID, route.groupID, routeRes),
+		return routestatus.NewConnection(route.connectionID, rl.GroupID, routeRes),
 			nil
 	}
 
@@ -113,7 +130,7 @@ func (rl *routeList) setRoute(destination netip.Prefix) (*routestatus.Connection
 			}
 			route.SetFlag(rfActive)
 			// Return route added OK
-			return routestatus.NewConnection(route.connectionID, route.groupID,
+			return routestatus.NewConnection(route.connectionID, rl.GroupID,
 					routestatus.NewEntry(destination, nil)),
 				nil
 		}

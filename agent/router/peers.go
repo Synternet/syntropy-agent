@@ -60,3 +60,8 @@ func (r *Router) PingProcess(pr *multiping.PingData) {
 	// After processing ping results check for a better route for services
 	r.execute()
 }
+
+// Apply configured peers change
+func (r *Router) peersApply() {
+	// empty body now
+}
