@@ -128,6 +128,7 @@ func IptVariant(v Variant) option {
 // For backwards compatibility, by default always uses IPv4 and timeout 0.
 // i.e. you can create an IPv6 IPTables using a timeout of 5 seconds passing
 // the IPFamily and Timeout options as follow:
+//
 //	ip6t := New(IPFamily(ProtocolIPv6), Timeout(5))
 func New(opts ...option) (*IPTables, error) {
 
@@ -166,7 +167,7 @@ func New(opts ...option) (*IPTables, error) {
 	ipt.hasRandomFully = randomFullyPresent
 
 	// finally check if iptables command is really running
-	err = ipt.run("-L")
+	err = ipt.run("-S")
 	if err != nil {
 		return nil, fmt.Errorf("iptables (%s) failed: %s", ipt.mode, err)
 	}
@@ -648,7 +649,7 @@ func iptablesHasWaitCommand(v1 int, v2 int, v3 int) bool {
 	return false
 }
 
-//Checks if an iptablse version is after 1.6.0, when --wait support second
+// Checks if an iptables version is after 1.6.0, when --wait support second
 func iptablesWaitSupportSecond(v1 int, v2 int, v3 int) bool {
 	if v1 > 1 {
 		return true
