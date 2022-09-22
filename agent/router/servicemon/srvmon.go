@@ -81,7 +81,7 @@ func (sm *ServiceMonitor) Close() error {
 			continue
 		}
 
-		rl.ClearRoute(ip)
+		rl.clearRoute(ip)
 	}
 
 	// delete map entries

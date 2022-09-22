@@ -36,12 +36,12 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 		rl.Dump()
 
 		if add == count && del == 0 {
-			routeStatus, _ := rl.SetRoute(ip)
+			routeStatus, _ := rl.setRoute(ip)
 			if routeStatus != nil {
 				routeStatusCons = append(routeStatusCons, routeStatus)
 			}
 		} else if del == count && add == 0 {
-			rl.ClearRoute(ip)
+			rl.clearRoute(ip)
 			// It is dangerous to delete map entry while iterating.
 			// Put a mark for later deletion
 			deleteIPs = append(deleteIPs, ip)
@@ -49,9 +49,9 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			// If route is valid - apply it.
 			// Invalid IP means delete current route
 			if bestRoute.IP.IsValid() {
-				rl.MergeRoutes(ip, &bestRoute.IP)
+				rl.mergeRoutes(ip, &bestRoute.IP)
 			} else {
-				rl.MergeRoutes(ip, nil)
+				rl.mergeRoutes(ip, nil)
 			}
 		}
 
@@ -77,7 +77,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 	return routeStatusCons, peersActiveData
 }
 
-func (rl *routeList) SetRoute(destination netip.Prefix) (*routestatus.Connection, error) {
+func (rl *routeList) setRoute(destination netip.Prefix) (*routestatus.Connection, error) {
 	defer rl.resetPending()
 
 	routeConflict, conflictIfName := netcfg.RouteSearch(&destination)
@@ -125,7 +125,7 @@ func (rl *routeList) SetRoute(destination netip.Prefix) (*routestatus.Connection
 	return nil, err
 }
 
-func (rl *routeList) ClearRoute(destination netip.Prefix) error {
+func (rl *routeList) clearRoute(destination netip.Prefix) error {
 	defer rl.resetPending()
 
 	logger.Debug().Println(pkgName, "Apply/ClearRoute", destination)
@@ -144,7 +144,7 @@ func (rl *routeList) ClearRoute(destination netip.Prefix) error {
 	return nil
 }
 
-func (rl *routeList) MergeRoutes(destination netip.Prefix, newgw *netip.Addr) error {
+func (rl *routeList) mergeRoutes(destination netip.Prefix, newgw *netip.Addr) error {
 	logger.Debug().Println(pkgName, "Apply/MergeRoute ", destination)
 
 	activeRoute := rl.GetActive()
