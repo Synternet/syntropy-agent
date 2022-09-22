@@ -20,7 +20,6 @@ type routeEntry struct {
 	publicKey    string
 	gateway      netip.Addr
 	connectionID int
-	groupID      int
 	flags        routeFlag
 }
 
@@ -48,6 +47,6 @@ func (re *routeEntry) String() string {
 		flags[2] = '-'
 	}
 
-	return fmt.Sprintf("[%s] %s %s (%d / %d)",
-		flags, re.gateway, re.ifname, re.connectionID, re.groupID)
+	return fmt.Sprintf("[%s] %s %s (%d)",
+		flags, re.gateway, re.ifname, re.connectionID)
 }

@@ -13,12 +13,15 @@ const (
 
 // Group or routes. Destination will be map key
 type routeList struct {
-	list  []*routeEntry
-	flags uint16
+	list    []*routeEntry
+	flags   uint16
+	GroupID int
 }
 
-func newRouteList(disabled bool) *routeList {
-	rl := &routeList{}
+func newRouteList(gid int, disabled bool) *routeList {
+	rl := &routeList{
+		GroupID: gid,
+	}
 	if disabled {
 		rl.flags = rlfDisabled
 	}

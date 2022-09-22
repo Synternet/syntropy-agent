@@ -35,7 +35,7 @@ func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip netip.Prefix, d
 
 	// Keep a list of active SDN routes
 	if sm.routes[ip] == nil {
-		sm.routes[ip] = newRouteList(disabled)
+		sm.routes[ip] = newRouteList(netpath.GroupID, disabled)
 	}
 
 	sm.routes[ip].Add(&routeEntry{
@@ -43,7 +43,6 @@ func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip netip.Prefix, d
 		publicKey:    netpath.PublicKey,
 		gateway:      netpath.Gateway,
 		connectionID: netpath.ConnectionID,
-		groupID:      netpath.GroupID,
 	})
 
 	return nil
@@ -85,7 +84,7 @@ func (sm *ServiceMonitor) Close() error {
 	}
 
 	// delete map entries
-	for ip, _ := range sm.routes {
+	for ip := range sm.routes {
 		delete(sm.routes, ip)
 	}
 
