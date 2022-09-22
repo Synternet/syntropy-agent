@@ -6,13 +6,24 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
+const (
+	rlfNone     = uint16(0x00)
+	rlfDisabled = uint16(0x01)
+)
+
 // Group or routes. Destination will be map key
 type routeList struct {
-	list []*routeEntry
+	list  []*routeEntry
+	flags uint16
 }
 
-func newRouteList() *routeList {
-	return &routeList{}
+func newRouteList(disabled bool) *routeList {
+	rl := &routeList{}
+	if disabled {
+		rl.flags = rlfDisabled
+	}
+
+	return rl
 }
 func (rl *routeList) Dump() {
 	for _, r := range rl.list {
@@ -36,6 +47,11 @@ func (rl *routeList) Pending() (add, del int) {
 		}
 	}
 	return add, del
+}
+
+// Returns true, if this (service) routeList was disabled because of conflicting IP address
+func (rl *routeList) Disabled() bool {
+	return rl.flags&rlfDisabled == rlfDisabled
 }
 
 func (rl *routeList) resetPending() {

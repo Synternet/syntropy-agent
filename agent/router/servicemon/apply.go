@@ -21,6 +21,11 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 	bestRoute := sm.routeMonitor.BestPath()
 
 	for ip, rl := range sm.routes {
+		if rl.Disabled() {
+			logger.Warning().Println(pkgName, "Apply Service ignores conflicting IP:", ip)
+			continue
+		}
+
 		add, del := rl.Pending()
 		if add == 0 && del == 0 {
 			// nothing to do for this group

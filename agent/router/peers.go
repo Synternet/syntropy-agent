@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -11,6 +12,10 @@ import (
 
 func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
 	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
+
+	if r.HasIpConflict(dest, netpath.GroupID) {
+		return fmt.Errorf("%s duplicate IP address", dest.Addr().String())
+	}
 
 	routesGroup := r.findOrCreate(netpath.GroupID)
 

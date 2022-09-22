@@ -79,6 +79,20 @@ func (r *Router) HasRoute(ip netip.Prefix) bool {
 	return false
 }
 
+func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
+	for gid, routesGroup := range r.routes {
+		if routesGroup.peerMonitor.HasNode(addr.Addr()) ||
+			routesGroup.serviceMonitor.Has(addr) {
+			if groupID != gid {
+				logger.Error().Println(pkgName, addr.String(), "IP conflict. Connection GIDs:", groupID, gid)
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (r *Router) Close() error {
 	if !config.CleanupOnExit() {
 		return nil

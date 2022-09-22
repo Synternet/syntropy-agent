@@ -10,9 +10,11 @@ import (
 )
 
 func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
+	isIPconflict := r.HasIpConflict(destination, netpath.GroupID)
+
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
-	return routesGroup.serviceMonitor.Add(netpath, destination)
+	return routesGroup.serviceMonitor.Add(netpath, destination, isIPconflict)
 }
 
 func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination netip.Prefix) error {

@@ -40,6 +40,11 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) (rv *peeradat
 	}
 
 	for dest, routeList := range sm.routes {
+		if routeList.Disabled() {
+			// No reroute on IP conflicting routes list
+			continue
+		}
+
 		currRoute := routeList.GetActive()
 		var newRoute *routeEntry = nil
 		if selroute != nil {
