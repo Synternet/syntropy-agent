@@ -62,11 +62,16 @@ func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip netip.Prefix) e
 	return nil
 }
 
-func (sm *ServiceMonitor) Has(ip netip.Prefix) bool {
+func (sm *ServiceMonitor) HasAddress(ip netip.Prefix) bool {
 	sm.Lock()
 	defer sm.Unlock()
 
-	return sm.routes[ip] != nil
+	rl, ok := sm.routes[ip]
+	if ok && !rl.Disabled() {
+		return true
+	}
+
+	return false
 }
 
 func (sm *ServiceMonitor) Close() error {

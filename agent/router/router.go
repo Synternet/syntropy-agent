@@ -89,7 +89,7 @@ func (r *Router) HasRoute(ip netip.Prefix) bool {
 	defer r.Unlock()
 
 	for _, route := range r.routes {
-		if route.peerMonitor.HasNode(ip.Addr()) || route.serviceMonitor.Has(ip) {
+		if route.peerMonitor.HasNode(ip.Addr()) || route.serviceMonitor.HasAddress(ip) {
 			return true
 		}
 	}
@@ -100,7 +100,7 @@ func (r *Router) HasRoute(ip netip.Prefix) bool {
 func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
 	for gid, routesGroup := range r.routes {
 		if routesGroup.peerMonitor.HasNode(addr.Addr()) ||
-			routesGroup.serviceMonitor.Has(addr) {
+			routesGroup.serviceMonitor.HasAddress(addr) {
 			if groupID != gid {
 				logger.Error().Println(pkgName, addr.String(), "IP conflict. Connection GIDs:", groupID, gid)
 				return true
