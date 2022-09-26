@@ -24,7 +24,8 @@ const pkgName = "Saas Controller. "
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
 const (
 	// State machine constants
-	stopped = iota
+	initialised = iota
+	stopped
 	connecting
 	running
 )
@@ -78,20 +79,25 @@ func New() (controller.Controller, error) {
 		token:   config.GetAgentToken(),
 		version: config.GetVersion(),
 	}
-	cc.SetState(stopped)
+	cc.SetState(initialised)
 
 	// Create new local logger for controller events
 	// I am using configured DebugLevel here, but actually
 	// only Errors and Warnings should be logged on this logger.
 	cc.log = logger.New(nil, config.GetDebugLevel(), os.Stdout)
-	cc.log.Info().Println(pkgName, "Connecting...")
-
-	err = cc.connect()
-	if err != nil {
-		return nil, err
-	}
 
 	return &cc, nil
+}
+
+func (cc *CloudController) Open() error {
+	state := cc.GetState()
+	if state != initialised {
+		return fmt.Errorf("unexpected controller state %d", state)
+	}
+
+	cc.log.Info().Println(pkgName, "Connecting...")
+
+	return cc.connect()
 }
 
 func (cc *CloudController) connect() (err error) {

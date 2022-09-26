@@ -52,6 +52,10 @@ func New() (controller.Controller, error) {
 	return &cc, nil
 }
 
+func (cc *ScriptController) Open() error {
+	return nil
+}
+
 func delay(cmd string) {
 	arr := strings.Fields(cmd)
 	seconds, err := strconv.Atoi(arr[1])

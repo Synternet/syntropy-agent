@@ -107,6 +107,8 @@ func main() {
 		return
 	}
 
+	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
+
 	requireRoot()
 	requireProcFilesystemWritable()
 
@@ -144,6 +146,12 @@ func main() {
 		checkKernelVersion()
 		exitCode = -int(unix.ENOMEM)
 		return
+	}
+
+	if config.GetControllerType() == config.ControllerSaas {
+		// Config loggers early - to get more info logged
+		// NOTE: Setup remote logger only for saas controller
+		logger.SetupGlobalLoger(syntropyNetAgent.Writer(), config.GetDebugLevel(), os.Stdout)
 	}
 
 	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")

@@ -140,7 +140,11 @@ func New() (controller.Controller, error) {
 		return nil, err
 	}
 
-	return &bc, bc.connect()
+	return &bc, nil
+}
+
+func (bc *BlockchainController) Open() error {
+	return bc.connect()
 }
 
 func (bc *BlockchainController) connect() error {

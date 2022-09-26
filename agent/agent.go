@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -59,14 +58,10 @@ func New(contype int) (*Agent, error) {
 	var err error
 	var controller controller.Controller
 
-	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
 	switch contype {
 	case config.ControllerSaas:
 		controller, err = saas.New()
 		if controller != nil {
-			// Config loggers early - to get more info logged
-			// Setup remote logger only for saas controller
-			logger.SetupGlobalLoger(controller, config.GetDebugLevel(), os.Stdout)
 		}
 	case config.ControllerScript:
 		controller, err = script.New()
@@ -158,7 +153,7 @@ func New(contype int) (*Agent, error) {
 		shellcmd.New("routes", "route", "-n"),
 		autoping))
 
-	return agent, nil
+	return agent, agent.controller.Open()
 }
 
 // Starts worker services and executes the message loop.
@@ -212,4 +207,9 @@ func (agent *Agent) Close() error {
 	logger.Debug().Println(pkgName, "Agent close done")
 
 	return nil
+}
+
+// Writer returns pointer to controller, as a io.Writer interface
+func (agent *Agent) Writer() io.Writer {
+	return agent.controller
 }
