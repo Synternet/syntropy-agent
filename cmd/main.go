@@ -107,8 +107,6 @@ func main() {
 		return
 	}
 
-	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
-
 	requireRoot()
 	requireProcFilesystemWritable()
 
@@ -139,6 +137,8 @@ func main() {
 	// Parse configuration environment variables
 	config.Init()
 	defer config.Close()
+
+	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
 
 	syntropyNetAgent, err := agent.New(config.GetControllerType())
 	if err != nil {
