@@ -163,23 +163,39 @@ func (agent *Agent) Run() {
 	// Start all "services"
 	agent.startServices()
 
-	for {
-		raw, err := agent.controller.Recv()
+	// Decouple packet receive from processing it
+	// Because a big network configuration apply takes quite a long time
+	// And this can result in websocket timeout
+	// Use buffered channel and 2 goroutines for this purpose
+	rxchan := make(chan []byte, 9)
 
-		if errors.Is(err, io.EOF) {
-			// Stop runner if the reader is done
-			logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
-			return
-		} else if err != nil {
-			// Simple errors are handled inside controller.
-			// This should be only fatal non recovery errors
-			// Actually this should never happen.
-			logger.Error().Println(pkgName, "Message handler error: ", err)
-			return
+	go func() {
+		for raw := range rxchan {
+			agent.processCommand(raw)
 		}
+	}()
 
-		agent.processCommand(raw)
-	}
+	go func() {
+		defer close(rxchan)
+
+		for {
+			raw, err := agent.controller.Recv()
+
+			if errors.Is(err, io.EOF) {
+				// Stop runner if the reader is done
+				logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
+				return
+			} else if err != nil {
+				// Simple errors are handled inside controller.
+				// This should be only fatal non recovery errors
+				// Actually this should never happen.
+				logger.Error().Println(pkgName, "Message handler error: ", err)
+				return
+			}
+
+			rxchan <- raw
+		}
+	}()
 }
 
 // Close closes connections to controller and stops all runners
