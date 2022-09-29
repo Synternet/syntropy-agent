@@ -22,8 +22,8 @@ import (
 
 const pkgName = "Saas Controller. "
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
-const heartbeatAcceptable = 33 * time.Second
-const heartbeatCheckPerion = heartbeatAcceptable / 3
+const heartbeatAcceptable = 5 * time.Minute
+const heartbeatCheckPerion = heartbeatAcceptable / 2
 const (
 	// State machine constants
 	stopped = iota
