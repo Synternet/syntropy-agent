@@ -22,6 +22,8 @@ import (
 
 const pkgName = "Saas Controller. "
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
+const heartbeatAcceptable = 33 * time.Second
+const heartbeatCheckPerion = heartbeatAcceptable / 3
 const (
 	// State machine constants
 	stopped = iota
@@ -54,6 +56,10 @@ type CloudController struct {
 	log *logger.Logger
 	// gorilla/websocket Connection
 	ws *websocket.Conn
+	// the last time received ping or pong control message
+	lastHeartbeat     time.Time
+	connectionIsAlive bool
+	healthTimer       *time.Timer
 	// Info fields to send to cloud controller
 	url     string
 	token   string
@@ -85,6 +91,10 @@ func New() (controller.Controller, error) {
 	}
 	cc.SetState(initialised)
 
+	// Prepeare health check timer
+	cc.healthTimer = time.AfterFunc(heartbeatCheckPerion, cc.healthcheck)
+	cc.healthTimer.Stop()
+
 	// allocate buffered channel
 	// need to experiment in different situation with values
 	// Lets start with 20 messages buffer and try not to fill it more than 80%
@@ -115,6 +125,8 @@ func (cc *CloudController) Open() error {
 
 func (cc *CloudController) connect() (err error) {
 	cc.SetState(connecting)
+	cc.healthTimer.Stop()
+
 	url := url.URL{Scheme: "wss", Host: cc.url, Path: "/"}
 	headers := http.Header(make(map[string][]string))
 
@@ -145,11 +157,74 @@ func (cc *CloudController) connect() (err error) {
 		}
 
 		cc.log.Info().Println(pkgName, "Connected to controller", cc.ws.RemoteAddr())
+		// Set ping/pong callbacks for link health monitoring
+		cc.ws.SetPingHandler(cc.pingHandler)
+		cc.ws.SetPongHandler(cc.pongHandler)
+		// we are just connected - update the heartbeat
+		cc.heartbeat()
+		// start heartbeat watchdog
+		cc.healthTimer.Reset(heartbeatCheckPerion)
 
 		cc.SetState(running)
 		break
 	}
 
+	return nil
+}
+
+// The point of wss connection health check is as follows:
+// if server keeps pinging me - nothing's wrong and no need for active probing
+// if have not received peers for some time period - try pinging other side myself
+// if server is not sending ping neither responding to my pings - the connection is lost
+// In that case terminate the connection and it will be restarted in Recv() function
+func (cc *CloudController) healthcheck() {
+	now := time.Now()
+	if !cc.connectionIsAlive {
+		// Connection is not sending ping or pong messages
+		// Simply terminate it and reconnection will happen in Recv
+		cc.log.Warning().Println(pkgName, "connection ping-pong health check failed")
+		cc.ws.Close()
+		return
+	} else if now.Sub(cc.lastHeartbeat) > heartbeatAcceptable {
+		// Have not heard connection for a long time
+		// Try pinging other side myself
+		cc.connectionIsAlive = false
+
+		cc.Lock()
+		err := cc.ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
+		cc.Unlock()
+
+		if err != nil {
+			// Ping send failed - no need to wait - reconnect
+			cc.ws.Close()
+		}
+	}
+	// Schedule next watchdog check
+	cc.healthTimer.Reset(heartbeatCheckPerion)
+}
+
+// updates last hearbeat time
+func (cc *CloudController) heartbeat() {
+	cc.connectionIsAlive = true
+	cc.lastHeartbeat = time.Now()
+}
+
+func (cc *CloudController) pingHandler(message string) error {
+	cc.heartbeat()
+
+	cc.Lock()
+	err := cc.ws.WriteControl(websocket.PongMessage, []byte(message), time.Now().Add(time.Second))
+	cc.Unlock()
+	if err == websocket.ErrCloseSent {
+		return nil
+	} else if e, ok := err.(net.Error); ok && e.Temporary() {
+		return nil
+	}
+	return err
+}
+
+func (cc *CloudController) pongHandler(string) error {
+	cc.heartbeat()
 	return nil
 }
 
@@ -283,6 +358,7 @@ func (cc *CloudController) close(terminate bool) error {
 
 // Close closes websocket connection to saas backend
 func (cc *CloudController) Close() error {
+	cc.healthTimer.Stop()
 	return cc.close(true)
 }
 
