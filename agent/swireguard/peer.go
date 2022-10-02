@@ -25,6 +25,11 @@ type PeerInfo struct {
 	Stats        PeerStats
 }
 
+type ServiceInfo struct {
+	IP            netip.Prefix
+	ConnectionIDs []int
+}
+
 // Structure conversion helper
 func (pi *PeerInfo) asPeerConfig() (*wgtypes.PeerConfig, error) {
 	var err error

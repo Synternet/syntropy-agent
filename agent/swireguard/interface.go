@@ -10,6 +10,7 @@ import (
 
 type InterfaceInfo struct {
 	IfName     string
+	IfIndex    int
 	PublicKey  string
 	privateKey string
 	IP         netip.Addr
@@ -53,6 +54,7 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		// Alloc new cached device and add to cache
 		myDev = &InterfaceInfo{
 			IfName:    ii.IfName,
+			IfIndex:   ii.IfIndex,
 			PublicKey: ii.PublicKey,
 			Port:      ii.Port,
 			IP:        ii.IP,

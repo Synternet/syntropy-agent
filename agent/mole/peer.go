@@ -2,6 +2,7 @@ package mole
 
 import (
 	"net/netip"
+	"strconv"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
@@ -10,26 +11,24 @@ import (
 )
 
 func makeKey(pi *swireguard.PeerInfo) string {
-	return pi.IfName + pi.PublicKey
+	return strconv.Itoa(pi.ConnectionID)
 }
 
 func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) error {
 	m.Lock()
 	defer m.Unlock()
-
 	err := m.wg.AddPeer(pi)
 	if err != nil {
 		return err
 	}
-
 	err = m.filter.RulesAdd(pi.AllowedIPs...)
 	if err != nil {
 		logger.Error().Println(pkgName, "iptables rules add", err)
 	}
-
 	cacheEntry := peerCacheEntry{
 		groupID:      pi.GroupID,
 		connectionID: pi.ConnectionID,
+		publicKey:    pi.PublicKey,
 		destIP:       netip.PrefixFrom(pi.IP, pi.IP.BitLen()), // single address
 	}
 

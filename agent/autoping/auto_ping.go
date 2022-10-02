@@ -49,12 +49,7 @@ func (obj *AutoPing) Name() string {
 	return cmd
 }
 
-func (obj *AutoPing) Exec(raw []byte) error {
-	var req autoPingRequest
-	err := json.Unmarshal(raw, &req)
-	if err != nil {
-		return err
-	}
+func (obj *AutoPing) Exec(req AutoPingRequest) error {
 
 	obj.Lock()
 	defer obj.Unlock()
@@ -64,7 +59,7 @@ func (obj *AutoPing) Exec(raw []byte) error {
 
 	// set new autoping data
 	obj.pingData.Flush()
-	for _, ipstr := range req.Data.IPs {
+	for _, ipstr := range req.IPs {
 		ip, err := netip.ParseAddr(ipstr)
 		if err != nil {
 			logger.Warning().Println(pkgName, "invalid address", ipstr, err)
@@ -74,8 +69,8 @@ func (obj *AutoPing) Exec(raw []byte) error {
 	}
 
 	// Reschedule ping ticker
-	if obj.pingData.Count() > 0 && req.Data.Interval > 0 {
-		obj.timer.Reset(time.Duration(req.Data.Interval) * time.Second)
+	if obj.pingData.Count() > 0 && req.Interval > 0 {
+		obj.timer.Reset(time.Duration(req.Interval) * time.Second)
 		// We want first ping result asap, so first iteration is now.
 		// PingAction uses a lock inside, thus I do this in separate goroutine,
 		// after the unlocked in defer

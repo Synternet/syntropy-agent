@@ -8,6 +8,7 @@ type peerCacheEntry struct {
 	destIP       netip.Prefix
 	gateway      netip.Addr
 	gwIfname     string
+	publicKey    string
 }
 
 type storage struct {
