@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	cmd     = "WG_ROUTE_STATUS"
-	pkgName = "WgRouteStatus. "
+	cmd     = "SERVICE_STATUS"
+	pkgName = "ServiceStatus. "
 )
 
 type Message struct {

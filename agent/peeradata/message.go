@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	cmd     = "IFACES_PEERS_ACTIVE_DATA"
-	pkgName = "PeersActiveData. "
+	cmd     = "SERVICE_ROUTE_CHANGE"
+	pkgName = "ServiceRouteChange. "
 )
 
 type Message struct {
