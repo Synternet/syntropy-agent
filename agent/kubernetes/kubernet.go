@@ -25,7 +25,7 @@ type kubernet struct {
 	httpClient *http.Client
 	baseURL    string
 	namespaces []string
-	msg        kubernetesInfoMessage
+	msg        common.ServiceInfoMessage
 	ctx        context.Context
 }
 

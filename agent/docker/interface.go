@@ -3,8 +3,7 @@ package docker
 import "github.com/SyntropyNet/syntropy-agent/agent/common"
 
 type DockerHelper interface {
-	NetworkInfo() []DockerNetworkInfoEntry
-	ContainerInfo() []DockerContainerInfoEntry
+	ContainerInfo() []common.ServiceInfoEntry
 	NetworkCreate(name string, subnet string) error
 }
 

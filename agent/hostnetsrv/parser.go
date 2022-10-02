@@ -33,6 +33,7 @@ const (
 
 const (
 	stateListen = "0A"
+	serviceType = "HOST"
 )
 
 func convertIpFromHex(hex string) string {
@@ -60,7 +61,7 @@ func convertIpFromHex(hex string) string {
 
 // Parse line by line /proc/net/tcp|udp file
 // and store only listen state services
-func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServiceEntry) {
+func (obj *hostNetServices) parseProcNetFile(name string, services *[]common.ServiceInfoEntry) {
 	// true - TCP ports, false = UDP ports
 	portTcp := strings.HasPrefix(path.Base(name), "tcp")
 
@@ -73,8 +74,8 @@ func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServic
 
 	rd := bufio.NewReader(f)
 	for {
-		entry := hostServiceEntry{
-			Subnets: []string{},
+		entry := common.ServiceInfoEntry{
+			IPs: []string{},
 			Ports: common.Ports{
 				TCP: []uint16{},
 				UDP: []uint16{},
@@ -97,7 +98,7 @@ func (obj *hostNetServices) parseProcNetFile(name string, services *[]hostServic
 		ipPort := strings.Split(arr[localAddress], ":")
 
 		// IP is in hex. Convert to printable string IP format
-		entry.Subnets = append(entry.Subnets, convertIpFromHex(ipPort[0]))
+		entry.IPs = append(entry.IPs, convertIpFromHex(ipPort[0]))
 
 		// Port is in hex. Convert to dec
 		port, err := strconv.ParseInt(ipPort[1], 16, 17)
@@ -145,11 +146,12 @@ func findNameFromInode(inode string) string {
 	return "Unknown"
 }
 
-func (obj *hostNetServices) appendEnvSetup(services *[]hostServiceEntry) {
+func (obj *hostNetServices) appendEnvSetup(services *[]common.ServiceInfoEntry) {
 	for _, e := range config.GetHostAllowedIPs() {
-		entry := hostServiceEntry{
-			Name:    e.Name,
-			Subnets: []string{e.Subnet},
+		entry := common.ServiceInfoEntry{
+			Name: e.Name,
+			Type: serviceType,
+			IPs:  []string{e.Subnet},
 			Ports: common.Ports{
 				TCP: []uint16{},
 				UDP: []uint16{},
@@ -161,7 +163,7 @@ func (obj *hostNetServices) appendEnvSetup(services *[]hostServiceEntry) {
 }
 
 func (obj *hostNetServices) execute() {
-	services := []hostServiceEntry{}
+	services := []common.ServiceInfoEntry{}
 
 	// Do not parse locally running services. They can anyway be reached via created tunnels
 	// Leving commented code for some time, as this part may need to be reviewed once again
