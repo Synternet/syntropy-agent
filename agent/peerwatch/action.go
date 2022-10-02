@@ -80,9 +80,8 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 	resp := netstats.NewMessage()
 	for _, wgdev := range wgdevs {
 		ifaceData := netstats.IfaceBwEntry{
-			IfName:    wgdev.IfName,
-			PublicKey: wgdev.PublicKey,
-			Peers:     []*netstats.PeerDataEntry{},
+			IfIndex: wgdev.IfIndex,
+			Peers:   []*netstats.PeerDataEntry{},
 		}
 
 		for _, p := range wgdev.Peers() {
@@ -99,13 +98,10 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 			entry := &netstats.PeerDataEntry{
 				ConnectionID: p.ConnectionID,
 				GroupID:      p.GroupID,
-				PublicKey:    p.PublicKey,
-				IP:           ipAddr.Addr().String(),
-				KeepAllive:   int(swireguard.KeepAlliveDuration.Seconds()),
 				RxBytes:      p.Stats.RxBytesDiff, // Controler is expecting bytes received during report period
 				TxBytes:      p.Stats.TxBytesDiff, // Controler is expecting bytes sent during report period
-				RxSpeed:      p.Stats.RxSpeedMBps,
-				TxSpeed:      p.Stats.TxSpeedMBps,
+				RxSpeed:      p.Stats.RxSpeedBps,
+				TxSpeed:      p.Stats.TxSpeedBps,
 			}
 
 			if p.Stats.LastHandshake.IsZero() {

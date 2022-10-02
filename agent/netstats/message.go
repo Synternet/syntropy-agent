@@ -19,24 +19,29 @@ const (
 )
 
 type PeerDataEntry struct {
-	PublicKey    string  `json:"public_key"`
-	IP           string  `json:"internal_ip"`
+	ConnectionID int     `json:"connection_id"`
+	GroupID      int     `json:"connection_group_id"`
 	Handshake    string  `json:"last_handshake,omitempty"`
-	KeepAllive   int     `json:"keep_alive_interval"`
 	Latency      float32 `json:"latency_ms,omitempty"`
 	Loss         float32 `json:"packet_loss"`
 	RxBytes      int64   `json:"rx_bytes"`
 	TxBytes      int64   `json:"tx_bytes"`
-	RxSpeed      float32 `json:"rx_speed_mbps"`
-	TxSpeed      float32 `json:"tx_speed_mbps"`
-	ConnectionID int     `json:"connection_id"`
-	GroupID      int     `json:"connection_group_id"`
+	RxSpeed      float32 `json:"rx_speed_bps"`
+	TxSpeed      float32 `json:"tx_speed_bps"`
+	//PublicKey    string  `json:"public_key"`
+	IP string `json:"internal_ip"`
+	//KeepAllive   int     `json:"keep_alive_interval"`
+	//Loss         float32 `json:"packet_loss"`
+	//RxBytes      int64   `json:"rx_bytes"`
+	//TxBytes      int64   `json:"tx_bytes"`
+	//RxSpeed      float32 `json:"rx_speed_mbps"`
+	//TxSpeed      float32 `json:"tx_speed_mbps"`
 }
 
 type IfaceBwEntry struct {
-	IfName    string           `json:"iface"`
-	PublicKey string           `json:"iface_public_key"`
-	Peers     []*PeerDataEntry `json:"peers"`
+	IfIndex int `json:"index"`
+	//PublicKey string           `json:"iface_public_key"`
+	Peers []*PeerDataEntry `json:"peers"`
 }
 
 type Message struct {

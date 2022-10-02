@@ -13,8 +13,8 @@ type PeerStats struct {
 	RxBytesTotal  int64
 	TxBytesDiff   int64
 	RxBytesDiff   int64
-	TxSpeedMBps   float32
-	RxSpeedMBps   float32
+	TxSpeedBps    float32
+	RxSpeedBps    float32
 	LastHandshake time.Time
 	timestamp     time.Time
 }
@@ -38,8 +38,8 @@ func (ps *PeerStats) update(wgp *wgtypes.Peer, init bool) {
 
 		timeDiff := float32(time.Since(ps.timestamp) / time.Second)
 		if timeDiff > 0 {
-			ps.TxSpeedMBps = float32(ps.TxBytesDiff) / timeDiff / mega
-			ps.RxSpeedMBps = float32(ps.RxBytesDiff) / timeDiff / mega
+			ps.TxSpeedBps = float32(ps.TxBytesDiff) / timeDiff
+			ps.RxSpeedBps = float32(ps.RxBytesDiff) / timeDiff
 		}
 	}
 
