@@ -46,12 +46,18 @@ func (m *Mole) AddService(si *swireguard.ServiceInfo) error {
 	return nil
 }
 
-func (m *Mole) RemoveService(si *swireguard.ServiceInfo, netpath *common.SdnNetworkPath) error {
+func (m *Mole) RemoveService(si *swireguard.ServiceInfo) error {
 	m.Lock()
 	defer m.Unlock()
 
 	for _, connectionID := range si.ConnectionIDs {
-		_, _ = m.cache.peers[makeKeyFromID(connectionID)]
+		peer := m.cache.peers[makeKeyFromID(connectionID)]
+		netpath := &common.SdnNetworkPath{
+			Ifname:       peer.gwIfname,
+			PublicKey:    peer.publicKey,
+			ConnectionID: peer.connectionID,
+			GroupID:      peer.groupID,
+		}
 		// Nobody is interested in RouteDel results
 		m.router.RouteDel(netpath, si.IP)
 

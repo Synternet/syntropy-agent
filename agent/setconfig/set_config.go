@@ -40,13 +40,13 @@ func (obj *configInfo) Name() string {
 	return cmd
 }
 
-func (obj *configInfo) processInterface(e *configInterfaceEntry, index int, resp *ConfigInfoMsg) {
+func (obj *configInfo) processInterface(e *common.ConfigInterfaceEntry, resp *ConfigInfoMsg) {
 	if e == nil {
 		return
 	}
-	wgi, err := e.asInterfaceInfo(index)
+	wgi, err := e.AsInterfaceInfo()
 	if err != nil {
-		logger.Error().Println(pkgName, "parse network", " INDEX:", index, "failed", err)
+		logger.Error().Println(pkgName, "parse network", " INDEX:", e.Index, "failed", err)
 		return
 	}
 	err = obj.mole.CreateInterface(wgi)
@@ -60,7 +60,7 @@ func (obj *configInfo) processInterface(e *configInterfaceEntry, index int, resp
 }
 
 func (obj *configInfo) Exec(raw []byte) error {
-	var req configMsg
+	var req common.ConfigMsg
 	err := json.Unmarshal(raw, &req)
 	if err != nil {
 		return err
@@ -94,8 +94,8 @@ func (obj *configInfo) Exec(raw []byte) error {
 
 	resp := &ConfigInfoMsg{
 		MessageHeader: req.MessageHeader,
-		Data: configInfoEntry{
-			Interfaces: []interfaceEntry{},
+		Data: ConfigInfoEntry{
+			Interfaces: []InterfaceEntry{},
 		},
 	}
 	resp.MsgType = cmdResp
@@ -106,7 +106,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 
 	// create missing interfaces
 	for _, iface := range req.Data.Interfaces {
-		obj.processInterface(&iface, iface.Index, resp)
+		obj.processInterface(&iface, resp)
 	}
 
 	for _, subnetwork := range req.Data.Subnetworks {
@@ -119,12 +119,12 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	for _, cmd := range req.Data.Peers {
-		pi, err := cmd.asPeerInfo()
+		pi, err := cmd.AsPeerInfo()
 		if err != nil {
 			logger.Warning().Println(pkgName, err)
 			continue
 		}
-		netpath, err := cmd.asNetworkPath()
+		netpath, err := cmd.AsNetworkPath()
 		if err != nil {
 			logger.Warning().Println(pkgName, err)
 			continue
@@ -136,7 +136,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 
 	for _, cmd := range req.Data.Services {
-		pi, err := cmd.asServiceInfo()
+		pi, err := cmd.AsServiceInfo()
 		if err != nil {
 			logger.Warning().Println(pkgName, err)
 			continue

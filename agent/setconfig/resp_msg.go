@@ -5,24 +5,24 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 )
 
-type interfaceEntry struct {
+type InterfaceEntry struct {
 	IfName    string `json:"ifname"`
 	PublicKey string `json:"public_key"`
 	IP        string `json:"internal_ip"`
 	Port      int    `json:"listen_port"`
 }
 
-type configInfoEntry struct {
-	Interfaces []interfaceEntry `json:"interfaces"`
+type ConfigInfoEntry struct {
+	Interfaces []InterfaceEntry `json:"interfaces"`
 }
 
 type ConfigInfoMsg struct {
 	common.MessageHeader
-	Data configInfoEntry `json:"data"`
+	Data ConfigInfoEntry `json:"data"`
 }
 
 func (msg *ConfigInfoMsg) AddInterface(data *swireguard.InterfaceInfo) {
-	e := interfaceEntry{}
+	e := InterfaceEntry{}
 	e.IfName = data.IfName
 	e.IP = data.IP.String()
 	e.PublicKey = data.PublicKey

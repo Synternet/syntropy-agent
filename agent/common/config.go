@@ -1,24 +1,22 @@
-package setconfig
+package common
 
 import (
-	"github.com/SyntropyNet/syntropy-agent/agent/autoping"
 	"net/netip"
 	"strconv"
 	"strings"
 
-	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
 
-type configInterfaceEntry struct {
+type ConfigInterfaceEntry struct {
 	Index     int    `json:"index"`
 	IP        string `json:"internal_ip"`
 	PublicKey string `json:"public_key,omitempty"`
 	Port      int    `json:"listen_port,omitempty"`
 }
 
-func (e *configInterfaceEntry) asInterfaceInfo(IfIndex int) (*swireguard.InterfaceInfo, error) {
+func (e *ConfigInterfaceEntry) asInterfaceInfo(IfIndex int) (*swireguard.InterfaceInfo, error) {
 	var ifname string
 	ifaceIndexStr := strconv.Itoa(IfIndex)
 	if strings.HasPrefix(ifaceIndexStr, env.InterfaceNamePrefix) {
@@ -41,7 +39,7 @@ func (e *configInterfaceEntry) asInterfaceInfo(IfIndex int) (*swireguard.Interfa
 	}, nil
 }
 
-func (e *configServicesEntry) asServiceInfo() (*swireguard.ServiceInfo, error) {
+func (e *configServicesEntry) AsServiceInfo() (*swireguard.ServiceInfo, error) {
 
 	pi := &swireguard.ServiceInfo{
 		ConnectionIDs: e.ConnectionIDs,
@@ -52,7 +50,7 @@ func (e *configServicesEntry) asServiceInfo() (*swireguard.ServiceInfo, error) {
 	return pi, nil
 }
 
-func (e *configPeersEntry) asPeerInfo() (*swireguard.PeerInfo, error) {
+func (e *configPeersEntry) AsPeerInfo() (*swireguard.PeerInfo, error) {
 	var ifname string
 
 	ifname = env.InterfaceNamePrefix + strconv.Itoa(e.Index)
@@ -76,11 +74,11 @@ func (e *configPeersEntry) asPeerInfo() (*swireguard.PeerInfo, error) {
 	return pi, nil
 }
 
-func (e *configPeersEntry) asInterfaceInfo() (*swireguard.InterfaceInfo, error) {
+func (e *ConfigInterfaceEntry) AsInterfaceInfo() (*swireguard.InterfaceInfo, error) {
 
 	ifname := env.InterfaceNamePrefix + strconv.Itoa(e.Index)
 
-	addr, err := netip.ParseAddr(e.PrivateIP)
+	addr, err := netip.ParseAddr(e.IP)
 	if err != nil {
 		return nil, err
 	}
@@ -92,9 +90,9 @@ func (e *configPeersEntry) asInterfaceInfo() (*swireguard.InterfaceInfo, error) 
 	}, nil
 }
 
-func (e *configPeersEntry) asNetworkPath() (*common.SdnNetworkPath, error) {
+func (e *configPeersEntry) AsNetworkPath() (*SdnNetworkPath, error) {
 	ifname := env.InterfaceNamePrefix + strconv.Itoa(e.Index)
-	netpath := &common.SdnNetworkPath{
+	netpath := &SdnNetworkPath{
 		Ifname:       ifname,
 		PublicKey:    e.PublicKey,
 		ConnectionID: e.ConnectionID,
@@ -126,11 +124,11 @@ type configPeersEntry struct {
 }
 
 type configServicesEntry struct {
-	Action        string       `json:"action"`
-	IP            string       `json:"ip"`
-	Name          string       `json:"name"`
-	ConnectionIDs []int        `json:"connection_ids,omitempty"`
-	Ports         common.Ports `json:"ports"`
+	Action        string `json:"action"`
+	IP            string `json:"ip"`
+	Name          string `json:"name"`
+	ConnectionIDs []int  `json:"connection_ids,omitempty"`
+	Ports         Ports  `json:"ports"`
 }
 
 type configSettingsReroutingEntry struct {
@@ -140,7 +138,8 @@ type configSettingsReroutingEntry struct {
 	GroupIDs           []int   `json:"connection_group_ids,omitempty"`
 }
 
-type configSettingsAutopingEntry struct {
+type ConfigSettingsAutopingEntry struct {
+	MessageHeader
 	IPs       []string `json:"ips"`
 	Interval  int      `json:"interval"`
 	RespLimit int      `json:"response_limit"`
@@ -148,14 +147,14 @@ type configSettingsAutopingEntry struct {
 
 type configSettingsEntry struct {
 	Rerouting []configSettingsReroutingEntry `json:"rerouting"`
-	Autoping  autoping.AutoPingRequest       `json:"auto_ping"`
+	Autoping  ConfigSettingsAutopingEntry    `json:"auto_ping"`
 }
 
-type configMsg struct {
-	common.MessageHeader
+type ConfigMsg struct {
+	MessageHeader
 	Data struct {
 		AgentID     int                          `json:"agent_id"`
-		Interfaces  []configInterfaceEntry       `json:"interfaces,omitempty"`
+		Interfaces  []ConfigInterfaceEntry       `json:"interfaces,omitempty"`
 		Peers       []configPeersEntry           `json:"peers,omitempty"`
 		Services    []configServicesEntry        `json:"services,omitempty"`
 		Subnetworks []configInfoSubnetworksEntry `json:"subnetworks,omitempty"`

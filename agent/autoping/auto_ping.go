@@ -49,7 +49,7 @@ func (obj *AutoPing) Name() string {
 	return cmd
 }
 
-func (obj *AutoPing) Exec(req AutoPingRequest) error {
+func (obj *AutoPing) Exec(req common.ConfigSettingsAutopingEntry) error {
 
 	obj.Lock()
 	defer obj.Unlock()

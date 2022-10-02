@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/SyntropyNet/syntropy-agent/agent/updateconfig"
 	"io"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/autoping"
@@ -129,6 +130,7 @@ func New(contype int) (*Agent, error) {
 	agent.addService(agent.autoPing)
 
 	agent.addCommand(setconfig.New(agent.controller, agent.mole, agent.autoPing, dockerHelper))
+	agent.addCommand(updateconfig.New(agent.controller, agent.mole, agent.autoPing))
 	agent.addCommand(wgconf.New(agent.controller, agent.mole))
 
 	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
