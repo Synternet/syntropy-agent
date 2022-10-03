@@ -246,6 +246,10 @@ func (cc *CloudController) sendLoop() {
 	// In this application there are 2 senders:
 	// this function and CloudController.close, thus lock protection is needed
 
+	// Discarded packets count.
+	// Used to reduce debug prints when disconnected from controller
+	var discardCount uint64
+
 	// process all messages until channel is closed
 	for msg := range cc.messageQueue {
 		// retry loop in case of reconnection
@@ -260,7 +264,10 @@ func (cc *CloudController) sendLoop() {
 			switch controllerState {
 			case stopped:
 				// controller is stopped already. Discard all messages and will exit on closed channel
-				cc.log.Debug().Println(pkgName, "Controller is stopped. Discarding remaining messages.")
+				if discardCount == 0 {
+					cc.log.Debug().Println(pkgName, "Controller is stopped. Discarding remaining messages.")
+				}
+				discardCount++
 
 			case initialised:
 				// This state should never happen. Print error and discard message
@@ -272,14 +279,22 @@ func (cc *CloudController) sendLoop() {
 				// If channel is almost full - sadly we need to discard some messages
 				// TODO: think about smart messages discarding. Packet investigation or priority
 				if cap(cc.messageQueue)-len(cc.messageQueue) < cc.queueLimit {
-					cc.log.Warning().Println(pkgName, "send queue almost full. Discarding message")
-					cc.log.Debug().Println(pkgName, "Discarded packet:  XX", string(msg), "XX")
+					if discardCount == 0 {
+						cc.log.Warning().Println(pkgName, "send queue almost full. Start discarding messages.")
+					}
+					discardCount++
 				} else {
 					retry = true
 					time.Sleep(100 * time.Millisecond)
 				}
 
 			case running:
+				// Upon reconnection print and reset discarded messages count
+				if discardCount > 0 {
+					cc.log.Warning().Println(pkgName, discardCount, "messages were discarded during offline.")
+					discardCount = 0
+				}
+
 				// Expected state. Send the message
 				cc.Lock()
 				err := cc.ws.WriteMessage(websocket.TextMessage, msg)
