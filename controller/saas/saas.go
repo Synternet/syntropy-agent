@@ -193,6 +193,7 @@ func (cc *CloudController) healthcheck() {
 		// Connection is not sending ping or pong messages
 		// Simply terminate it and reconnection will happen in Recv
 		cc.log.Warning().Println(pkgName, "connection ping-pong health check failed")
+		cc.SetState(disconnected)
 		cc.ws.Close()
 		return
 	} else if diff := now.Sub(cc.lastHeartbeat); diff > heartbeatAcceptable {
@@ -207,6 +208,7 @@ func (cc *CloudController) healthcheck() {
 
 		if err != nil {
 			// Ping send failed - no need to wait - reconnect
+			cc.SetState(disconnected)
 			cc.ws.Close()
 		}
 	}
@@ -273,7 +275,7 @@ func (cc *CloudController) sendLoop() {
 				// This state should never happen. Print error and discard message
 				cc.log.Error().Println(pkgName, "Unexpected controller state (initialised) during runtime !")
 
-			case connecting:
+			case connecting, disconnected:
 				// Controller is reconnecting
 				// If channel is not almost full - try some delay and retry
 				// If channel is almost full - sadly we need to discard some messages
@@ -285,7 +287,7 @@ func (cc *CloudController) sendLoop() {
 					discardCount++
 				} else {
 					retry = true
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(50 * time.Millisecond)
 				}
 
 			case running:
@@ -301,6 +303,10 @@ func (cc *CloudController) sendLoop() {
 				cc.Unlock()
 				if err != nil {
 					cc.log.Error().Println(pkgName, "Send error: ", err)
+					// Cannot send over wss connection.
+					// Terminate connection and reconnection will be done from Recv()
+					cc.SetState(disconnected)
+					cc.ws.Close()
 				}
 
 			default:
@@ -363,6 +369,8 @@ func (cc *CloudController) close(terminate bool) error {
 	if terminate {
 		cc.SetState(stopped)
 		close(cc.messageQueue)
+	} else {
+		cc.SetState(disconnected)
 	}
 
 	//	gorilla/websocket concurency:
