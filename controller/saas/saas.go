@@ -22,14 +22,17 @@ import (
 
 const pkgName = "Saas Controller. "
 const reconnectDelay = 10000 // 10 seconds (in milliseconds)
-const heartbeatAcceptable = 5 * time.Minute
-const heartbeatCheckPerion = heartbeatAcceptable / 2
+
+var heartbeatAcceptable = 45 * time.Second
+var heartbeatCheckPerion = heartbeatAcceptable / 3
+
 const (
 	// State machine constants
 	stopped = iota
 	initialised
 	connecting
 	running
+	disconnected
 )
 
 var ErrNotRunning = errors.New("controller is not running")
@@ -83,6 +86,11 @@ func New() (controller.Controller, error) {
 		return nil, fmt.Errorf("SYNTROPY_AGENT_TOKEN is not set")
 	}
 
+	if wssTimeout := config.GetWssTimeout(); wssTimeout > 0 {
+		heartbeatAcceptable = time.Duration(wssTimeout) * time.Second
+		heartbeatCheckPerion = heartbeatAcceptable / 3
+	}
+
 	// Note: config package returns already validated values and no need to validate them here
 	cc := CloudController{
 		url:     url,
@@ -119,6 +127,8 @@ func (cc *CloudController) Open() error {
 	go cc.sendLoop()
 
 	cc.log.Info().Println(pkgName, "Connecting...")
+	cc.log.Info().Println(pkgName, "WebSocket timeout:", heartbeatAcceptable,
+		"  Check period:", heartbeatCheckPerion)
 
 	return cc.connect()
 }
@@ -185,11 +195,12 @@ func (cc *CloudController) healthcheck() {
 		cc.log.Warning().Println(pkgName, "connection ping-pong health check failed")
 		cc.ws.Close()
 		return
-	} else if now.Sub(cc.lastHeartbeat) > heartbeatAcceptable {
+	} else if diff := now.Sub(cc.lastHeartbeat); diff > heartbeatAcceptable {
 		// Have not heard connection for a long time
 		// Try pinging other side myself
 		cc.connectionIsAlive = false
 
+		cc.log.Info().Println(pkgName, "no ping from server for", diff)
 		cc.Lock()
 		err := cc.ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second))
 		cc.Unlock()

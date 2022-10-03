@@ -52,8 +52,9 @@ type configCache struct {
 	}
 
 	times struct {
-		peerMonitor   uint
-		rerouteWindow uint
+		peerMonitor      uint
+		rerouteWindow    uint
+		websocketTimeout uint
 	}
 	routeDelThreshold uint
 	routeStrategy     int

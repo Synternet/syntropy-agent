@@ -159,3 +159,7 @@ func GetRouteDeleteThreshold() uint {
 func GetRouteStrategy() int {
 	return cache.routeStrategy
 }
+
+func GetWssTimeout() uint {
+	return cache.times.websocketTimeout
+}

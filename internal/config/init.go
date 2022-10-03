@@ -62,6 +62,8 @@ func Init() {
 	}
 	initUint(&cache.routeDelThreshold, "SYNTROPY_ROUTEDEL_THRESHOLD", 0)
 
+	initUint(&cache.times.websocketTimeout, "SYNTROPY_WSS_TIMEOUT", 0)
+
 	initDeviceID()
 
 	// reroute thresholds used to compare better latency.
