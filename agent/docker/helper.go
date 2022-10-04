@@ -17,7 +17,7 @@ func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
 	networkInfo := []DockerNetworkInfoEntry{}
 
 	if obj.cli == nil {
-		logger.Error().Println(pkgName, errClientInit)
+		logger.Warning().Println(pkgName, errClientInit)
 		return networkInfo
 	}
 
@@ -64,7 +64,7 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 	containerInfo := []DockerContainerInfoEntry{}
 
 	if obj.cli == nil {
-		logger.Error().Println(pkgName, errClientInit)
+		logger.Warning().Println(pkgName, errClientInit)
 		return containerInfo
 	}
 

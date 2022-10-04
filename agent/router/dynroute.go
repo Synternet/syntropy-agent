@@ -10,6 +10,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
 const (
@@ -41,6 +42,7 @@ func New(w io.Writer) *Router {
 
 func (obj *Router) execute() {
 	resp := peeradata.NewMessage()
+	count := 0
 
 	for _, routeGroup := range obj.routes {
 		// Change routes to configured services
@@ -48,8 +50,12 @@ func (obj *Router) execute() {
 		rv := routeGroup.serviceMonitor.Reroute(routeGroup.peerMonitor.BestPath())
 		if rv != nil {
 			resp.Add(rv)
+			count++
 		}
 	}
 
 	resp.Send(obj.writer)
+	if count > 0 {
+		logger.Info().Println(pkgName, "Rerouted services for", count, "connections")
+	}
 }

@@ -98,6 +98,9 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 	resp.MsgType = cmdResp
 
+	// CONFIG_INFO can be quite big message and could take a longer time to process
+	// Thus note that processing has started
+	logger.Info().Println(pkgName, "Configuring...")
 	// CONFIG_INFO message sends me full configuration
 	// Drop old cache and will build a new cache from zero
 	obj.mole.Flush()
@@ -117,6 +120,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		}
 	}
 
+	addPeerCount := 0
 	for _, cmd := range req.Data.VPN {
 		switch cmd.Function {
 		case "add_peer":
@@ -131,6 +135,9 @@ func (obj *configInfo) Exec(raw []byte) error {
 				continue
 			}
 			err = obj.mole.AddPeer(pi, netpath)
+			if err == nil {
+				addPeerCount++
+			}
 
 		case "create_interface":
 			wgi, err := cmd.asInterfaceInfo()
@@ -150,6 +157,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		}
 	}
 
+	logger.Info().Println(pkgName, "Configured", addPeerCount, "peers")
 	resp.Now()
 	arr, err := json.Marshal(resp)
 	if err != nil {

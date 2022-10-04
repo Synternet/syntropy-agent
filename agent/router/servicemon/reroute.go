@@ -70,7 +70,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination netip.P
 
 	case newRoute == nil:
 		// Delete active route
-		logger.Info().Println(pkgName, "remove route", destination, oldRoute.ifname)
+		logger.Debug().Println(pkgName, "remove route", destination, oldRoute.ifname)
 		err = netcfg.RouteDel(oldRoute.ifname, &destination)
 		if err != nil {
 			logger.Error().Println(pkgName, "could not remove route to", destination, "via", oldRoute.ifname)
@@ -80,7 +80,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination netip.P
 
 	case oldRoute == nil:
 		// No previous active route was present. Set new route
-		logger.Info().Println(pkgName, "add route", destination, newRoute.ifname)
+		logger.Debug().Println(pkgName, "add route", destination, newRoute.ifname)
 		err = netcfg.RouteAdd(newRoute.ifname, nil, &destination)
 		if err != nil {
 			logger.Error().Println(pkgName, "could not add route to", destination, "via", newRoute.ifname)
@@ -90,7 +90,7 @@ func (rl *routeList) Reroute(newRoute, oldRoute *routeEntry, destination netip.P
 
 	default:
 		// Change the route to new active
-		logger.Info().Println(pkgName, "replace route", destination, oldRoute.ifname, "->", newRoute.ifname)
+		logger.Debug().Println(pkgName, "replace route", destination, oldRoute.ifname, "->", newRoute.ifname)
 		err := netcfg.RouteReplace(newRoute.ifname, nil, &destination)
 		if err != nil {
 			logger.Error().Println(pkgName, "could not change routes to", destination, "via", newRoute.ifname)

@@ -32,7 +32,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			continue
 		}
 		count := rl.Count()
-		logger.Info().Println(pkgName, "Apply Service", ip)
+		logger.Debug().Println(pkgName, "Apply Service", ip)
 		rl.Dump()
 
 		if add == count && del == 0 {
@@ -109,7 +109,7 @@ func (rl *routeList) setRoute(destination netip.Prefix) (*routestatus.Connection
 		}
 		// mark route as active
 		route.SetFlag(rfActive)
-		logger.Info().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
+		logger.Debug().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
 		err := netcfg.RouteAdd(route.ifname, nil, &destination)
 		routeRes := routestatus.NewEntry(destination, err)
 

@@ -94,7 +94,7 @@ func (m *Mole) Apply() {
 
 		found, ifname := netcfg.RouteSearch(&r)
 		if found {
-			logger.Info().Println(pkgName, "Deleting leftover route", r, ifname)
+			logger.Debug().Println(pkgName, "Deleting leftover route", r, ifname)
 			netcfg.RouteDel(ifname, &r)
 		}
 	}

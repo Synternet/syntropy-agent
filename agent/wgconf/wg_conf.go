@@ -37,6 +37,8 @@ func (obj *wgConf) Exec(raw []byte) error {
 		return err
 	}
 
+	addPeerCount := 0
+	delPeerCount := 0
 	for _, cmd := range req.Data {
 		switch cmd.Function {
 		case "add_peer":
@@ -51,6 +53,9 @@ func (obj *wgConf) Exec(raw []byte) error {
 				continue
 			}
 			err = obj.mole.AddPeer(pi, netpath)
+			if err == nil {
+				addPeerCount++
+			}
 
 		case "remove_peer":
 			pi, err := cmd.asPeerInfo()
@@ -64,6 +69,10 @@ func (obj *wgConf) Exec(raw []byte) error {
 				continue
 			}
 			err = obj.mole.RemovePeer(pi, netpath)
+			if err == nil {
+				delPeerCount++
+			}
+
 		}
 
 		if err != nil {
@@ -71,6 +80,7 @@ func (obj *wgConf) Exec(raw []byte) error {
 		}
 	}
 
+	logger.Info().Println(pkgName, "Added:", addPeerCount, " Deleted:", delPeerCount, "peers")
 	// sync and merge everything between controller and OS
 	obj.mole.Apply()
 
