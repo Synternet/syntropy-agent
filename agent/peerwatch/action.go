@@ -115,15 +115,26 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 			}
 
 			stats, ok := obj.pingData.Get(netip.Addr(ipAddr.Addr()))
-			if ok && stats.Valid() {
-				entry.Loss = stats.Loss()
-				entry.Latency = stats.Latency()
-			} else {
-				entry.Loss = netstats.PingLoss
-				logger.Warning().Println(pkgName, "No or invalid ping stats for", ipAddr)
+			// All configured peers are pinged in monitorPeers() function
+			// But when searching for a peer in ping result may be missing on one case:
+			// Config_Info is still in progress (it can take few minutes with big config on low end machine)
+			// Then a situation may arrise when ping monitoring already started,
+			// and config_info setup was not yet completed
+			// In this case during ping data processing wireguard may have more peers configured,
+			// and some of these peers are not pinged yet (they we not configured when ping was done)
+			// This is no dangerous at all. Ignore these results now and this peer ping will be done next time.
+			if ok {
+				if stats.Valid() {
+					entry.Loss = stats.Loss()
+					entry.Latency = stats.Latency()
+				} else {
+					entry.Loss = netstats.PingLoss
+					logger.Warning().Println(pkgName, "Invalid ping stats for", ipAddr)
+				}
+				// Once again read comment above
+				// Add only fully configured and already pinged peers
+				ifaceData.Peers = append(ifaceData.Peers, entry)
 			}
-
-			ifaceData.Peers = append(ifaceData.Peers, entry)
 		}
 
 		resp.Data = append(resp.Data, ifaceData)
