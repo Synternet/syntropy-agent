@@ -2,6 +2,7 @@ package servicemon
 
 import (
 	"net/netip"
+	"strings"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
@@ -28,10 +29,12 @@ func newRouteList(gid int, disabled bool) *routeList {
 
 	return rl
 }
-func (rl *routeList) Dump() {
+func (rl *routeList) String() string {
+	var arr []string
 	for _, r := range rl.list {
-		logger.Debug().Println(pkgName, r)
+		arr = append(arr, r.String())
 	}
+	return strings.Join(arr, ",  ")
 }
 
 // Returns total count of entries in this service route list

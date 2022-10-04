@@ -32,8 +32,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			continue
 		}
 		count := rl.Count()
-		logger.Debug().Println(pkgName, "Apply Service", ip)
-		rl.Dump()
+		logger.Debug().Println(pkgName, "Apply Service", ip, ":", rl.String(), ".")
 
 		if add == count && del == 0 {
 			routeStatus, _ := rl.setRoute(ip)
