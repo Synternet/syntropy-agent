@@ -26,6 +26,9 @@ import (
 const (
 	// Verbose debug. Log messages and almost every step of execution
 	DebugLevel = iota
+	// Almost same as info level, just additionaly prints most important communication packets
+	// Note: this level may be experimental and may be removed in future
+	MessageLevel
 	// Info level - basic workflow. Do not overuse it, since it starts spammng in big networks
 	InfoLevel
 	// Unecpected situations. Can continue, but result may be unpredictable
@@ -48,6 +51,8 @@ func logLevelString(level int) string {
 	switch level {
 	case DebugLevel:
 		return "DEBUG"
+	case MessageLevel:
+		return "MESSAGE"
 	case InfoLevel:
 		return "INFO"
 	case WarningLevel:
@@ -65,6 +70,8 @@ func logLevelPrefix(level int) string {
 	switch level {
 	case DebugLevel:
 		return "[DBG] "
+	case MessageLevel:
+		return "[MSG] "
 	case InfoLevel:
 		return "[INF] "
 	case WarningLevel:
@@ -123,6 +130,10 @@ func New(controller io.Writer, level int, w ...io.Writer) *Logger {
 
 func (lgr *Logger) Debug() *log.Logger {
 	return lgr.loggers[DebugLevel]
+}
+
+func (lgr *Logger) Message() *log.Logger {
+	return lgr.loggers[MessageLevel]
 }
 
 func (lgr *Logger) Info() *log.Logger {

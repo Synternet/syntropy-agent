@@ -23,11 +23,11 @@ func (a *Agent) processCommand(raw []byte) {
 	cmd, ok := a.commands[req.MsgType]
 	if !ok {
 		logger.Warning().Printf("%s Command '%s' not found\n", pkgName, req.MsgType)
-		logger.Debug().Println(pkgName, "Received:", string(raw))
+		logger.Message().Println(pkgName, "Received:", string(raw))
 		return
 	}
 
-	logger.Debug().Println(pkgName, "Received: ", string(raw))
+	logger.Message().Println(pkgName, "Received: ", string(raw))
 	started := time.Now()
 	err := cmd.Exec(raw)
 	if err != nil {

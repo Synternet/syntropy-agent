@@ -62,7 +62,7 @@ func (msg *Message) Send(writer io.Writer) error {
 		return err
 	}
 
-	logger.Debug().Println(pkgName, "Sending: ", string(raw))
+	logger.Message().Println(pkgName, "Sending: ", string(raw))
 	_, err = writer.Write(raw)
 	return err
 }

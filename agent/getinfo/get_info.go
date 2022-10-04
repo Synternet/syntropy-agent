@@ -77,7 +77,7 @@ func (obj *getInfo) Exec(raw []byte) error {
 		return err
 	}
 
-	logger.Debug().Println(pkgName, "Sending: ", string(arr))
+	logger.Message().Println(pkgName, "Sending: ", string(arr))
 	obj.w.Write(arr)
 
 	return err

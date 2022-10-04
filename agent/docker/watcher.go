@@ -75,7 +75,7 @@ func (obj *dockerWatcher) run() {
 
 						raw, err := json.Marshal(obj.networkInfoMsg)
 						if err == nil {
-							logger.Debug().Println(pkgName, "Sending: ", string(raw))
+							logger.Message().Println(pkgName, "Sending: ", string(raw))
 							_, err = obj.writer.Write(raw)
 						}
 						if err != nil {
@@ -95,7 +95,7 @@ func (obj *dockerWatcher) run() {
 
 						raw, err := json.Marshal(obj.containerInfoMsg)
 						if err == nil {
-							logger.Debug().Println(pkgName, "Sending: ", string(raw))
+							logger.Message().Println(pkgName, "Sending: ", string(raw))
 							_, err = obj.writer.Write(raw)
 						}
 						if err != nil {

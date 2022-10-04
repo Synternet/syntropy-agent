@@ -61,7 +61,7 @@ func (obj *kubernet) execute() {
 			logger.Error().Println(pkgName, "json marshal", err)
 			return
 		}
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
+		logger.Message().Println(pkgName, "Sending: ", string(raw))
 		obj.writer.Write(raw)
 	}
 }

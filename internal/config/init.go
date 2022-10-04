@@ -92,6 +92,8 @@ func initDebugLevel() {
 	switch strings.ToUpper(os.Getenv("SYNTROPY_LOG_LEVEL")) {
 	case "DEBUG":
 		cache.debugLevel = logger.DebugLevel
+	case "MESSAGE", "MSG":
+		cache.debugLevel = logger.MessageLevel
 	case "INFO":
 		cache.debugLevel = logger.InfoLevel
 	case "WARNING":

@@ -21,6 +21,10 @@ func Debug() *log.Logger {
 	return global.loggers[DebugLevel]
 }
 
+func Message() *log.Logger {
+	return global.loggers[MessageLevel]
+}
+
 func Info() *log.Logger {
 	return global.loggers[InfoLevel]
 }
