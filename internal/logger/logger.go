@@ -24,11 +24,20 @@ import (
 )
 
 const (
+	// Verbose debug. Log messages and almost every step of execution
 	DebugLevel = iota
+	// Info level - basic workflow. Do not overuse it, since it starts spammng in big networks
 	InfoLevel
+	// Unecpected situations. Can continue, but result may be unpredictable
 	WarningLevel
+	// Error level. Actually agent tries to continue in any case
+	// thus there should be no fatal errors
 	ErrorLevel
-	logLevelsCount // actually not a real log level, but simplifies some code
+	// I'm not sure this is the best naming, but I want an always printable level,
+	// that is not an error, to notify about application start and exit
+	ExecutableLevel
+	// actually not a real log level, but simplifies some code
+	logLevelsCount
 )
 
 type Logger struct {
@@ -45,6 +54,8 @@ func logLevelString(level int) string {
 		return "WARNING"
 	case ErrorLevel:
 		return "ERROR"
+	case ExecutableLevel:
+		return "EXEC"
 	default:
 		return "?????"
 	}
@@ -60,6 +71,8 @@ func logLevelPrefix(level int) string {
 		return "[WRN] "
 	case ErrorLevel:
 		return "[ERR] "
+	case ExecutableLevel:
+		return "[EXE]"
 	default:
 		return "[???] "
 	}
@@ -122,4 +135,8 @@ func (lgr *Logger) Warning() *log.Logger {
 
 func (lgr *Logger) Error() *log.Logger {
 	return lgr.loggers[ErrorLevel]
+}
+
+func (lgr *Logger) Exec() *log.Logger {
+	return lgr.loggers[ExecutableLevel]
 }

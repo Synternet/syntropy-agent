@@ -154,7 +154,7 @@ func main() {
 		logger.SetupGlobalLoger(syntropyNetAgent.Writer(), config.GetDebugLevel(), os.Stdout)
 	}
 
-	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
+	logger.Exec().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
 	checkKernelVersion()
 	checkTime()
@@ -167,5 +167,5 @@ func main() {
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 	<-terminate
-	logger.Info().Println(fullAppName, " terminating")
+	logger.Exec().Println(fullAppName, " terminating")
 }

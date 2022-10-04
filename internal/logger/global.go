@@ -32,3 +32,7 @@ func Warning() *log.Logger {
 func Error() *log.Logger {
 	return global.loggers[ErrorLevel]
 }
+
+func Exec() *log.Logger {
+	return global.loggers[ExecutableLevel]
+}
