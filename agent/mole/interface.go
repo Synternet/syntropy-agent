@@ -54,8 +54,6 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
 	}
 
-	m.cache.ifaces[ii.IfName] = ii.IP
-
 	// If a host is behind NAT - its port after NAT may change.
 	// And in most cases this will cause problems for SDN agent.
 	// Try detecting NAT and send port as 0 - this way SDN agent will try guessing my port.
@@ -84,8 +82,6 @@ func (m *Mole) RemoveInterface(ii *swireguard.InterfaceInfo) error {
 	defer m.Unlock()
 
 	err := m.wg.RemoveInterface(ii)
-
-	delete(m.cache.ifaces, ii.IfName)
 
 	return err
 }
