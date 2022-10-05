@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -28,6 +29,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
 )
 
@@ -156,10 +158,32 @@ func New(contype int) (*Agent, error) {
 	return agent, agent.controller.Open()
 }
 
+func (agent *Agent) detectNAT() {
+	publicIP := pubip.GetPublicIp()
+	if publicIP.IsUnspecified() {
+		// Could not get public IP - thus cannot detect if NAT is present
+		logger.Warning().Println(pkgName, "Could not check NAT: failed getting public IP")
+		return
+	}
+
+	pubip, ok := netip.AddrFromSlice(publicIP)
+	if !ok {
+		logger.Warning().Println(pkgName, "Could not check NAT: invalid public IP")
+		return
+	}
+
+	if netcfg.HostHasIP(pubip) {
+		logger.Info().Println(pkgName, "NAT was not detected")
+	} else {
+		logger.Info().Println(pkgName, "Working behind NAT")
+	}
+}
+
 // Starts worker services and executes the message loop.
 // This loop is terminated by Close()
 func (agent *Agent) Run() {
 	logger.Info().Println(pkgName, "Starting Agent messages handler")
+	agent.detectNAT()
 	// Start all "services"
 	agent.startServices()
 
