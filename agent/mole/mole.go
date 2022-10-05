@@ -9,6 +9,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/ctrlmgr"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole/ipfilter"
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
@@ -20,11 +21,12 @@ const (
 
 type Mole struct {
 	sync.Mutex
-	writer io.Writer
-	wg     *swireguard.Wireguard
-	router *router.Router
-	filter *ipfilter.PacketFilter
-	cache  storage
+	writer               io.Writer
+	wg                   *swireguard.Wireguard
+	router               *router.Router
+	filter               *ipfilter.PacketFilter
+	controllerHostRoutes ctrlmgr.ControllerHostRouteManager
+	cache                storage
 }
 
 func New(w io.Writer) (*Mole, error) {
@@ -45,7 +47,7 @@ func New(w io.Writer) (*Mole, error) {
 		return nil, fmt.Errorf("ipfilter: %s", err)
 	}
 
-	m.initControllerRoutes()
+	m.controllerHostRoutes.Init()
 
 	return m, nil
 }

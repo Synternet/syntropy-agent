@@ -47,9 +47,12 @@ func (m *Mole) Close() error {
 		}
 	}
 
-	m.cleanupControllerRoutes()
+	err := m.controllerHostRoutes.Close()
+	if err != nil {
+		logger.Error().Println(pkgName, "Controller host routes close", err)
+	}
 
-	err := m.router.Close()
+	err = m.router.Close()
 	if err != nil {
 		logger.Error().Println(pkgName, "Router close", err)
 	}
