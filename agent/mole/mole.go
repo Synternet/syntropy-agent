@@ -9,8 +9,10 @@ import (
 	"io"
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/hostroute"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole/ctrlmgr"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole/ipfilter"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/peercache"
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 )
@@ -25,17 +27,23 @@ type Mole struct {
 	wg                   *swireguard.Wireguard
 	router               *router.Router
 	filter               *ipfilter.PacketFilter
+	hostRoute            *hostroute.HostRouter
+	peers                *peercache.PeerCache
 	controllerHostRoutes ctrlmgr.ControllerHostRouteManager
-	cache                storage
 }
 
 func New(w io.Writer) (*Mole, error) {
 	var err error
 	m := &Mole{
-		writer: w,
-		router: router.New(w),
+		writer:    w,
+		router:    router.New(w),
+		hostRoute: &hostroute.HostRouter{},
+		peers:     peercache.New(),
 	}
-	m.cache.init()
+	err = m.hostRoute.Init()
+	if err != nil {
+		return nil, fmt.Errorf("host route: %s", err)
+	}
 
 	m.wg, err = swireguard.New()
 	if err != nil {

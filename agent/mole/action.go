@@ -5,7 +5,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
-	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
@@ -25,29 +24,17 @@ func (m *Mole) Close() error {
 	m.Lock()
 	defer m.Unlock()
 
-	// Delete host routes to peers.
-	// These are routes added to connected WG peers via original default gateway.
-	// NOTE: other routes will be deleted on interface destroy
-	if config.CleanupOnExit() {
-		for _, entry := range m.cache.peers {
-			if entry.gwIfname != "" {
-				logger.Debug().Println(pkgName, "Cleanup peer host route", entry.destIP,
-					"on", entry.gwIfname)
-				err := netcfg.RouteDel(entry.gwIfname, &entry.destIP)
-				if err != nil {
-					// Warning and try to continue.
-					logger.Warning().Println(pkgName, "peer host route cleanup", err)
-				}
-			}
-		}
-
-		err := m.filter.Close()
-		if err != nil {
-			logger.Error().Println(pkgName, "iptables close", err)
-		}
+	err := m.filter.Close()
+	if err != nil {
+		logger.Error().Println(pkgName, "iptables close", err)
 	}
 
-	err := m.controllerHostRoutes.Close()
+	err = m.hostRoute.Close()
+	if err != nil {
+		logger.Error().Println(pkgName, "host routes close", err)
+	}
+
+	err = m.controllerHostRoutes.Close()
 	if err != nil {
 		logger.Error().Println(pkgName, "Controller host routes close", err)
 	}
@@ -62,12 +49,16 @@ func (m *Mole) Close() error {
 		logger.Error().Println(pkgName, "Wireguard close", err)
 	}
 
+	m.peers.Close()
+
 	return nil
 }
 
 // Flush old cache (prepare to build new cache)
 func (m *Mole) Flush() {
 	m.filter.Flush()
+	m.peers.Flush()
+	m.hostRoute.Flush()
 	m.wg.Flush()
 	m.router.Flush()
 }
@@ -100,6 +91,11 @@ func (m *Mole) Apply() {
 			logger.Debug().Println(pkgName, "Deleting leftover route", r, ifname)
 			netcfg.RouteDel(ifname, &r)
 		}
+	}
+
+	err = m.hostRoute.Apply()
+	if err != nil {
+		logger.Error().Println(pkgName, "host routes apply", err)
 	}
 
 	routeRes, peersData := m.router.Apply()
