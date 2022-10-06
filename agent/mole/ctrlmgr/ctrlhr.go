@@ -5,9 +5,9 @@ import (
 	"net"
 	"net/netip"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/hostroute"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
 // In case a VPN client is used sometimes may happen that other peer is stopped
@@ -18,9 +18,7 @@ import (
 const pkgName = "ControlerHostRoutes. "
 
 type ControllerHostRouteManager struct {
-	gw     netip.Addr
-	ifname string
-	routes []netip.Prefix
+	hostRoute *hostroute.HostRouter
 }
 
 func (chr *ControllerHostRouteManager) Init() error {
@@ -34,16 +32,15 @@ func (chr *ControllerHostRouteManager) Init() error {
 	}
 
 	logger.Info().Println(pkgName, "Create hostroutes to cloud controller")
+	chr.hostRoute = &hostroute.HostRouter{}
+	err := chr.hostRoute.Init()
+	if err != nil {
+		return err
+	}
 
 	addrs, err := net.LookupIP(config.GetCloudURL())
 	if err != nil {
 		logger.Error().Println(pkgName, "Could not resolve cloud URL", err)
-		return err
-	}
-
-	chr.gw, chr.ifname, err = netcfg.DefaultRoute()
-	if err != nil {
-		logger.Error().Println(pkgName, "Could not find default route", err)
 		return err
 	}
 
@@ -53,47 +50,35 @@ func (chr *ControllerHostRouteManager) Init() error {
 			continue
 		}
 		// Agent controlls only IPv4 addresses
-		// Ignore IPv6 for now
+		// TODO: Ignore IPv6 for now.
 		if !ipAddr.Is4() {
 			continue
 		}
 		dest := netip.PrefixFrom(ipAddr, ipAddr.BitLen())
 
-		logger.Debug().Println(pkgName, "Controller route add", dest, "via", chr.gw, chr.ifname)
-		err = netcfg.RouteAdd(chr.ifname, &chr.gw, &dest)
+		err = chr.hostRoute.Add(dest)
 		if err != nil {
-			logger.Warning().Println(pkgName, "hostroute", dest, "error", err)
-			continue
+			logger.Warning().Println(pkgName, "controller host route add", addr, err)
 		}
-
-		chr.routes = append(chr.routes, dest)
 	}
 
-	return nil
+	return chr.hostRoute.Apply()
 }
 
+// Delete (if created) host route to controller
+// (If it was enabled in VPN_CLIENT=true case)
 func (chr *ControllerHostRouteManager) Close() error {
-	// Delete (if created) host route to controller
-	// (It was enabled in VPN_CLIENT=true case)
-	// NOTE: caller should control locking
+	if chr.hostRoute == nil {
+		// no host routes initialised (non VPN client case)
+		// nothing to delete
+		return nil
+	}
 
-	if len(chr.routes) == 0 {
-		// No routes were added - no need to delete
+	if !config.CleanupOnExit() {
+		// Do nothing if so configured
 		return nil
 	}
 
 	logger.Info().Println(pkgName, "Cleanup host routes to cloud controller")
-	for _, c := range chr.routes {
-		logger.Debug().Println(pkgName, "cleanup", c, "on", chr.ifname)
-		err := netcfg.RouteDel(chr.ifname, &c)
-		if err != nil {
-			// Warning and try to continue.
-			logger.Warning().Println(pkgName, "host route cleanup", err)
-		}
-	}
-
-	// cleanup controller IPs
-	chr.routes = []netip.Prefix{}
-
-	return nil
+	return chr.hostRoute.Close()
 }

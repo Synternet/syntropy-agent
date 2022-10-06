@@ -55,7 +55,10 @@ func New(w io.Writer) (*Mole, error) {
 		return nil, fmt.Errorf("ipfilter: %s", err)
 	}
 
-	m.controllerHostRoutes.Init()
+	err = m.controllerHostRoutes.Init()
+	if err != nil {
+		return nil, fmt.Errorf("controller routes (VPN client): %s", err)
+	}
 
 	return m, nil
 }
