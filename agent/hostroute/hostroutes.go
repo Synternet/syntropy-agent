@@ -97,6 +97,8 @@ func (hr *HostRouter) Apply() error {
 
 	var delIPs []netip.Prefix
 	errCount := 0
+	add := 0
+	del := 0
 	// Apply pending operations
 	for ip, entry := range hr.routes {
 		if entry.count == 0 {
@@ -104,6 +106,7 @@ func (hr *HostRouter) Apply() error {
 			delIPs = append(delIPs, ip)
 			// Delete the entry (if it was applied earlier)
 			if !entry.pending {
+				del++
 				logger.Debug().Println(pkgName, "Peer host route del to",
 					ip, "via", hr.ifname)
 				err := netcfg.RouteDel(hr.ifname, &ip)
@@ -116,6 +119,7 @@ func (hr *HostRouter) Apply() error {
 		} else {
 			// if pending==false - this entry was already applied
 			if entry.pending {
+				add++
 				logger.Debug().Println(pkgName, "Peer host route add to", ip,
 					"via", hr.gw, hr.ifname)
 				err := netcfg.RouteAdd(hr.ifname, &hr.gw, &ip)
@@ -130,6 +134,7 @@ func (hr *HostRouter) Apply() error {
 			}
 		}
 	}
+	logger.Info().Println(pkgName, "Apply. Add", add, " Delete", del)
 
 	// Remove deleted entries from cache
 	for _, ip := range delIPs {
@@ -139,6 +144,7 @@ func (hr *HostRouter) Apply() error {
 	if errCount > 0 {
 		return fmt.Errorf("%d errors applying host routes", errCount)
 	}
+
 	return nil
 }
 
@@ -162,9 +168,11 @@ func (hr *HostRouter) Close() error {
 	// And routes to controller, in VPN client case
 	// They are only deleted if SYNTROPY_CLEANUP_ON_EXIT=true
 	if config.CleanupOnExit() {
+		count := 0
 		for ip, entry := range hr.routes {
 			// delete all added (not pending) routes
 			if !entry.pending {
+				count++
 				logger.Debug().Println(pkgName, "Cleanup host route", ip, "via", hr.ifname)
 				err := netcfg.RouteDel(hr.ifname, &ip)
 				if err != nil {
@@ -173,6 +181,7 @@ func (hr *HostRouter) Close() error {
 				}
 			}
 		}
+		logger.Info().Println(pkgName, "Cleaned", count, "host routes")
 	}
 
 	// delete all cache entries
