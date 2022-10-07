@@ -79,7 +79,7 @@ func (obj *kubernet) Run(ctx context.Context) error {
 	}
 
 	go func() {
-		ticker := time.NewTicker(config.PeerCheckTime())
+		ticker := time.NewTicker(config.PeerCheckTime() * time.Duration(config.PeerCheckWindow()))
 		defer ticker.Stop()
 		for {
 			select {
