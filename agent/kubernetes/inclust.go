@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 )
 
 func (obj *kubernet) initInCluster() error {
@@ -21,6 +22,7 @@ func (obj *kubernet) initInCluster() error {
 	obj.baseURL = "https://" + net.JoinHostPort(host, port)
 	obj.httpClient = &http.Client{
 		Transport: transport,
+		Timeout:   time.Second * 5,
 	}
 
 	return nil

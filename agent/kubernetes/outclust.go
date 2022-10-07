@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -44,6 +45,7 @@ func (obj *kubernet) initOutOfCluster() error {
 				Certificates: []tls.Certificate{cert},
 			},
 		},
+		Timeout: time.Second * 5,
 	}
 
 	return nil
