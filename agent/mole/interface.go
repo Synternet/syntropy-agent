@@ -26,6 +26,22 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 		return err
 	}
 
+	err = netcfg.InterfaceUp(ii.IfName)
+	if err != nil {
+		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
+	}
+	err = netcfg.InterfaceIPSet(ii.IfName, ii.IP)
+	if err != nil {
+		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
+	}
+
+	if mtu := config.GetInterfaceMTU(); mtu > 0 {
+		err = netcfg.InterfaceSetMTU(ii.IfName, uint32(mtu))
+		if err != nil {
+			logger.Error().Println(pkgName, "MTU error: ", ii.IfName, mtu, err)
+		}
+	}
+
 	if err := netcfg.InterfaceSetRPFilter(ii.IfName, netcfg.RPFilterLoose); err != nil {
 		logger.Warning().Println(pkgName, "rp filter error", err)
 	}
@@ -38,20 +54,11 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 		}
 	}
 
-	if mtu := config.GetInterfaceMTU(); mtu > 0 {
-		err = netcfg.InterfaceSetMTU(ii.IfName, uint32(mtu))
-		if err != nil {
-			logger.Error().Println(pkgName, "MTU error: ", ii.IfName, mtu, err)
-		}
-	}
-
-	err = netcfg.InterfaceUp(ii.IfName)
+	// Recheck interfaces PublicKey and Port after interface is set up
+	// This function also updates cache
+	err = m.wg.CheckInterface(ii)
 	if err != nil {
-		logger.Error().Println(pkgName, "Could not up interface: ", ii.IfName, err)
-	}
-	err = netcfg.InterfaceIPSet(ii.IfName, ii.IP)
-	if err != nil {
-		logger.Error().Println(pkgName, "Could not set IP address: ", ii.IfName, err)
+		logger.Error().Println(pkgName, "check interface", err)
 	}
 
 	m.cache.ifaces[ii.IfName] = ii.IP
