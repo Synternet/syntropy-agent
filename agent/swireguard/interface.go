@@ -99,20 +99,36 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 		return fmt.Errorf("configure interface failed: %s", err.Error())
 	}
 
+	return nil
+}
+
+// Check interface rereads wireguard interface configuration from OS
+// And updates its value in cache and in InterfaceInfo
+func (wg *Wireguard) CheckInterface(ii *InterfaceInfo) error {
+	myDev := wg.Device(ii.IfName)
+
 	// Reread OS configuration and update cache for params, that may have changed
-	osDev, err = wg.wgc.Device(ii.IfName)
+	osDev, err := wg.wgc.Device(ii.IfName)
 	if err != nil {
 		return fmt.Errorf("reading wg device info error: %s", err.Error())
 	}
 
-	// Finally updata params, thay may have changed
-	myDev.Port = osDev.ListenPort
-	myDev.privateKey = osDev.PrivateKey.String()
-	myDev.PublicKey = osDev.PublicKey.String()
+	// Port is one of the important part of this recheck
+	if osDev.ListenPort == 0 {
+		logger.Warning().Println(pkgName, ii.IfName, "reported invalid port", osDev.ListenPort)
+	}
 
-	ii.Port = myDev.Port
-	ii.PublicKey = myDev.PublicKey
+	if myDev != nil {
+		// Finally update params, thay may have changed
+		myDev.Port = osDev.ListenPort
+		myDev.privateKey = osDev.PrivateKey.String()
+		myDev.PublicKey = osDev.PublicKey.String()
+	} else {
+		logger.Error().Println(pkgName, "interfaces cache is broken for", ii.IfName)
+	}
 
+	ii.Port = osDev.ListenPort
+	ii.PublicKey = osDev.PublicKey.String()
 	return nil
 }
 
