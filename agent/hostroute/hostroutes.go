@@ -134,7 +134,9 @@ func (hr *HostRouter) Apply() error {
 			}
 		}
 	}
-	logger.Info().Println(pkgName, "Apply. Add", add, " Delete", del)
+	if add+del > 0 {
+		logger.Info().Println(pkgName, "Apply. Add", add, " Delete", del)
+	}
 
 	// Remove deleted entries from cache
 	for _, ip := range delIPs {
