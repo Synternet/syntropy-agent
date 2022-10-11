@@ -89,7 +89,9 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 
 	wgconf := wgtypes.Config{
 		PrivateKey: &privKey,
-		ListenPort: &port,
+	}
+	if port > 0 {
+		wgconf.ListenPort = &port
 	}
 
 	err = wg.wgc.ConfigureDevice(ii.IfName, wgconf)
