@@ -20,7 +20,7 @@ func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	routesGroup.peerMonitor.AddNode(netpath.Ifname, netpath.PublicKey,
-		netpath.Gateway, netpath.ConnectionID)
+		dest, netpath.ConnectionID)
 
 	err := netcfg.RouteAdd(netpath.Ifname, nil, &dest)
 	if err != nil {
@@ -43,7 +43,7 @@ func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
 	}
 
 	logger.Debug().Println(pkgName, "Delete peer route to", netpath.Gateway)
-	routesGroup.peerMonitor.DelNode(netpath.Gateway)
+	routesGroup.peerMonitor.DelNode(dest)
 
 	err := netcfg.RouteDel(netpath.Ifname, &dest)
 	if err != nil {

@@ -6,9 +6,9 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 	pm.Lock()
 	defer pm.Unlock()
 
-	for _, peer := range pm.peerList {
+	for addr, peer := range pm.peerList {
 
-		val, ok := pr.Get(peer.ip)
+		val, ok := pr.Get(addr.Addr())
 		if !ok {
 			// NOTE: PeerMonitor is not creating its own ping list
 			// It depends on other pingers and is an additional PingClient in their PingProces line

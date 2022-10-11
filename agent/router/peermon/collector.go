@@ -24,18 +24,18 @@ func (pm *PeerMonitor) Collect(ch chan<- prometheus.Metric, groupID int) {
 	pm.RLock()
 	defer pm.RUnlock()
 
-	for _, peer := range pm.peerList {
+	for addr, peer := range pm.peerList {
 		ch <- prometheus.MustNewConstMetric(
 			descLatency,
 			prometheus.GaugeValue,
 			float64(peer.Latency()),
-			peer.ifname, peer.publicKey, peer.ip.String(), strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
+			peer.ifname, peer.publicKey, addr.Addr().String(), strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
 		)
 		ch <- prometheus.MustNewConstMetric(
 			descLoss,
 			prometheus.GaugeValue,
 			float64(peer.Loss()),
-			peer.ifname, peer.publicKey, peer.ip.String(), strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
+			peer.ifname, peer.publicKey, addr.Addr().String(), strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
 		)
 	}
 }

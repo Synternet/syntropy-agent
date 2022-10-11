@@ -14,8 +14,9 @@ type testEntry struct {
 	bestPublic  int
 }
 
-func generateIP(i int) string {
-	return fmt.Sprintf("1.1.1.%d", i+1)
+func generateIP(i int) netip.Prefix {
+	ip := netip.MustParseAddr(fmt.Sprintf("1.1.1.%d", i+1))
+	return netip.PrefixFrom(ip, ip.BitLen())
 }
 
 func (pm *PeerMonitor) fillStats(index int, latency, loss float32) {
@@ -25,14 +26,13 @@ func (pm *PeerMonitor) fillStats(index int, latency, loss float32) {
 	} else {
 		ifname = fmt.Sprintf("SYNTROPY_SDN%d", index)
 	}
-	ip := netip.MustParseAddr(generateIP(index))
 
+	ip := generateIP(index)
 	pm.AddNode(ifname, "PublicKey", ip, index)
-	for _, peer := range pm.peerList {
-		if peer.ip == ip {
-			for i := 0; i < int(pm.config.AverageSize); i++ {
-				peer.Add(latency, loss)
-			}
+	peer, ok := pm.peerList[ip]
+	if ok {
+		for i := 0; i < int(pm.config.AverageSize); i++ {
+			peer.Add(latency, loss)
 		}
 	}
 }
@@ -82,13 +82,13 @@ func TestBestFunctions(t *testing.T) {
 		}
 
 		best, _ := bestPathLowestLatency(pm)
-		if best != test.bestLatency {
-			t.Errorf("Lowest latency test %d failed (%d vs %d)", testIndex, best, test.bestLatency)
+		if best != generateIP(test.bestLatency) {
+			t.Errorf("Lowest latency test %d failed (%s vs %s)", testIndex, best, generateIP(test.bestLatency))
 		}
 
 		best, _ = bestPathPreferPublic(pm)
-		if best != test.bestPublic {
-			t.Errorf("Lowest prefer public test %d failed (%d vs %d)", testIndex, best, test.bestPublic)
+		if best != generateIP(test.bestPublic) {
+			t.Errorf("Lowest prefer public test %d failed (%s vs %s)", testIndex, best, generateIP(test.bestPublic))
 		}
 	}
 
@@ -113,7 +113,7 @@ func TestBestConfiguration(t *testing.T) {
 	if best == nil {
 		t.Errorf("Best path is nil")
 	}
-	if best.IP.String() != generateIP(1) {
+	if best.IP != generateIP(1).Addr() {
 		t.Errorf("Route speed strategy failed")
 	}
 
@@ -122,7 +122,7 @@ func TestBestConfiguration(t *testing.T) {
 	if best == nil {
 		t.Errorf("Best path is nil")
 	}
-	if best.IP.String() != generateIP(1) {
+	if best.IP != generateIP(1).Addr() {
 		t.Errorf("Route direct route strategy failed")
 	}
 }

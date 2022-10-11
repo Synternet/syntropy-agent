@@ -10,9 +10,10 @@ import (
 
 const (
 	pkgName = "PeerMonitor. "
-	// Best route index is not set yet
-	invalidBestIndex = -1
 )
+
+// Best route index is not set yet
+var invalidBest = netip.Prefix{}
 
 type SelectedRoute struct {
 	IP     netip.Addr // best route IP address
@@ -27,15 +28,16 @@ type PathSelector interface {
 type PeerMonitor struct {
 	sync.RWMutex
 	config   *PeerMonitorConfig
-	peerList []*peerInfo
-	lastBest int
+	peerList map[netip.Prefix]*peerInfo
+	lastBest netip.Prefix
 
-	pathSelector func(pm *PeerMonitor) (index int, reason *RouteChangeReason)
+	pathSelector func(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChangeReason)
 }
 
 func New(cfg *PeerMonitorConfig) *PeerMonitor {
 	pm := &PeerMonitor{
-		lastBest: invalidBestIndex,
+		peerList: make(map[netip.Prefix]*peerInfo),
+		lastBest: invalidBest,
 		config:   cfg,
 	}
 	if cfg.RouteStrategy == config.RouteStrategyDirectRoute {
@@ -47,54 +49,43 @@ func New(cfg *PeerMonitorConfig) *PeerMonitor {
 	return pm
 }
 
-func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Addr, connID int) {
+func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, connID int) {
 	pm.Lock()
 	defer pm.Unlock()
 
-	for _, peer := range pm.peerList {
-		if peer.ip == endpoint {
-			return
-		}
+	e, ok := pm.peerList[endpoint]
+	if !ok {
+		e = newPeerInfo(pm.config.AverageSize)
+		pm.peerList[endpoint] = e
 	}
-
-	e := newPeerInfo(pm.config.AverageSize)
-	pm.peerList = append(pm.peerList, e)
 
 	e.ifname = ifname
 	e.publicKey = pubKey
 	e.connectionID = connID
-	e.ip = endpoint
 }
 
-func (pm *PeerMonitor) DelNode(endpoint netip.Addr) {
+func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
 	pm.Lock()
 	defer pm.Unlock()
 
-	for idx, peer := range pm.peerList {
-		if peer.ip == endpoint {
-			// order is not important.
-			// Remove from slice in more effective way
-			pm.peerList[idx] = pm.peerList[len(pm.peerList)-1]
-			pm.peerList = pm.peerList[:len(pm.peerList)-1]
-			// Check and invalidate last best path index
-			if idx == pm.lastBest {
-				pm.lastBest = invalidBestIndex
-			}
-			return
-		}
+	// Check and invalidate last best path index
+	if pm.lastBest == endpoint {
+		pm.lastBest = invalidBest
+	}
+
+	_, ok := pm.peerList[endpoint]
+	if ok {
+		delete(pm.peerList, endpoint)
 	}
 }
 
-func (pm *PeerMonitor) HasNode(endpoint netip.Addr) bool {
+func (pm *PeerMonitor) HasNode(endpoint netip.Prefix) bool {
 	pm.Lock()
 	defer pm.Unlock()
 
-	for _, peer := range pm.peerList {
-		if peer.ip == endpoint {
-			return true
-		}
-	}
-	return false
+	_, ok := pm.peerList[endpoint]
+
+	return ok
 }
 
 func (pm *PeerMonitor) Peers() []string {
@@ -103,21 +94,19 @@ func (pm *PeerMonitor) Peers() []string {
 
 	rv := []string{}
 
-	for _, peer := range pm.peerList {
-		rv = append(rv, peer.ip.String())
+	for ip, _ := range pm.peerList {
+		rv = append(rv, ip.String())
 	}
 	return rv
 }
 
 func (pm *PeerMonitor) Dump() {
-	for i := 0; i < len(pm.peerList); i++ {
-		e := pm.peerList[i]
+	for ip, e := range pm.peerList {
 		mark := " "
-		if i == pm.lastBest {
+		if pm.lastBest == ip {
 			mark = "*"
 		}
-		logger.Debug().Printf("%s%s %s\t%s\t%fms\t%f%%\n",
-			pkgName, mark, e.ip.String(), e.ifname, e.Latency(), 100*e.Loss())
+		logger.Debug().Println(pkgName, mark, ip, e)
 	}
 }
 
