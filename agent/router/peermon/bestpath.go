@@ -6,8 +6,8 @@ import "net/netip"
 // (using moving average)
 func (pm *PeerMonitor) bestRoute() netip.Prefix {
 	// find currently best route
-	best := invalidBest
-	for ip, _ := range pm.peerList {
+	best := invalidBest()
+	for ip := range pm.peerList {
 		switch {
 		// First valid entry found. Compare other against it
 		// TODO: a little fishy here - I chose first entry as best path.
@@ -35,7 +35,7 @@ func (pm *PeerMonitor) bestRoute() netip.Prefix {
 }
 
 func (pm *PeerMonitor) isLastBestValid() bool {
-	return pm.lastBest != invalidBest && pm.peerList[pm.lastBest] != nil
+	return pm.lastBest != invalidBest() && pm.peerList[pm.lastBest] != nil
 }
 
 // This function compares currently active best with newly calculated best route
@@ -138,7 +138,7 @@ func (pm *PeerMonitor) BestPath() *SelectedRoute {
 	}
 
 	if len(pm.peerList) == 0 {
-		pm.lastBest = invalidBest
+		pm.lastBest = invalidBest()
 		route.Reason = NewReason(reasonRouteDelete, 0, 0)
 		return route
 	}

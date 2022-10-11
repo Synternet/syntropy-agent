@@ -13,7 +13,9 @@ const (
 )
 
 // Best route index is not set yet
-var invalidBest = netip.Prefix{}
+func invalidBest() netip.Prefix {
+	return netip.Prefix{}
+}
 
 type SelectedRoute struct {
 	IP     netip.Addr // best route IP address
@@ -37,7 +39,7 @@ type PeerMonitor struct {
 func New(cfg *PeerMonitorConfig) *PeerMonitor {
 	pm := &PeerMonitor{
 		peerList: make(map[netip.Prefix]*peerInfo),
-		lastBest: invalidBest,
+		lastBest: invalidBest(),
 		config:   cfg,
 	}
 	if cfg.RouteStrategy == config.RouteStrategyDirectRoute {
@@ -70,7 +72,7 @@ func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
 
 	// Check and invalidate last best path index
 	if pm.lastBest == endpoint {
-		pm.lastBest = invalidBest
+		pm.lastBest = invalidBest()
 	}
 
 	_, ok := pm.peerList[endpoint]

@@ -35,7 +35,7 @@ func TestPeerMonitor(t *testing.T) {
 	addNode(generateIP(1))
 	addNode(generateIP(2))
 	addNode(generateIP(3))
-	pm.lastBest = invalidBest
+	pm.lastBest = invalidBest()
 
 	// Lower loss is always must
 	fillStats(generateIP(0), 100, 0.02)
@@ -71,7 +71,7 @@ func TestPeerMonitor(t *testing.T) {
 
 	cfg.RerouteDiff = 5
 	cfg.RerouteRatio = 1.05
-	pm.lastBest = invalidBest
+	pm.lastBest = invalidBest()
 	best = pm.BestPath()
 	if best.IP != generateIP(3).Addr() {
 		t.Errorf("Test with correct threshold %s", best.IP)
