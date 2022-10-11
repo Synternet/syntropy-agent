@@ -79,7 +79,7 @@ func logLevelPrefix(level int) string {
 	case ErrorLevel:
 		return "[ERR] "
 	case ExecutableLevel:
-		return "[EXE]"
+		return "[EXE] "
 	default:
 		return "[???] "
 	}
