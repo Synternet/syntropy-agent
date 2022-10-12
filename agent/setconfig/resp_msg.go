@@ -6,10 +6,10 @@ import (
 )
 
 type InterfaceEntry struct {
-	IfName    string `json:"ifname"`
+	Index     int    `json:"index"`
 	PublicKey string `json:"public_key"`
 	IP        string `json:"internal_ip"`
-	Port      int    `json:"listen_port"`
+	Port      int    `json:"port"`
 }
 
 type ConfigInfoEntry struct {
@@ -23,7 +23,7 @@ type ConfigInfoMsg struct {
 
 func (msg *ConfigInfoMsg) AddInterface(data *swireguard.InterfaceInfo) {
 	e := InterfaceEntry{}
-	e.IfName = data.IfName
+	e.Index = data.IfIndex
 	e.IP = data.IP.String()
 	e.PublicKey = data.PublicKey
 	e.Port = data.Port

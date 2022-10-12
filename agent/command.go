@@ -8,6 +8,7 @@ import (
 )
 
 func (a *Agent) addCommand(cmd common.Command) error {
+
 	a.commands[cmd.Name()] = cmd
 	return nil
 }

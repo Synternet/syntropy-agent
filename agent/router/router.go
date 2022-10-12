@@ -11,31 +11,26 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) error {
+func (r *Router) RoutePeerAdd(netpath *common.SdnNetworkPath) error {
 	r.Lock()
 	defer r.Unlock()
 
-	for idx, ip := range dest {
-		// A very dumb protection from "bricking" servers by adding default routes
-		// Allow add default routes only for configured VPN_CLIENT
-		// TODO: there are dosens other ways to act as default route, without 0.0.0.0/0 IP
-		if !config.IsVPNClient() && netcfg.IsDefaultRoute(&ip) {
-			logger.Warning().Println(pkgName, "ignored default route for non configured VPN client")
-			continue
-		}
+	r.PeerAdd(netpath)
+	return nil
+}
 
-		// Some hidden business logic here:
-		// Controller sends Allowed_IPs as follows:
-		// first entry (index=0) is its WG tunnel peers internal ip ==> need to add host route
-		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
-		// I don't need to send IP address to PeerAdd, because it is the same as netpath.Gateway
-		if idx == 0 {
-			r.PeerAdd(netpath)
-		} else {
-			r.ServiceAdd(netpath, ip)
-		}
+func (r *Router) RouteServiceAdd(netpath *common.SdnNetworkPath, dest netip.Prefix) error {
+	r.Lock()
+	defer r.Unlock()
+
+	// A very dumb protection from "bricking" servers by adding default routes
+	// Allow add default routes only for configured VPN_CLIENT
+	if !config.IsVPNClient() && netcfg.IsDefaultRoute(&dest) {
+		logger.Warning().Println(pkgName, "ignored default route for non configured VPN client")
+		return nil
 	}
 
+	r.ServiceAdd(netpath, dest)
 	return nil
 }
 

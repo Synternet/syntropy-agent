@@ -50,7 +50,7 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 	}
 
 	m.cache.peers[makeKey(pi)] = cacheEntry
-	return m.router.RouteAdd(netpath, pi.AllowedIPs...)
+	return m.router.RoutePeerAdd(netpath)
 }
 
 func (m *Mole) RemovePeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) error {

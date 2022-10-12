@@ -22,8 +22,8 @@ type getInfoRequest struct {
 }
 
 type InitInfoAgent struct {
-	Provider          uint     `json:"agent_provider,omitempty"` // 0 is not used and do not send
-	Tags              []string `json:"agent_tags"`
+	Provider          uint     `json:"provider,omitempty"` // 0 is not used and do not send
+	Tags              []string `json:"tags"`
 	LocationLatitude  float32  `json:"location_lat,omitempty"`
 	LocationLongitude float32  `json:"location_lon,omitempty"`
 }
@@ -35,7 +35,7 @@ type InitInfoConfig struct {
 type getInfoResponse struct {
 	common.MessageHeader
 	Data struct {
-		Agent  InitInfoAgent  `json:"config,omitempty"`
+		Agent  InitInfoAgent  `json:"agent,omitempty"`
 		Config InitInfoConfig `json:"config,omitempty"`
 	} `json:"data"`
 }

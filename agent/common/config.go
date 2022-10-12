@@ -84,6 +84,7 @@ func (e *ConfigInterfaceEntry) AsInterfaceInfo() (*swireguard.InterfaceInfo, err
 	}
 	return &swireguard.InterfaceInfo{
 		IfName:    ifname,
+		IfIndex:   e.Index,
 		IP:        addr,
 		PublicKey: e.PublicKey,
 		Port:      e.Port,
@@ -116,7 +117,7 @@ type configPeersEntry struct {
 	Index        int    `json:"index"`
 	PublicKey    string `json:"public_key,omitempty"`
 	PrivateIP    string `json:"private_ip,omitempty"`
-	PublicIP     string `json:"device_public_ipv4,omitempty"`
+	PublicIP     string `json:"public_ip,omitempty"`
 	Port         int    `json:"port,omitempty"`
 	ConnectionID int    `json:"connection_id,omitempty"`
 	GroupID      int    `json:"connection_group_id,omitempty"`

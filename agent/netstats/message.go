@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	cmd      = "IFACES_PEERS_BW_DATA"
+	cmd      = "NETWORK_STATISTICS"
 	pkgName  = "Peer_Data. "
 	PingLoss = 1.0
 )
@@ -26,22 +26,14 @@ type PeerDataEntry struct {
 	Loss         float32 `json:"packet_loss"`
 	RxBytes      int64   `json:"rx_bytes"`
 	TxBytes      int64   `json:"tx_bytes"`
-	RxSpeed      float32 `json:"rx_speed_bps"`
-	TxSpeed      float32 `json:"tx_speed_bps"`
-	//PublicKey    string  `json:"public_key"`
-	IP string `json:"internal_ip"`
-	//KeepAllive   int     `json:"keep_alive_interval"`
-	//Loss         float32 `json:"packet_loss"`
-	//RxBytes      int64   `json:"rx_bytes"`
-	//TxBytes      int64   `json:"tx_bytes"`
-	//RxSpeed      float32 `json:"rx_speed_mbps"`
-	//TxSpeed      float32 `json:"tx_speed_mbps"`
+	RxSpeed      float32 `json:"rx_bps"`
+	TxSpeed      float32 `json:"tx_bps"`
+	IP           string  `json:"internal_ip"`
 }
 
 type IfaceBwEntry struct {
-	IfIndex int `json:"index"`
-	//PublicKey string           `json:"iface_public_key"`
-	Peers []*PeerDataEntry `json:"peers"`
+	IfIndex int              `json:"index"`
+	Peers   []*PeerDataEntry `json:"peers"`
 }
 
 type Message struct {

@@ -49,7 +49,6 @@ func (wg *Wireguard) CreateInterface(ii *InterfaceInfo) error {
 	var port int
 	myDev := wg.Device(ii.IfName)
 	osDev, _ := wg.wgc.Device(ii.IfName)
-
 	if myDev == nil {
 		// Alloc new cached device and add to cache
 		myDev = &InterfaceInfo{

@@ -84,7 +84,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 
 	// Add peer to cache
 	wg.peerCacheAdd(pi)
-
 	return nil
 }
 

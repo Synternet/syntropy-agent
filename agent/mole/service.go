@@ -27,6 +27,7 @@ func (m *Mole) AddService(si *swireguard.ServiceInfo) error {
 			PublicKey:    peer.publicKey,
 			ConnectionID: peer.connectionID,
 			GroupID:      peer.groupID,
+			Gateway:      peer.gateway,
 		}
 		logger.Debug().Println(pkgName, "Peer host route add to", peer.destIP,
 			"via", peer.gateway, peer.gwIfname)
@@ -38,7 +39,7 @@ func (m *Mole) AddService(si *swireguard.ServiceInfo) error {
 			// But this is not a fatal error, so I try to warn and continue.
 			logger.Warning().Println(pkgName, "adding peer host route", err)
 		}
-		err = m.router.RouteAdd(netpath, si.IP)
+		err = m.router.RouteServiceAdd(netpath, si.IP)
 		if err != nil {
 			return err
 		}
