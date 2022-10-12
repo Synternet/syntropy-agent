@@ -83,6 +83,15 @@ jobs:
           push: true
           tags: |
             syntropynet/agent:alpha
+      - name: SANDBOX agent reload
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          curl -X POST \
+               --fail \
+               -F token=${{ secrets.RELOAD_TRIGGER_TOKEN }} \
+               -F "ref=main" \
+               -F "variables[DEPLOY]=sandbox-platform-agent" \
+               ${{ secrets.RELOAD_TRIGGER_URL }}
       -
         name: DEVEL Build and push
         if: contains(github.ref, 'beta')
@@ -95,6 +104,15 @@ jobs:
           tags: |
             syntropynet/agent:beta
             syntropynet/agent:${{ steps.previoustag.outputs.tag }}
+      - name: DEVEL agent reload
+        if: contains(github.ref, 'beta')
+        run: |
+          curl -X POST \
+               --fail \
+               -F token=${{ secrets.RELOAD_TRIGGER_TOKEN }} \
+               -F "ref=main" \
+               -F "variables[DEPLOY]=devel-platform-agent" \
+               ${{ secrets.RELOAD_TRIGGER_URL }}
       -
         name: PROD Build and push
         if: ${{ steps.stablerelease.outputs.match != '' }}
