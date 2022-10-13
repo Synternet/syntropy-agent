@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	pifNone       = 0x00
-	pifAddPending = 0x01
-	pifDelPending = 0x02
-	pifDisabled   = 0x08
+	pifNone       = uint8(0x00)
+	pifAddPending = uint8(0x01)
+	pifDelPending = uint8(0x02)
+	pifDisabled   = uint8(0x08)
 )
 
 // peerInfo collects stores and calculates moving average of last [SYNTROPY_PEERCHECK_WINDOW] link measurement

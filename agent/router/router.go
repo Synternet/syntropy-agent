@@ -75,9 +75,11 @@ func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 
 		// Check and mark as resolved IP conflicting addresses
 		// If any IP conflict was resolved - try smart services reconfiguration
-		if r.ipConflictResolve() == 0 {
+		if count := r.ipConflictResolve(); count == 0 {
 			// No need to retry if no IP conflict was resolved
 			break
+		} else {
+			logger.Info().Println(pkgName, count, "IP conflicts resolved")
 		}
 	}
 
@@ -113,6 +115,7 @@ func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
 
 func (r *Router) ipConflictResolve() (count int) {
 	for _, routeGroup := range r.routes {
+		count += routeGroup.peerMonitor.ResolveIpConflict(r.HasIpConflict)
 		count += routeGroup.serviceMonitor.ResolveIpConflict(r.HasIpConflict)
 	}
 	return count

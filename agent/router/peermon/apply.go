@@ -48,6 +48,23 @@ func (pm *PeerMonitor) Apply() error {
 	return nil
 }
 
+func (pm *PeerMonitor) ResolveIpConflict(isIPconflict func(netip.Prefix, int) bool) (count int) {
+	pm.Lock()
+	defer pm.Unlock()
+
+	for ip, peer := range pm.peerList {
+		if peer.HasFlag(pifDisabled) {
+			// check if IP conflict still present
+			if !isIPconflict(ip, 0) { // TODO
+				// clear disabled flag and increment updated peers count
+				peer.flags &= ^pifDisabled
+				count++
+			}
+		}
+	}
+	return count
+}
+
 func (pm *PeerMonitor) Flush() {
 	pm.Lock()
 	defer pm.Unlock()
