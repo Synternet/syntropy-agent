@@ -7,6 +7,11 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 	defer pm.Unlock()
 
 	for addr, peer := range pm.peerList {
+		// Ignore peers that are conflicting (pifDisabled)
+		// or configuration is not yet applied (pifAddPending/pifDelPending)
+		if peer.flags != pifNone {
+			continue
+		}
 
 		val, ok := pr.Get(addr.Addr())
 		if !ok {

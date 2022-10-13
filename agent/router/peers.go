@@ -1,33 +1,22 @@
 package router
 
 import (
-	"fmt"
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
-	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
 func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
 	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
 
-	if r.HasIpConflict(dest, netpath.GroupID) {
-		return fmt.Errorf("%s duplicate IP address", dest.Addr().String())
-	}
-
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	routesGroup.peerMonitor.AddNode(netpath.Ifname, netpath.PublicKey,
-		dest, netpath.ConnectionID)
+		dest, netpath.ConnectionID, r.HasIpConflict(dest, netpath.GroupID))
 
-	err := netcfg.RouteAdd(netpath.Ifname, nil, &dest)
-	if err != nil {
-		logger.Error().Println(pkgName, netpath.Gateway, "route add error:", err)
-	}
-
-	return err
+	return nil
 }
 
 func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
@@ -42,15 +31,9 @@ func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
 		return nil
 	}
 
-	logger.Debug().Println(pkgName, "Delete peer route to", netpath.Gateway)
 	routesGroup.peerMonitor.DelNode(dest)
 
-	err := netcfg.RouteDel(netpath.Ifname, &dest)
-	if err != nil {
-		logger.Error().Println(pkgName, netpath.Gateway, "route delete error", err)
-	}
-
-	return err
+	return nil
 }
 
 func (r *Router) PingProcess(pr *multiping.PingData) {
@@ -63,5 +46,10 @@ func (r *Router) PingProcess(pr *multiping.PingData) {
 
 // Apply configured peers change
 func (r *Router) peersApply() {
-	// empty body now
+	for gid, route := range r.routes {
+		err := route.peerMonitor.Apply()
+		if err != nil {
+			logger.Error().Println(pkgName, "Apply peers for GID", gid, "error", err)
+		}
+	}
 }

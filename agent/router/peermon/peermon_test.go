@@ -18,7 +18,13 @@ func TestPeerMonitor(t *testing.T) {
 	pm := New(&cfg)
 
 	addNode := func(ip netip.Prefix) {
-		pm.AddNode("ifname", "PublicKey", ip, 0)
+		pm.AddNode("ifname", "PublicKey", ip, 0, false)
+	}
+
+	apply := func() {
+		for _, peer := range pm.peerList {
+			peer.flags = pifNone
+		}
 	}
 
 	fillStats := func(endpoint netip.Prefix, latency, loss float32) {
@@ -35,6 +41,7 @@ func TestPeerMonitor(t *testing.T) {
 	addNode(generateIP(1))
 	addNode(generateIP(2))
 	addNode(generateIP(3))
+	apply()
 	pm.lastBest = invalidBest()
 
 	// Lower loss is always must

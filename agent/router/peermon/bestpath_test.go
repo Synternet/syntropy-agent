@@ -28,9 +28,11 @@ func (pm *PeerMonitor) fillStats(index int, latency, loss float32) {
 	}
 
 	ip := generateIP(index)
-	pm.AddNode(ifname, "PublicKey", ip, index)
+	pm.AddNode(ifname, "PublicKey", ip, index, false)
+
 	peer, ok := pm.peerList[ip]
 	if ok {
+		peer.flags = pifNone
 		for i := 0; i < int(pm.config.AverageSize); i++ {
 			peer.Add(latency, loss)
 		}

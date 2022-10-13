@@ -51,7 +51,7 @@ func New(cfg *PeerMonitorConfig) *PeerMonitor {
 	return pm
 }
 
-func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, connID int) {
+func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, connID int, disabled bool) {
 	pm.Lock()
 	defer pm.Unlock()
 
@@ -64,6 +64,10 @@ func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, con
 	e.ifname = ifname
 	e.publicKey = pubKey
 	e.connectionID = connID
+	e.flags |= pifAddPending
+	if disabled {
+		e.flags |= pifDisabled
+	}
 }
 
 func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
@@ -75,9 +79,9 @@ func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
 		pm.lastBest = invalidBest()
 	}
 
-	_, ok := pm.peerList[endpoint]
+	peer, ok := pm.peerList[endpoint]
 	if ok {
-		delete(pm.peerList, endpoint)
+		peer.flags |= pifDelPending
 	}
 }
 
@@ -110,15 +114,4 @@ func (pm *PeerMonitor) Dump() {
 		}
 		logger.Debug().Println(pkgName, mark, ip, e)
 	}
-}
-
-func (pm *PeerMonitor) Close() error {
-	// nothing to do in peer monitor yet
-	// All peer routes will be deleted once interface is deleted
-	return nil
-}
-
-func (pm *PeerMonitor) Flush() {
-	// nothing to do in peer monitor yet
-	// All peer routes will be deleted once interface is deleted
 }
