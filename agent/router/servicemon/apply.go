@@ -83,7 +83,7 @@ func (sm *ServiceMonitor) ResolveIpConflict(isIPconflict func(netip.Prefix, int)
 	for ip, rl := range sm.routes {
 		if rl.Disabled() {
 			// check if IP conflict still present
-			if !isIPconflict(ip, 0) { // TODO
+			if !isIPconflict(ip, sm.groupID) {
 				// clear disabled flag and increment updated services count
 				rl.flags &= ^rlfDisabled
 				count++
