@@ -8,6 +8,9 @@ import (
 )
 
 func (pm *PeerMonitor) Apply() error {
+	pm.Lock()
+	defer pm.Unlock()
+
 	deleteIPs := []netip.Prefix{}
 
 	for ip, peer := range pm.peerList {
@@ -46,6 +49,9 @@ func (pm *PeerMonitor) Apply() error {
 }
 
 func (pm *PeerMonitor) Flush() {
+	pm.Lock()
+	defer pm.Unlock()
+
 	for _, peer := range pm.peerList {
 		peer.flags |= pifDelPending
 	}
@@ -54,6 +60,7 @@ func (pm *PeerMonitor) Flush() {
 func (pm *PeerMonitor) Close() error {
 	// Cleanup peers on exit
 	// Reuse Flush and Apply functions
+	// These functions have locks inside, so no need to lock here
 	pm.Flush()
 	return pm.Apply()
 }
