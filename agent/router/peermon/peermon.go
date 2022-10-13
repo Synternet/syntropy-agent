@@ -30,14 +30,16 @@ type PathSelector interface {
 type PeerMonitor struct {
 	sync.RWMutex
 	config   *PeerMonitorConfig
+	groupID  int
 	peerList map[netip.Prefix]*peerInfo
 	lastBest netip.Prefix
 
 	pathSelector func(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChangeReason)
 }
 
-func New(cfg *PeerMonitorConfig) *PeerMonitor {
+func New(cfg *PeerMonitorConfig, gid int) *PeerMonitor {
 	pm := &PeerMonitor{
+		groupID:  gid,
 		peerList: make(map[netip.Prefix]*peerInfo),
 		lastBest: invalidBest(),
 		config:   cfg,
@@ -100,7 +102,7 @@ func (pm *PeerMonitor) Peers() []string {
 
 	rv := []string{}
 
-	for ip, _ := range pm.peerList {
+	for ip := range pm.peerList {
 		rv = append(rv, ip.String())
 	}
 	return rv

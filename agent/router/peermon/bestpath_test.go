@@ -77,7 +77,7 @@ func TestBestFunctions(t *testing.T) {
 	}
 
 	for testIndex, test := range testData {
-		pm := New(&cfg)
+		pm := New(&cfg, 1)
 
 		for i, latency := range test.latency {
 			pm.fillStats(i, latency, 0)
@@ -103,7 +103,7 @@ func TestBestConfiguration(t *testing.T) {
 		RerouteDiff:              20,
 		RouteDeleteLossThreshold: 0,
 	}
-	pm := New(&cfg)
+	pm := New(&cfg, 2)
 
 	pm.fillStats(0, 100, 0)
 	pm.fillStats(1, 90, 0)

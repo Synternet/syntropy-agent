@@ -14,7 +14,7 @@ func (r *Router) findOrCreate(groupID int) *routerGroupEntry {
 	routesGroup, ok := r.routes[groupID]
 	if !ok {
 		routesGroup = new(routerGroupEntry)
-		routesGroup.peerMonitor = peermon.New(&r.pmCfg)
+		routesGroup.peerMonitor = peermon.New(&r.pmCfg, groupID)
 		routesGroup.serviceMonitor = servicemon.New(routesGroup.peerMonitor, groupID)
 		r.routes[groupID] = routesGroup
 	}

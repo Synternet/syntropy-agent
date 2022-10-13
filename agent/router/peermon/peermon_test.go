@@ -15,7 +15,7 @@ func TestPeerMonitor(t *testing.T) {
 		RerouteDiff:              10,
 		RouteDeleteLossThreshold: 0,
 	}
-	pm := New(&cfg)
+	pm := New(&cfg, 1)
 
 	addNode := func(ip netip.Prefix) {
 		pm.AddNode("ifname", "PublicKey", ip, 0, false)

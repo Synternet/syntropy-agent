@@ -55,7 +55,7 @@ func (pm *PeerMonitor) ResolveIpConflict(isIPconflict func(netip.Prefix, int) bo
 	for ip, peer := range pm.peerList {
 		if peer.HasFlag(pifDisabled) {
 			// check if IP conflict still present
-			if !isIPconflict(ip, 0) { // TODO
+			if !isIPconflict(ip, pm.groupID) {
 				// clear disabled flag and increment updated peers count
 				peer.flags &= ^pifDisabled
 				count++
