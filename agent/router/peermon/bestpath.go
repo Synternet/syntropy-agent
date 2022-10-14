@@ -70,6 +70,24 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 
 	newIdx := pm.bestRouteIndex()
 
+	if newIdx == publicIdx {
+		if pm.lastBest == publicIdx {
+			return newIdx, reasonNoChange
+		} else {
+			return newIdx, reasonLatency
+		}
+	}
+
+	// Did not found new best route (can this ever happen?)
+	if newIdx == invalidBestIndex {
+		return pm.lastBest, reasonNoChange
+	}
+
+	// lower loss is a must
+	if pm.peerList[newIdx].Loss() < pm.peerList[publicIdx].Loss() {
+		return newIdx, reasonLoss
+	}
+
 	// best route still does not completed full stats cycle
 	if pm.peerList[newIdx].StatsIncomplete() {
 		if pm.isLastBestValid() {
@@ -81,30 +99,20 @@ func bestPathPreferPublic(pm *PeerMonitor) (index, reason int) {
 		}
 	}
 
-	// lower loss is a must
-	if pm.peerList[newIdx].Loss() < pm.peerList[publicIdx].Loss() {
-		return newIdx, reasonLoss
-	}
-
 	// apply thresholds
 	if pm.peerList[publicIdx].Latency()/pm.peerList[newIdx].Latency() >= pm.config.RerouteRatio &&
 		pm.peerList[publicIdx].Latency()-pm.peerList[newIdx].Latency() >= pm.config.RerouteDiff {
 		return newIdx, reasonLatency
 	}
 
-	// No previous best route yet,
-	// and best route `newIdx` is not better than public - fallback to public
-	if !pm.isLastBestValid() {
-		return publicIdx, reasonNewRoute
-	}
-
-	return pm.lastBest, reasonNoChange
+	return publicIdx, reasonLatency
 }
 
 // BestPath returns best route gateway.
 // Best route is:
-//  * Lowest packet loss
-//  * possible lowest latency
+//   - Lowest packet loss
+//   - possible lowest latency
+//
 // But in order for not to fluctuate between 2 routes, when latency is the same
 // so once one best route is found - do not switch to another route, unless it is (betterPercent)% better
 func (pm *PeerMonitor) BestPath() *SelectedRoute {

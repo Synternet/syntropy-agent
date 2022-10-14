@@ -8,10 +8,18 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 )
 
-type testEntry struct {
-	latency     [4]float32
+const pathsCount = 4
+
+type testEntry1 struct {
+	latency     [pathsCount]float32
 	bestLatency int
 	bestPublic  int
+}
+
+type testEntry2 struct {
+	latency     [pathsCount]float32
+	bestLatency [pathsCount]int
+	bestPublic  [pathsCount]int
 }
 
 func generateIP(i int) string {
@@ -37,7 +45,8 @@ func (pm *PeerMonitor) fillStats(index int, latency, loss float32) {
 	}
 }
 
-func TestBestFunctions(t *testing.T) {
+// This tests the best function without previous values
+func TestBestFunctions1(t *testing.T) {
 	cfg := PeerMonitorConfig{
 		AverageSize:              10,
 		RouteStrategy:            config.RouteStrategySpeed,
@@ -46,27 +55,29 @@ func TestBestFunctions(t *testing.T) {
 		RouteDeleteLossThreshold: 0,
 	}
 
-	testData := []testEntry{
-		{
-			latency:     [4]float32{20, 500, 300, 35},
-			bestLatency: 0,
-			bestPublic:  0,
-		},
-		{
-			latency:     [4]float32{500, 1000, 1000, 200},
-			bestLatency: 3,
-			bestPublic:  3,
-		},
-		{
-			latency:     [4]float32{100, 105, 110, 120},
-			bestLatency: 0,
-			bestPublic:  0,
-		},
-		{
-			latency:     [4]float32{100, 110, 85, 78},
-			bestLatency: 3,
-			bestPublic:  3,
-		},
+	testData := []testEntry1{
+		/*
+			{
+				latency:     [4]float32{20, 500, 300, 35},
+				bestLatency: 0,
+				bestPublic:  0,
+			},
+			{
+				latency:     [4]float32{500, 1000, 1000, 200},
+				bestLatency: 3,
+				bestPublic:  3,
+			},
+			{
+				latency:     [4]float32{100, 105, 110, 120},
+				bestLatency: 0,
+				bestPublic:  0,
+			},
+			{
+				latency:     [4]float32{100, 110, 85, 78},
+				bestLatency: 3,
+				bestPublic:  3,
+			},
+		*/
 		{
 			latency:     [4]float32{100, 90, 85, 82},
 			bestLatency: 3,
@@ -89,6 +100,73 @@ func TestBestFunctions(t *testing.T) {
 		best, _ = bestPathPreferPublic(pm)
 		if best != test.bestPublic {
 			t.Errorf("Lowest prefer public test %d failed (%d vs %d)", testIndex, best, test.bestPublic)
+		}
+	}
+
+}
+
+// Tests best functions and takes into account previous values
+func TestBestFunctions2(t *testing.T) {
+	cfg := PeerMonitorConfig{
+		AverageSize:              10,
+		RouteStrategy:            config.RouteStrategySpeed,
+		RerouteRatio:             1.1,
+		RerouteDiff:              20,
+		RouteDeleteLossThreshold: 0,
+	}
+
+	testData := []testEntry2{
+		{
+			latency:     [pathsCount]float32{20, 500, 300, 35},
+			bestLatency: [pathsCount]int{0, 0, 0, 3},
+			bestPublic:  [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			latency:     [pathsCount]float32{500, 1000, 1000, 200},
+			bestLatency: [pathsCount]int{3, 3, 3, 3},
+			bestPublic:  [pathsCount]int{3, 3, 3, 3},
+		},
+		{
+			latency:     [pathsCount]float32{100, 105, 110, 120},
+			bestLatency: [pathsCount]int{0, 1, 2, 0},
+			bestPublic:  [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			latency:     [pathsCount]float32{100, 110, 85, 78},
+			bestLatency: [pathsCount]int{3, 3, 2, 3},
+			bestPublic:  [pathsCount]int{3, 3, 3, 3},
+		},
+		{
+			latency:     [pathsCount]float32{100, 90, 85, 82},
+			bestLatency: [pathsCount]int{0, 1, 2, 3},
+			bestPublic:  [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			latency:     [pathsCount]float32{100, 105, 95, 100},
+			bestLatency: [pathsCount]int{0, 1, 2, 3},
+			bestPublic:  [pathsCount]int{0, 0, 0, 0},
+		},
+	}
+
+	for testIndex, test := range testData {
+		pm := New(&cfg)
+
+		for i, latency := range test.latency {
+			pm.fillStats(i, latency, 0)
+		}
+
+		for j := 0; j < pathsCount; j++ {
+			pm.lastBest = j
+
+			best, _ := bestPathLowestLatency(pm)
+			if best != test.bestLatency[j] {
+				t.Errorf("Lowest latency test %d/%d failed (%d vs %d)", testIndex, j, best, test.bestLatency[j])
+			}
+
+			best, _ = bestPathPreferPublic(pm)
+			if best != test.bestPublic[j] {
+				t.Errorf("Lowest prefer public test %d/%d failed (%d vs %d)", testIndex, j, best, test.bestPublic[j])
+			}
 		}
 	}
 
