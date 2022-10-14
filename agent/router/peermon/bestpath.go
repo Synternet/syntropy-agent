@@ -160,8 +160,6 @@ func (pm *PeerMonitor) BestPath() *SelectedRoute {
 
 		route.IP = pm.lastBest.Addr()
 		route.ID = pm.peerList[pm.lastBest].connectionID
-	} else {
-		println(pkgName, "LastBest not yet valid !!")
 	}
 
 	return route
