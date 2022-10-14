@@ -87,6 +87,23 @@ func bestPathPreferPublic(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChan
 	}
 
 	newBest := pm.bestRoute()
+	if newBest == publicIP {
+		if pm.lastBest == publicIP {
+			return newBest, NewReason(reasonNoChange, 0, 0)
+		} else {
+			return newBest, NewReason(reasonLatency, 0, 0)
+		}
+	}
+
+	// Did not found new best route (can this ever happen?)
+	if !newBest.IsValid() {
+		return pm.lastBest, NewReason(reasonNoChange, 0, 0)
+	}
+
+	// lower loss is a must
+	if pm.peerList[newBest].Loss() < pm.peerList[publicIP].Loss() {
+		return newBest, NewReason(reasonLoss, 0, 0)
+	}
 
 	// best route still does not completed full stats cycle
 	if pm.peerList[newBest].StatsIncomplete() {
@@ -99,11 +116,6 @@ func bestPathPreferPublic(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChan
 		}
 	}
 
-	// lower loss is a must
-	if pm.peerList[newBest].Loss() < pm.peerList[publicIP].Loss() {
-		return newBest, NewReason(reasonLoss, 0, 0)
-	}
-
 	// apply thresholds
 	if pm.peerList[publicIP].Latency()/pm.peerList[newBest].Latency() >= pm.config.RerouteRatio &&
 		pm.peerList[publicIP].Latency()-pm.peerList[newBest].Latency() >= pm.config.RerouteDiff {
@@ -112,13 +124,7 @@ func bestPathPreferPublic(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChan
 			pm.peerList[newBest].Latency())
 	}
 
-	// No previous best route yet,
-	// and best route `newBest` is not better than public - fallback to public
-	if !pm.isLastBestValid() {
-		return publicIP, NewReason(reasonNewRoute, 0, 0)
-	}
-
-	return pm.lastBest, NewReason(reasonNoChange, 0, 0)
+	return publicIP, NewReason(reasonLatency, 0, 0)
 }
 
 // BestPath returns best route gateway.
