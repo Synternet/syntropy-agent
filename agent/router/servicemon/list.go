@@ -111,6 +111,7 @@ func (rl *routeList) Add(newRoute *routeEntry) {
 	}
 
 	newRoute.SetFlag(rfPendingAdd)
+	newRoute.ClearFlags(rfPendingDel)
 	// Note: active flag will be marked on apply
 
 	rl.list = append(rl.list, newRoute)

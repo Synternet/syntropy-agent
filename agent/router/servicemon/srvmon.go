@@ -67,7 +67,13 @@ func (sm *ServiceMonitor) HasAddress(ip netip.Prefix) bool {
 	defer sm.Unlock()
 
 	rl, ok := sm.routes[ip]
+	// ignore not applied addresses
 	if ok && !rl.Disabled() {
+		add, del := rl.Pending()
+		// check and ignore services that will be deleted
+		if add == 0 && del == rl.Count() {
+			return false
+		}
 		return true
 	}
 

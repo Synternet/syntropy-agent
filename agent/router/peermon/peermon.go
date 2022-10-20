@@ -67,6 +67,7 @@ func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, con
 	e.publicKey = pubKey
 	e.connectionID = connID
 	e.flags |= pifAddPending
+	e.flags &= ^pifDelPending
 	if disabled {
 		e.flags |= pifDisabled
 	}
@@ -91,9 +92,10 @@ func (pm *PeerMonitor) HasNode(endpoint netip.Prefix) bool {
 	pm.Lock()
 	defer pm.Unlock()
 
-	_, ok := pm.peerList[endpoint]
+	peer, ok := pm.peerList[endpoint]
 
-	return ok
+	// Ignore not applied (disabled) and nodes already marked for deletion
+	return ok && (peer.flags&pifDelPending|pifDisabled) == 0
 }
 
 func (pm *PeerMonitor) Peers() []string {
