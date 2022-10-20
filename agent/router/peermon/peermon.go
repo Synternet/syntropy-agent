@@ -119,3 +119,10 @@ func (pm *PeerMonitor) Dump() {
 		logger.Debug().Println(pkgName, mark, ip, e)
 	}
 }
+
+func (pm *PeerMonitor) Count() int {
+	pm.Lock()
+	defer pm.Unlock()
+
+	return len(pm.peerList)
+}

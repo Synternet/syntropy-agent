@@ -127,3 +127,12 @@ func (sm *ServiceMonitor) Flush() {
 		delete(sm.routes, ip)
 	}
 }
+
+func (sm *ServiceMonitor) Dump() {
+	sm.Lock()
+	defer sm.Unlock()
+
+	for ip, rl := range sm.routes {
+		logger.Debug().Println(pkgName, ip, rl)
+	}
+}

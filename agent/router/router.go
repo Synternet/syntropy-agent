@@ -99,6 +99,15 @@ func (r *Router) HasRoute(ip netip.Prefix) bool {
 	return false
 }
 
+func (r *Router) Dump() {
+	for gid, routesGroup := range r.routes {
+		logger.Debug().Printf("%s GID=[%d]  peers=%d, services=%d\n",
+			pkgName, gid, routesGroup.peerMonitor.Count(), routesGroup.serviceMonitor.Count())
+		routesGroup.peerMonitor.Dump()
+		routesGroup.serviceMonitor.Dump()
+	}
+}
+
 func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
 	for gid, routesGroup := range r.routes {
 		if routesGroup.peerMonitor.HasNode(addr) ||
