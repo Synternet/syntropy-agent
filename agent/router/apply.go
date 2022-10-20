@@ -36,7 +36,10 @@ func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 
 // applyChanges iterates all GIDs and executes configuration changes
 // for peers and monitored services
+// The caller is responsible for locking
 func (r *Router) applyChanges() ([]*routestatus.Connection, []*peeradata.Entry) {
+	deleteGIDs := []int{}
+
 	routeStatusCons := []*routestatus.Connection{}
 	peersActiveData := []*peeradata.Entry{}
 
@@ -52,6 +55,19 @@ func (r *Router) applyChanges() ([]*routestatus.Connection, []*peeradata.Entry) 
 		routeStatusCons = append(routeStatusCons, rsc...)
 		peersActiveData = append(peersActiveData, pad...)
 
+		// Check and delete empty GIDs
+		if route.peerMonitor.Count() == 0 {
+			deleteGIDs = append(deleteGIDs, gid)
+			if servicesCount := route.serviceMonitor.Count(); servicesCount > 0 {
+				logger.Warning().Println(pkgName, "Invalid configuration for GID", gid,
+					" Has 0 peers and", servicesCount, "services left. Forcing deletion of services.")
+			}
+		}
+	}
+
+	// remove deleted gids
+	for _, gid := range deleteGIDs {
+		delete(r.routes, gid)
 	}
 
 	return routeStatusCons, peersActiveData
