@@ -4,8 +4,6 @@ import (
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -29,16 +27,4 @@ func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination netip.Pr
 	logger.Debug().Println(pkgName, "Delete service route to", netpath.Gateway, "via", netpath.Gateway)
 
 	return routesGroup.serviceMonitor.Del(netpath, destination)
-}
-
-func (r *Router) serviceApply() ([]*routestatus.Connection, []*peeradata.Entry) {
-	routeStatusCons := []*routestatus.Connection{}
-	peersActiveData := []*peeradata.Entry{}
-	for _, route := range r.routes {
-		rsc, pad := route.serviceMonitor.Apply()
-		routeStatusCons = append(routeStatusCons, rsc...)
-		peersActiveData = append(peersActiveData, pad...)
-	}
-
-	return routeStatusCons, peersActiveData
 }

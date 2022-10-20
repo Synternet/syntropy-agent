@@ -43,13 +43,3 @@ func (r *Router) PingProcess(pr *multiping.PingData) {
 	// After processing ping results check for a better route for services
 	r.execute()
 }
-
-// Apply configured peers change
-func (r *Router) peersApply() {
-	for gid, route := range r.routes {
-		err := route.peerMonitor.Apply()
-		if err != nil {
-			logger.Error().Println(pkgName, "Apply peers for GID", gid, "error", err)
-		}
-	}
-}

@@ -4,8 +4,6 @@ import (
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
@@ -57,33 +55,6 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) e
 	}
 
 	return nil
-}
-
-func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
-	r.Lock()
-	defer r.Unlock()
-
-	routeStatusCons := []*routestatus.Connection{}
-	peersActiveData := []*peeradata.Entry{}
-
-	// Avoid endless execution, thus limit iteration to 3 times
-	for iteration := 3; iteration > 0; iteration-- {
-		r.peersApply()
-		rsc, pad := r.serviceApply()
-		routeStatusCons = append(routeStatusCons, rsc...)
-		peersActiveData = append(peersActiveData, pad...)
-
-		// Check and mark as resolved IP conflicting addresses
-		// If any IP conflict was resolved - try smart services reconfiguration
-		if count := r.ipConflictResolve(); count == 0 {
-			// No need to retry if no IP conflict was resolved
-			break
-		} else {
-			logger.Info().Println(pkgName, count, "IP conflicts resolved")
-		}
-	}
-
-	return routeStatusCons, peersActiveData
 }
 
 func (r *Router) HasRoute(ip netip.Prefix) bool {
