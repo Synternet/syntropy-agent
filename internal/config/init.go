@@ -101,7 +101,7 @@ func initDebugLevel() {
 	case "ERROR":
 		cache.debugLevel = logger.ErrorLevel
 	default:
-		cache.debugLevel = logger.InfoLevel
+		cache.debugLevel = logger.MessageLevel
 	}
 }
 
