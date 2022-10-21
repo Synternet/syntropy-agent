@@ -5,7 +5,6 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
 func (r *Router) peerAdd(netpath *common.SdnNetworkPath) error {
@@ -34,15 +33,4 @@ func (r *Router) peerDel(netpath *common.SdnNetworkPath) error {
 	routesGroup.peerMonitor.DelNode(dest)
 
 	return nil
-}
-
-func (r *Router) PingProcess(pr *multiping.PingData) {
-	r.Lock()
-	defer r.Unlock()
-
-	for _, pm := range r.routes {
-		pm.peerMonitor.PingProcess(pr)
-	}
-	// After processing ping results check for a better route for services
-	r.rerouteServices()
 }

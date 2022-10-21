@@ -1,140 +1,39 @@
+// router package is used to setup routes to peers and services
+// Router uses PeerMonitod which actively monitores direct and (sdn) wireguard peers
+// And ServiceMonitor for changing routes to configured services
 package router
 
 import (
-	"net/netip"
+	"io"
+	"sync"
 
-	"github.com/SyntropyNet/syntropy-agent/agent/common"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
-	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
-func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) error {
-	r.Lock()
-	defer r.Unlock()
+const (
+	pkgName = "Router. "
+	cmd     = "SMART_ROUTER"
+)
 
-	for idx, ip := range dest {
-		// A very dumb protection from "bricking" servers by adding default routes
-		// Allow add default routes only for configured VPN_CLIENT
-		// TODO: there are dosens other ways to act as default route, without 0.0.0.0/0 IP
-		if !config.IsVPNClient() && netcfg.IsDefaultRoute(&ip) {
-			logger.Warning().Println(pkgName, "ignored default route for non configured VPN client")
-			continue
-		}
-
-		// Some hidden business logic here:
-		// Controller sends Allowed_IPs as follows:
-		// first entry (index=0) is its WG tunnel peers internal ip ==> need to add host route
-		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
-		// I don't need to send IP address to PeerAdd, because it is the same as netpath.Gateway
-		if idx == 0 {
-			r.peerAdd(netpath)
-		} else {
-			r.serviceAdd(netpath, ip)
-		}
-	}
-
-	return nil
+type Router struct {
+	sync.Mutex
+	writer io.Writer
+	routes map[int]*routerGroupEntry // route list ordered by group_id
+	pmCfg  peermon.PeerMonitorConfig
 }
 
-func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) error {
-	r.Lock()
-	defer r.Unlock()
-
-	for idx, ip := range ips {
-		// Some hidden business logic here:
-		// Controller sends Allowed_IPs as follows:
-		// first entry (index=0) is its WG tunnel peers internal ip ==> need to add host route
-		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
-		// I don't need to send IP address to PeerDel, because it is the same as netpath.Gateway
-		if idx == 0 {
-			r.peerDel(netpath)
-		} else {
-			r.serviceDel(netpath, ip)
-		}
+func New(w io.Writer) *Router {
+	diff, ratio := config.RerouteThresholds()
+	return &Router{
+		writer: w,
+		routes: make(map[int]*routerGroupEntry),
+		pmCfg: peermon.PeerMonitorConfig{
+			AverageSize:              config.PeerCheckWindow(),
+			RouteStrategy:            config.GetRouteStrategy(),
+			RerouteRatio:             ratio,
+			RerouteDiff:              diff,
+			RouteDeleteLossThreshold: float32(config.GetRouteDeleteThreshold()),
+		},
 	}
-
-	return nil
-}
-
-func (r *Router) HasActiveRoute(ip netip.Prefix) bool {
-	r.Lock()
-	defer r.Unlock()
-
-	for _, route := range r.routes {
-		if route.peerMonitor.HasNode(ip) || route.serviceMonitor.HasAddress(ip) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (r *Router) Dump() {
-	r.Lock()
-	defer r.Unlock()
-
-	for gid, routesGroup := range r.routes {
-		logger.Debug().Printf("%s GID=[%d]  peers=%d, services=%d\n",
-			pkgName, gid, routesGroup.peerMonitor.Count(), routesGroup.serviceMonitor.Count())
-		routesGroup.peerMonitor.Dump()
-		routesGroup.serviceMonitor.Dump()
-	}
-}
-
-func (r *Router) hasIpConflict(addr netip.Prefix, groupID int) bool {
-	for gid, routesGroup := range r.routes {
-		if routesGroup.peerMonitor.HasNode(addr) ||
-			routesGroup.serviceMonitor.HasAddress(addr) {
-			if groupID != gid {
-				logger.Error().Println(pkgName, addr.String(), "IP conflict. Connection GIDs:", groupID, gid)
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (r *Router) resolveIpConflict() (count int) {
-	for _, routeGroup := range r.routes {
-		count += routeGroup.peerMonitor.ResolveIpConflict(r.hasIpConflict)
-		count += routeGroup.serviceMonitor.ResolveIpConflict(r.hasIpConflict)
-	}
-	return count
-}
-
-func (r *Router) Close() error {
-	if !config.CleanupOnExit() {
-		return nil
-	}
-
-	r.Lock()
-	defer r.Unlock()
-
-	var err error
-	for id, route := range r.routes {
-		err = route.peerMonitor.Close()
-		if err != nil {
-			logger.Error().Println(pkgName, "peer monitor", id, "Close", err)
-		}
-
-		err = route.serviceMonitor.Close()
-		if err != nil {
-			logger.Error().Println(pkgName, "service monitor", id, "Close", err)
-		}
-	}
-
-	return nil
-}
-
-func (r *Router) Flush() {
-	r.Lock()
-	defer r.Unlock()
-
-	for _, route := range r.routes {
-		route.peerMonitor.Flush()
-		route.serviceMonitor.Flush()
-	}
-
 }
