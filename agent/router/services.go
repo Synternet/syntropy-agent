@@ -7,15 +7,15 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
-func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
-	isIPconflict := r.HasIpConflict(destination, netpath.GroupID)
+func (r *Router) serviceAdd(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
+	isIPconflict := r.hasIpConflict(destination, netpath.GroupID)
 
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	return routesGroup.serviceMonitor.Add(netpath, destination, isIPconflict)
 }
 
-func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
+func (r *Router) serviceDel(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
 	routesGroup, ok := r.find(netpath.GroupID)
 	if !ok {
 		// Was asked to delete non-existing service route.

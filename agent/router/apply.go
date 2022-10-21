@@ -23,7 +23,7 @@ func (r *Router) Apply() ([]*routestatus.Connection, []*peeradata.Entry) {
 
 		// Check and mark as resolved IP conflicting addresses
 		// If any IP conflict was resolved - try smart services reconfiguration
-		if count := r.ipConflictResolve(); count == 0 {
+		if count := r.resolveIpConflict(); count == 0 {
 			// No need to retry if no IP conflict was resolved
 			break
 		} else {

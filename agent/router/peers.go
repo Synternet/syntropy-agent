@@ -8,18 +8,18 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 )
 
-func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
+func (r *Router) peerAdd(netpath *common.SdnNetworkPath) error {
 	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
 
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	routesGroup.peerMonitor.AddNode(netpath.Ifname, netpath.PublicKey,
-		dest, netpath.ConnectionID, r.HasIpConflict(dest, netpath.GroupID))
+		dest, netpath.ConnectionID, r.hasIpConflict(dest, netpath.GroupID))
 
 	return nil
 }
 
-func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
+func (r *Router) peerDel(netpath *common.SdnNetworkPath) error {
 	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
 
 	routesGroup, ok := r.find(netpath.GroupID)

@@ -28,9 +28,9 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) 
 		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
 		// I don't need to send IP address to PeerAdd, because it is the same as netpath.Gateway
 		if idx == 0 {
-			r.PeerAdd(netpath)
+			r.peerAdd(netpath)
 		} else {
-			r.ServiceAdd(netpath, ip)
+			r.serviceAdd(netpath, ip)
 		}
 	}
 
@@ -48,9 +48,9 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) e
 		// all other entries are peers LANs (docker, etc) services IPs, that should have SDN routing on them
 		// I don't need to send IP address to PeerDel, because it is the same as netpath.Gateway
 		if idx == 0 {
-			r.PeerDel(netpath)
+			r.peerDel(netpath)
 		} else {
-			r.ServiceDel(netpath, ip)
+			r.serviceDel(netpath, ip)
 		}
 	}
 
@@ -79,7 +79,7 @@ func (r *Router) Dump() {
 	}
 }
 
-func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
+func (r *Router) hasIpConflict(addr netip.Prefix, groupID int) bool {
 	for gid, routesGroup := range r.routes {
 		if routesGroup.peerMonitor.HasNode(addr) ||
 			routesGroup.serviceMonitor.HasAddress(addr) {
@@ -93,10 +93,10 @@ func (r *Router) HasIpConflict(addr netip.Prefix, groupID int) bool {
 	return false
 }
 
-func (r *Router) ipConflictResolve() (count int) {
+func (r *Router) resolveIpConflict() (count int) {
 	for _, routeGroup := range r.routes {
-		count += routeGroup.peerMonitor.ResolveIpConflict(r.HasIpConflict)
-		count += routeGroup.serviceMonitor.ResolveIpConflict(r.HasIpConflict)
+		count += routeGroup.peerMonitor.ResolveIpConflict(r.hasIpConflict)
+		count += routeGroup.serviceMonitor.ResolveIpConflict(r.hasIpConflict)
 	}
 	return count
 }
