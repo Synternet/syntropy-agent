@@ -41,5 +41,5 @@ func (r *Router) PingProcess(pr *multiping.PingData) {
 		pm.peerMonitor.PingProcess(pr)
 	}
 	// After processing ping results check for a better route for services
-	r.execute()
+	r.rerouteServices()
 }

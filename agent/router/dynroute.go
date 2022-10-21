@@ -40,11 +40,11 @@ func New(w io.Writer) *Router {
 	}
 }
 
-func (obj *Router) execute() {
+func (r *Router) rerouteServices() {
 	resp := peeradata.NewMessage()
 	count := 0
 
-	for _, routeGroup := range obj.routes {
+	for _, routeGroup := range r.routes {
 		// Change routes to configured services
 		// and build a message to controler
 		rv := routeGroup.serviceMonitor.Reroute(routeGroup.peerMonitor.BestPath())
@@ -54,7 +54,7 @@ func (obj *Router) execute() {
 		}
 	}
 
-	resp.Send(obj.writer)
+	resp.Send(r.writer)
 	if count > 0 {
 		logger.Info().Println(pkgName, "Rerouted services for", count, "connections")
 	}

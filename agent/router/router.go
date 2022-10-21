@@ -57,7 +57,7 @@ func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) e
 	return nil
 }
 
-func (r *Router) HasRoute(ip netip.Prefix) bool {
+func (r *Router) HasActiveRoute(ip netip.Prefix) bool {
 	r.Lock()
 	defer r.Unlock()
 

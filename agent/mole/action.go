@@ -80,7 +80,7 @@ func (m *Mole) Apply() {
 
 	// check and delete routes
 	for _, r := range delRoutes {
-		if m.router.HasRoute(r) {
+		if m.router.HasActiveRoute(r) {
 			// do not delete routes, if router is still dealing with them
 			logger.Warning().Println(pkgName, "Old route should be deleted, but router still has it", r.String())
 			continue
