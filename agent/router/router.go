@@ -71,6 +71,9 @@ func (r *Router) HasActiveRoute(ip netip.Prefix) bool {
 }
 
 func (r *Router) Dump() {
+	r.Lock()
+	defer r.Unlock()
+
 	for gid, routesGroup := range r.routes {
 		logger.Debug().Printf("%s GID=[%d]  peers=%d, services=%d\n",
 			pkgName, gid, routesGroup.peerMonitor.Count(), routesGroup.serviceMonitor.Count())

@@ -3,9 +3,6 @@ package peermon
 import "github.com/SyntropyNet/syntropy-agent/pkg/multiping"
 
 func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
-	pm.Lock()
-	defer pm.Unlock()
-
 	for addr, peer := range pm.peerList {
 		// Ignore peers that are conflicting (pifDisabled)
 		// or configuration is not yet applied (pifAddPending/pifDelPending)
@@ -24,5 +21,4 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 		}
 		peer.Add(val.Latency(), val.Loss())
 	}
-
 }

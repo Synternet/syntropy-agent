@@ -37,6 +37,9 @@ func (r *Router) peerDel(netpath *common.SdnNetworkPath) error {
 }
 
 func (r *Router) PingProcess(pr *multiping.PingData) {
+	r.Lock()
+	defer r.Unlock()
+
 	for _, pm := range r.routes {
 		pm.peerMonitor.PingProcess(pr)
 	}

@@ -21,9 +21,6 @@ var (
 )
 
 func (pm *PeerMonitor) Collect(ch chan<- prometheus.Metric, groupID int) {
-	pm.RLock()
-	defer pm.RUnlock()
-
 	for addr, peer := range pm.peerList {
 		ch <- prometheus.MustNewConstMetric(
 			descLatency,

@@ -15,9 +15,6 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 	var peersActiveData []*peeradata.Entry
 	var deleteIPs []netip.Prefix
 
-	sm.Lock()
-	defer sm.Unlock()
-
 	bestRoute := sm.routeMonitor.BestPath()
 
 	for ip, rl := range sm.routes {
@@ -77,9 +74,6 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 }
 
 func (sm *ServiceMonitor) ResolveIpConflict(isIPconflict func(netip.Prefix, int) bool) (count int) {
-	sm.Lock()
-	defer sm.Unlock()
-
 	for ip, rl := range sm.routes {
 		if rl.Disabled() {
 			// check if IP conflict still present

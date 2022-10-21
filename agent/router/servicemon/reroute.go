@@ -10,9 +10,6 @@ import (
 )
 
 func (sm *ServiceMonitor) Count() int {
-	sm.Lock()
-	defer sm.Unlock()
-
 	return len(sm.routes)
 }
 
@@ -30,9 +27,6 @@ func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) (rv *peeradat
 		}
 		sm.activeConnectionID = connID
 	}
-
-	sm.Lock()
-	defer sm.Unlock()
 
 	// nothing to do if no services are configured
 	if len(sm.routes) == 0 {

@@ -135,8 +135,6 @@ func bestPathPreferPublic(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChan
 // But in order for not to fluctuate between 2 routes, when latency is the same
 // so once one best route is found - do not switch to another route, unless it is (betterPercent)% better
 func (pm *PeerMonitor) BestPath() *SelectedRoute {
-	pm.RLock()
-	defer pm.RUnlock()
 	route := &SelectedRoute{
 		ID: 0, // Ivalidate last ID
 		// IP is empty value, so  IP.IsValid()==false means delete route

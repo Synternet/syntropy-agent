@@ -2,7 +2,6 @@ package peermon
 
 import (
 	"net/netip"
-	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -27,8 +26,11 @@ type PathSelector interface {
 	BestPath() *SelectedRoute
 }
 
+// PeerMonitr pings configured peers and selects best path
+// Implements BestPath() and can be used as PathSelector interface
+// PeerMonitor is explicitely used in Router and is always under main Router lock
+// So no need for locking here
 type PeerMonitor struct {
-	sync.RWMutex
 	config   *PeerMonitorConfig
 	groupID  int
 	peerList map[netip.Prefix]*peerInfo
@@ -54,9 +56,6 @@ func New(cfg *PeerMonitorConfig, gid int) *PeerMonitor {
 }
 
 func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, connID int, disabled bool) {
-	pm.Lock()
-	defer pm.Unlock()
-
 	e, ok := pm.peerList[endpoint]
 	if !ok {
 		e = newPeerInfo(pm.config.AverageSize)
@@ -74,9 +73,6 @@ func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, con
 }
 
 func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
-	pm.Lock()
-	defer pm.Unlock()
-
 	// Check and invalidate last best path index
 	if pm.lastBest == endpoint {
 		pm.lastBest = invalidBest()
@@ -89,9 +85,6 @@ func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
 }
 
 func (pm *PeerMonitor) HasNode(endpoint netip.Prefix) bool {
-	pm.Lock()
-	defer pm.Unlock()
-
 	peer, ok := pm.peerList[endpoint]
 
 	// Ignore not applied (disabled) and nodes already marked for deletion
@@ -99,9 +92,6 @@ func (pm *PeerMonitor) HasNode(endpoint netip.Prefix) bool {
 }
 
 func (pm *PeerMonitor) Peers() []string {
-	pm.RLock()
-	defer pm.RUnlock()
-
 	rv := []string{}
 
 	for ip := range pm.peerList {
@@ -121,8 +111,5 @@ func (pm *PeerMonitor) Dump() {
 }
 
 func (pm *PeerMonitor) Count() int {
-	pm.Lock()
-	defer pm.Unlock()
-
 	return len(pm.peerList)
 }
