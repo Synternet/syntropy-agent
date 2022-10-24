@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
-	"sync"
 	"time"
 )
 
@@ -71,7 +70,6 @@ func (s *PingStats) String() string {
 // Ping data. Holds host information and ping statistics.
 // Use Add, Get and Iterate functions. No internal logic will be exposed.
 type PingData struct {
-	mutex   sync.RWMutex
 	entries map[netip.Addr]*PingStats
 }
 
@@ -83,9 +81,6 @@ func NewPingData() *PingData {
 
 // Add - adds some hosts to be pinged
 func (pr *PingData) Add(hosts ...netip.Addr) {
-	pr.mutex.Lock()
-	defer pr.mutex.Unlock()
-
 	for _, ip := range hosts {
 		pr.entries[ip] = &PingStats{}
 	}
@@ -93,9 +88,6 @@ func (pr *PingData) Add(hosts ...netip.Addr) {
 
 // Del removes some hosts from ping list
 func (pr *PingData) Del(hosts ...netip.Addr) {
-	pr.mutex.Lock()
-	defer pr.mutex.Unlock()
-
 	for _, ip := range hosts {
 		delete(pr.entries, ip)
 	}
@@ -103,11 +95,6 @@ func (pr *PingData) Del(hosts ...netip.Addr) {
 
 // Append - merges 2 PingData into one
 func (pr *PingData) Append(data *PingData) {
-	pr.mutex.Lock()
-	data.mutex.Lock()
-	defer pr.mutex.Unlock()
-	defer data.mutex.Unlock()
-
 	for ip, stats := range data.entries {
 		val, ok := pr.entries[ip]
 		if ok {
@@ -126,9 +113,6 @@ func (pr *PingData) Append(data *PingData) {
 
 // Flush removes all configured hosts
 func (pr *PingData) Flush() {
-	pr.mutex.Lock()
-	defer pr.mutex.Unlock()
-
 	for h := range pr.entries {
 		delete(pr.entries, h)
 	}
@@ -136,9 +120,6 @@ func (pr *PingData) Flush() {
 
 // Reset statistics. Host list remains unchainged.
 func (pr *PingData) Reset() {
-	pr.mutex.Lock()
-	defer pr.mutex.Unlock()
-
 	for _, e := range pr.entries {
 		e.Reset()
 	}
@@ -146,17 +127,11 @@ func (pr *PingData) Reset() {
 
 // Returns count of configured host
 func (pr *PingData) Count() int {
-	pr.mutex.RLock()
-	defer pr.mutex.RUnlock()
-
 	return len(pr.entries)
 }
 
 // Get searches for ping statistics of a host
 func (pr *PingData) Get(ip netip.Addr) (PingStats, bool) {
-	pr.mutex.RLock()
-	defer pr.mutex.RUnlock()
-
 	val, ok := pr.entries[ip]
 	if ok {
 		return *val, true
@@ -167,9 +142,6 @@ func (pr *PingData) Get(ip netip.Addr) (PingStats, bool) {
 
 // Iterate runs through all hosts and calls callback for stats processing
 func (pr *PingData) Iterate(callback func(ip netip.Addr, val PingStats)) {
-	pr.mutex.RLock()
-	defer pr.mutex.RUnlock()
-
 	for key, val := range pr.entries {
 		callback(key, *val)
 	}

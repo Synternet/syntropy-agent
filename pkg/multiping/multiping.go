@@ -156,10 +156,6 @@ func (mp *MultiPing) Ping(data *PingData) {
 		return
 	}
 
-	// lock the results data
-	data.mutex.Lock()
-	defer data.mutex.Unlock()
-
 	// Some subfunctions in goroutines will need this pointer to store ping results
 	mp.pingData = data
 
