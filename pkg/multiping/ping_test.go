@@ -49,7 +49,7 @@ func TestPingPacket(t *testing.T) {
 		timestamp := bytesToTime(data.Data[:timeSliceLength])
 		tracker := bytesToInt(data.Data[timeSliceLength:])
 
-		timeDiff := time.Now().Sub(timestamp)
+		timeDiff := time.Since(timestamp)
 
 		if timeDiff < 0 || timeDiff > time.Second {
 			t.Fatalf("Invalid time diff %s", timeDiff.String())
