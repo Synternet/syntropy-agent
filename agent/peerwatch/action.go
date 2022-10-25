@@ -7,10 +7,10 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
-func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
+func (obj *wgPeerWatcher) PingProcess(pr *pingdata.PingData) {
 	// PeerMonitor instance (member of Router) also needs to process these ping result
 	obj.mole.Router().PingProcess(pr)
 
@@ -19,7 +19,7 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 
 	// finally cleanup removed peers
 	var removeIPs []netip.Addr
-	obj.pingData.Iterate(func(ip netip.Addr, val multiping.PingStats) {
+	obj.pingData.Iterate(func(ip netip.Addr, val *pingdata.PingStats) {
 		_, found := pr.Get(ip)
 		if !found {
 			// peer not found - add to remove list
@@ -31,7 +31,7 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 }
 
 func (obj *wgPeerWatcher) monitorPeers(wgdevs []*swireguard.InterfaceInfo) error {
-	pingData := multiping.NewPingData()
+	pingData := pingdata.NewPingData()
 
 	// prepare peers ping list
 	for _, wgdev := range wgdevs {

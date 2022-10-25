@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
@@ -45,7 +46,7 @@ type MultiPing struct {
 	cancel context.CancelFunc // Do I need it ?
 
 	pinger   *Pinger
-	pingData *PingData
+	pingData *pingdata.PingData
 
 	id       uint16
 	sequence uint16 // ICMP seq number. Incremented on every ping
@@ -142,7 +143,7 @@ func (mp *MultiPing) cleanup() {
 }
 
 // Ping is blocking function and runs for mp.Timeout time and pings all hosts in data
-func (mp *MultiPing) Ping(data *PingData) {
+func (mp *MultiPing) Ping(data *pingdata.PingData) {
 	if data.Count() == 0 {
 		return
 	}
@@ -177,15 +178,13 @@ func (mp *MultiPing) Ping(data *PingData) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for addr, stats := range mp.pingData.entries {
+		mp.pingData.Iterate(func(addr netip.Addr, stats *pingdata.PingStats) {
 			mp.pinger.SetIPAddr(&addr)
-			stats.tx++
-			stats.rtt = 0
-			stats.sequence = mp.sequence
+			stats.Send(mp.sequence)
 
 			mp.pinger.SendICMP(mp.sequence)
 			time.Sleep(time.Millisecond)
-		}
+		})
 	}()
 
 	// wait for timeout and close connections
@@ -309,14 +308,7 @@ func (mp *MultiPing) processPacket(wait *sync.WaitGroup, recv *packet) {
 		return
 	}
 
-	if stats, ok := mp.pingData.entries[recv.src]; ok {
-		if stats.sequence == uint16(pkt.Seq) {
-			stats.sequence = 0
-			stats.rtt = time.Since(timestamp)
-			stats.avgRtt = (time.Duration(stats.rx)*stats.avgRtt + stats.rtt) / time.Duration(stats.rx+1)
-			stats.rx++
-		} else {
-			stats.dup++
-		}
+	if stats, ok := mp.pingData.Get(recv.src); ok {
+		stats.Recv(uint16(pkt.Seq), time.Since(timestamp))
 	}
 }

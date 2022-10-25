@@ -3,10 +3,10 @@ package router
 import (
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
-func (r *Router) PingProcess(pr *multiping.PingData) {
+func (r *Router) PingProcess(pr *pingdata.PingData) {
 	r.Lock()
 	defer r.Unlock()
 

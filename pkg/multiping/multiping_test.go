@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"net/netip"
 	"testing"
+
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
 func TestMultiping(t *testing.T) {
 	const maxCount = 222
-	data := NewPingData()
+	data := pingdata.NewPingData()
 	// Sad truth - agent uses privileged pinger, but in that case tests require root
 	pinger, err := New(false)
 
@@ -29,21 +31,17 @@ func TestMultiping(t *testing.T) {
 		t.Errorf("Expected localhost missing")
 	}
 	if val.Loss() != 0 {
-		t.Errorf("Localhost ping failed")
+		t.Errorf("Localhost ping failed: %f", val.Loss())
 	}
 	if val.Latency() == 0 {
-		t.Errorf("Localhost invalid latency")
+		t.Errorf("Localhost invalid latency %f", val.Latency())
 	}
 
 	val, ok = data.Get(netip.IPv4Unspecified())
 	if ok {
 		t.Errorf("Pinger has invalid host")
 	}
-	if val.Loss() != 0 {
-		t.Errorf("Non existing host invalid loss")
+	if val != nil {
+		t.Errorf("Non existing host invalid stats")
 	}
-	if val.Latency() != 0 {
-		t.Errorf("Non existing host invalid latency")
-	}
-
 }

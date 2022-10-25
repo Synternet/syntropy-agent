@@ -1,8 +1,8 @@
 package peermon
 
-import "github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+import "github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 
-func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
+func (pm *PeerMonitor) PingProcess(pr *pingdata.PingData) {
 	for addr, peer := range pm.peerList {
 		// Ignore peers that are conflicting (pifDisabled)
 		// or configuration is not yet applied (pifAddPending/pifDelPending)
