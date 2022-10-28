@@ -33,7 +33,7 @@ func TestMultiping(t *testing.T) {
 	if val.Loss() != 0 {
 		t.Errorf("Localhost ping failed: %f", val.Loss())
 	}
-	if val.Latency() == 0 {
+	if val.Latency() < 0 {
 		t.Errorf("Localhost invalid latency %f", val.Latency())
 	}
 

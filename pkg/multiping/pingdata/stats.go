@@ -40,7 +40,7 @@ func (s *PingStats) Loss() float32 {
 // Latency returns average latency in miliseconds
 func (s *PingStats) Latency() float32 {
 	if s.Valid() && s.rx > 0 {
-		return float32(s.avgRtt.Microseconds()) / 1000
+		return float32(s.avgRtt / time.Millisecond)
 	} else {
 		return 0
 	}
@@ -70,7 +70,11 @@ func (s *PingStats) Recv(seq uint16, rtt time.Duration) {
 	if s.sequence == seq {
 		s.rx++
 		s.rtt = rtt
-		s.avgRtt = (time.Duration(s.rx)*s.avgRtt + s.rtt) / time.Duration(s.rx+1)
+		if s.avgRtt == 0 {
+			s.avgRtt = rtt
+		} else {
+			s.avgRtt = (time.Duration(s.rx)*s.avgRtt + s.rtt) / time.Duration(s.rx+1)
+		}
 		s.sequence = 0
 	} else {
 		s.dup++
