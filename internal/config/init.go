@@ -103,9 +103,9 @@ func initDebugLevel() {
 
 func initRouteStrategy() {
 	switch strings.ToUpper(os.Getenv("SYNTROPY_ROUTE_STRATEGY")) {
-	case "speed":
+	case "SPEED":
 		cache.routeStrategy = RouteStrategySpeed
-	case "other":
+	case "DR":
 		cache.routeStrategy = RouteStrategyDirectRoute
 	default:
 		cache.routeStrategy = RouteStrategySpeed
