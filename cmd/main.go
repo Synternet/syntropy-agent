@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -80,18 +79,6 @@ func checkTime() {
 	}
 }
 
-func requireProcFilesystemWritable() {
-	f, err := os.OpenFile("/proc/sys/net/ipv4/ip_forward", os.O_WRONLY|os.O_TRUNC, 0611)
-	if errors.Is(err, unix.EROFS) {
-		logger.Error().Println(fullAppName, "/proc/sys filesystem is readonly. If on docker, restart with '--privileged' flag.")
-		os.Exit(-int(unix.EROFS))
-	} else if err != nil {
-		logger.Error().Println(fullAppName, "cannot access /proc/sys filesystem", err)
-		os.Exit(-int(unix.EACCES))
-	}
-	f.Close()
-}
-
 func main() {
 	exitCode := 0
 	defer func() { os.Exit(exitCode) }()
@@ -108,7 +95,6 @@ func main() {
 	}
 
 	requireRoot()
-	requireProcFilesystemWritable()
 
 	// Perform locking using Flock.
 	// If running from docker - it is recommended to use `-v /var/lock/syntropy:/var/lock/syntropy`
