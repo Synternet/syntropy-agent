@@ -1,14 +1,16 @@
 package peermon
 
-import "github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+import "github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 
-func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
-	pm.Lock()
-	defer pm.Unlock()
+func (pm *PeerMonitor) PingProcess(pr *pingdata.PingData) {
+	for addr, peer := range pm.peerList {
+		// Ignore peers that are conflicting (pifDisabled)
+		// or configuration is not yet applied (pifAddPending/pifDelPending)
+		if peer.flags != pifNone {
+			continue
+		}
 
-	for _, peer := range pm.peerList {
-
-		val, ok := pr.Get(peer.ip)
+		val, ok := pr.Get(addr.Addr())
 		if !ok {
 			// NOTE: PeerMonitor is not creating its own ping list
 			// It depends on other pingers and is an additional PingClient in their PingProces line
@@ -19,5 +21,4 @@ func (pm *PeerMonitor) PingProcess(pr *multiping.PingData) {
 		}
 		peer.Add(val.Latency(), val.Loss())
 	}
-
 }

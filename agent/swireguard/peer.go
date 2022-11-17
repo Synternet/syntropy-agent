@@ -14,6 +14,7 @@ const KeepAlliveDuration = 15 * time.Second
 
 type PeerInfo struct {
 	IfName       string
+	IfIndex      int
 	PublicKey    string
 	ConnectionID int
 	GroupID      int
@@ -45,7 +46,6 @@ func (pi *PeerInfo) asPeerConfig() (*wgtypes.PeerConfig, error) {
 			Port: pi.Port,
 		}
 	}
-
 	for _, e := range pi.AllowedIPs {
 		pcfg.AllowedIPs = append(pcfg.AllowedIPs, net.IPNet{
 			IP:   e.Addr().AsSlice(),
@@ -76,7 +76,6 @@ func (wg *Wireguard) AddPeer(pi *PeerInfo) error {
 	pcfg.ReplaceAllowedIPs = true
 
 	wgconf.Peers = append(wgconf.Peers, *pcfg)
-
 	err = wg.wgc.ConfigureDevice(pi.IfName, wgconf)
 	if err != nil {
 		return fmt.Errorf("configure interface failed: %s", err.Error())

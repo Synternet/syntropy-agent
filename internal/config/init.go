@@ -62,6 +62,8 @@ func Init() {
 	}
 	initUint(&cache.routeDelThreshold, "SYNTROPY_ROUTEDEL_THRESHOLD", 0)
 
+	initUint(&cache.times.websocketTimeout, "SYNTROPY_WSS_TIMEOUT", 0)
+
 	initDeviceID()
 
 	// reroute thresholds used to compare better latency.
@@ -90,6 +92,8 @@ func initDebugLevel() {
 	switch strings.ToUpper(os.Getenv("SYNTROPY_LOG_LEVEL")) {
 	case "DEBUG":
 		cache.debugLevel = logger.DebugLevel
+	case "MESSAGE", "MSG":
+		cache.debugLevel = logger.MessageLevel
 	case "INFO":
 		cache.debugLevel = logger.InfoLevel
 	case "WARNING":
@@ -97,15 +101,15 @@ func initDebugLevel() {
 	case "ERROR":
 		cache.debugLevel = logger.ErrorLevel
 	default:
-		cache.debugLevel = logger.InfoLevel
+		cache.debugLevel = logger.MessageLevel
 	}
 }
 
 func initRouteStrategy() {
 	switch strings.ToUpper(os.Getenv("SYNTROPY_ROUTE_STRATEGY")) {
-	case "speed":
+	case "SPEED":
 		cache.routeStrategy = RouteStrategySpeed
-	case "other":
+	case "DR":
 		cache.routeStrategy = RouteStrategyDirectRoute
 	default:
 		cache.routeStrategy = RouteStrategySpeed

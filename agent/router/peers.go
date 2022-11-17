@@ -1,36 +1,24 @@
 package router
 
 import (
-	"fmt"
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
-	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
 
-func (r *Router) PeerAdd(netpath *common.SdnNetworkPath) error {
+func (r *Router) peerAdd(netpath *common.SdnNetworkPath) error {
 	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
-
-	if r.HasIpConflict(dest, netpath.GroupID) {
-		return fmt.Errorf("%s duplicate IP address", dest.Addr().String())
-	}
 
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	routesGroup.peerMonitor.AddNode(netpath.Ifname, netpath.PublicKey,
-		netpath.Gateway, netpath.ConnectionID)
+		dest, netpath.ConnectionID, r.hasIpConflict(dest, netpath.GroupID))
 
-	err := netcfg.RouteAdd(netpath.Ifname, nil, &dest)
-	if err != nil {
-		logger.Error().Println(pkgName, netpath.Gateway, "route add error:", err)
-	}
-
-	return err
+	return nil
 }
 
-func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
+func (r *Router) peerDel(netpath *common.SdnNetworkPath) error {
 	dest := netip.PrefixFrom(netpath.Gateway, netpath.Gateway.BitLen()) // single address
 
 	routesGroup, ok := r.find(netpath.GroupID)
@@ -42,26 +30,7 @@ func (r *Router) PeerDel(netpath *common.SdnNetworkPath) error {
 		return nil
 	}
 
-	logger.Debug().Println(pkgName, "Delete peer route to", netpath.Gateway)
-	routesGroup.peerMonitor.DelNode(netpath.Gateway)
+	routesGroup.peerMonitor.DelNode(dest)
 
-	err := netcfg.RouteDel(netpath.Ifname, &dest)
-	if err != nil {
-		logger.Error().Println(pkgName, netpath.Gateway, "route delete error", err)
-	}
-
-	return err
-}
-
-func (r *Router) PingProcess(pr *multiping.PingData) {
-	for _, pm := range r.routes {
-		pm.peerMonitor.PingProcess(pr)
-	}
-	// After processing ping results check for a better route for services
-	r.execute()
-}
-
-// Apply configured peers change
-func (r *Router) peersApply() {
-	// empty body now
+	return nil
 }

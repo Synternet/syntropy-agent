@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/SyntropyNet/syntropy-agent/agent/updateconfig"
 	"io"
+	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
@@ -29,6 +30,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 	"github.com/SyntropyNet/syntropy-agent/pkg/pubip"
 )
 
@@ -159,30 +161,68 @@ func New(contype int) (*Agent, error) {
 	return agent, agent.controller.Open()
 }
 
+func (agent *Agent) detectNAT() {
+	publicIP := pubip.GetPublicIp()
+	if publicIP.IsUnspecified() {
+		// Could not get public IP - thus cannot detect if NAT is present
+		logger.Warning().Println(pkgName, "Could not check NAT: failed getting public IP")
+		return
+	}
+
+	pubip, ok := netip.AddrFromSlice(publicIP)
+	if !ok {
+		logger.Warning().Println(pkgName, "Could not check NAT: invalid public IP")
+		return
+	}
+
+	if netcfg.HostHasIP(pubip) {
+		logger.Info().Println(pkgName, "NAT was not detected")
+	} else {
+		logger.Info().Println(pkgName, "Working behind NAT")
+	}
+}
+
 // Starts worker services and executes the message loop.
 // This loop is terminated by Close()
 func (agent *Agent) Run() {
 	logger.Info().Println(pkgName, "Starting Agent messages handler")
+	agent.detectNAT()
 	// Start all "services"
 	agent.startServices()
 
-	for {
-		raw, err := agent.controller.Recv()
+	// Decouple packet receive from processing it
+	// Because a big network configuration apply takes quite a long time
+	// And this can result in websocket timeout
+	// Use buffered channel and 2 goroutines for this purpose
+	rxchan := make(chan []byte, 9)
 
-		if errors.Is(err, io.EOF) {
-			// Stop runner if the reader is done
-			logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
-			return
-		} else if err != nil {
-			// Simple errors are handled inside controller.
-			// This should be only fatal non recovery errors
-			// Actually this should never happen.
-			logger.Error().Println(pkgName, "Message handler error: ", err)
-			return
+	go func() {
+		for raw := range rxchan {
+			agent.processCommand(raw)
 		}
+	}()
 
-		agent.processCommand(raw)
-	}
+	go func() {
+		defer close(rxchan)
+
+		for {
+			raw, err := agent.controller.Recv()
+
+			if errors.Is(err, io.EOF) {
+				// Stop runner if the reader is done
+				logger.Info().Println(pkgName, "Controller EOF. Closing message handler.")
+				return
+			} else if err != nil {
+				// Simple errors are handled inside controller.
+				// This should be only fatal non recovery errors
+				// Actually this should never happen.
+				logger.Error().Println(pkgName, "Message handler error: ", err)
+				return
+			}
+
+			rxchan <- raw
+		}
+	}()
 }
 
 // Close closes connections to controller and stops all runners

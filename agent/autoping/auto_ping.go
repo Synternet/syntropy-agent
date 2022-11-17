@@ -13,6 +13,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
 const (
@@ -25,7 +26,7 @@ type AutoPing struct {
 	ctx      context.Context
 	writer   io.Writer
 	pinger   *multiping.MultiPing
-	pingData *multiping.PingData
+	pingData *pingdata.PingData
 	timer    *time.Ticker
 	results  []byte
 }
@@ -34,7 +35,7 @@ func New(w io.Writer, p *multiping.MultiPing) *AutoPing {
 	ap := AutoPing{
 		writer:   w,
 		pinger:   p,
-		pingData: multiping.NewPingData(),
+		pingData: pingdata.NewPingData(),
 		timer:    time.NewTicker(time.Second),
 	}
 

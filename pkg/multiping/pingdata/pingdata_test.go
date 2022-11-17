@@ -1,4 +1,4 @@
-package multiping
+package pingdata
 
 import (
 	"fmt"
@@ -79,8 +79,11 @@ func TestAppend(t *testing.T) {
 	if data.Count() != 3 {
 		t.Errorf("Incorrect append count")
 	}
-	val, _ := data.Get(netip.MustParseAddr("192.168.1.1"))
-	if (val != PingStats{
+	val, ok := data.Get(netip.MustParseAddr("192.168.1.1"))
+	if !ok || val == nil {
+		t.Fatalf("Could not find expected entry 192.168.1.1")
+	}
+	if (*val != PingStats{
 		tx:     3,
 		rx:     3,
 		rtt:    400,
@@ -88,8 +91,11 @@ func TestAppend(t *testing.T) {
 	}) {
 		t.Errorf("Entry 1 is not equal")
 	}
-	val, _ = data.Get(netip.MustParseAddr("192.168.1.2"))
-	if (val != PingStats{
+	val, ok = data.Get(netip.MustParseAddr("192.168.1.2"))
+	if !ok || val == nil {
+		t.Fatalf("Could not find expected entry 192.168.1.2")
+	}
+	if (*val != PingStats{
 		tx:     2,
 		rx:     1,
 		rtt:    111,
@@ -98,8 +104,11 @@ func TestAppend(t *testing.T) {
 		t.Errorf("Entry 2 is not equal")
 	}
 
-	val, _ = data.Get(netip.MustParseAddr("10.10.0.2"))
-	if (val != PingStats{
+	val, ok = data.Get(netip.MustParseAddr("10.10.0.2"))
+	if !ok || val == nil {
+		t.Fatalf("Could not find expected entry 10.10.0.2")
+	}
+	if (*val != PingStats{
 		tx:     1,
 		rx:     1,
 		rtt:    102,
@@ -108,14 +117,9 @@ func TestAppend(t *testing.T) {
 		t.Errorf("Entry 3 is not equal")
 	}
 
-	val, _ = data.Get(netip.MustParseAddr("10.200.200.200"))
-	if (val != PingStats{
-		tx:     0,
-		rx:     0,
-		rtt:    0,
-		avgRtt: 0,
-	}) {
-		t.Errorf("Empty entry incorrect")
+	val, ok = data.Get(netip.MustParseAddr("10.200.200.200"))
+	if ok || val != nil {
+		t.Fatalf("Unexpected entry 10.200.200.200 is present in ping results")
 	}
 }
 

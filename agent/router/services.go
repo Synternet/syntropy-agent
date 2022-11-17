@@ -4,20 +4,18 @@ import (
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/routestatus"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
-func (r *Router) ServiceAdd(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
-	isIPconflict := r.HasIpConflict(destination, netpath.GroupID)
+func (r *Router) serviceAdd(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
+	isIPconflict := r.hasIpConflict(destination, netpath.GroupID)
 
 	routesGroup := r.findOrCreate(netpath.GroupID)
 
 	return routesGroup.serviceMonitor.Add(netpath, destination, isIPconflict)
 }
 
-func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
+func (r *Router) serviceDel(netpath *common.SdnNetworkPath, destination netip.Prefix) error {
 	routesGroup, ok := r.find(netpath.GroupID)
 	if !ok {
 		// Was asked to delete non-existing service route.
@@ -29,16 +27,4 @@ func (r *Router) ServiceDel(netpath *common.SdnNetworkPath, destination netip.Pr
 	logger.Debug().Println(pkgName, "Delete service route to", netpath.Gateway, "via", netpath.Gateway)
 
 	return routesGroup.serviceMonitor.Del(netpath, destination)
-}
-
-func (r *Router) serviceApply() ([]*routestatus.Connection, []*peeradata.Entry) {
-	routeStatusCons := []*routestatus.Connection{}
-	peersActiveData := []*peeradata.Entry{}
-	for _, route := range r.routes {
-		rsc, pad := route.serviceMonitor.Apply()
-		routeStatusCons = append(routeStatusCons, rsc...)
-		peersActiveData = append(peersActiveData, pad...)
-	}
-
-	return routeStatusCons, peersActiveData
 }

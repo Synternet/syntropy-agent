@@ -15,9 +15,6 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 	var peersActiveData []*peeradata.Entry
 	var deleteIPs []netip.Prefix
 
-	sm.Lock()
-	defer sm.Unlock()
-
 	bestRoute := sm.routeMonitor.BestPath()
 
 	for ip, rl := range sm.routes {
@@ -32,8 +29,7 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 			continue
 		}
 		count := rl.Count()
-		logger.Info().Println(pkgName, "Apply Service", ip)
-		rl.Dump()
+		logger.Debug().Println(pkgName, "Apply Service", ip, ":", rl.String(), ".")
 
 		if add == count && del == 0 {
 			routeStatus, _ := rl.setRoute(ip)
@@ -78,13 +74,10 @@ func (sm *ServiceMonitor) Apply() ([]*routestatus.Connection, []*peeradata.Entry
 }
 
 func (sm *ServiceMonitor) ResolveIpConflict(isIPconflict func(netip.Prefix, int) bool) (count int) {
-	sm.Lock()
-	defer sm.Unlock()
-
 	for ip, rl := range sm.routes {
 		if rl.Disabled() {
 			// check if IP conflict still present
-			if !isIPconflict(ip, 0) { // TODO
+			if !isIPconflict(ip, sm.groupID) {
 				// clear disabled flag and increment updated services count
 				rl.flags &= ^rlfDisabled
 				count++
@@ -109,7 +102,7 @@ func (rl *routeList) setRoute(destination netip.Prefix) (*routestatus.Connection
 		}
 		// mark route as active
 		route.SetFlag(rfActive)
-		logger.Info().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
+		logger.Debug().Println(pkgName, "Route add ", destination, " via ", route.gateway, "/", route.ifname)
 		err := netcfg.RouteAdd(route.ifname, nil, &destination)
 		routeRes := routestatus.NewEntry(destination, err)
 

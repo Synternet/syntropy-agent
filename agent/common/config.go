@@ -57,6 +57,7 @@ func (e *configPeersEntry) AsPeerInfo() (*swireguard.PeerInfo, error) {
 
 	pi := &swireguard.PeerInfo{
 		IfName:       ifname,
+		IfIndex:      e.Index,
 		PublicKey:    e.PublicKey,
 		ConnectionID: e.ConnectionID,
 		GroupID:      e.GroupID,

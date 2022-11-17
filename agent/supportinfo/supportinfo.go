@@ -68,7 +68,7 @@ func (obj *supportInfo) Exec(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	logger.Debug().Println(pkgName, "Sending: ", string(arr))
+	logger.Message().Println(pkgName, "Sending: ", string(arr))
 	obj.w.Write(arr)
 
 	return err

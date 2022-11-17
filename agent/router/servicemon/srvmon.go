@@ -3,7 +3,6 @@ package servicemon
 import (
 	"fmt"
 	"net/netip"
-	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
@@ -12,8 +11,11 @@ import (
 
 const pkgName = "ServiceMonitor. "
 
+// ServiceMonitor monitors routes to configured services
+// Does rerouting when PathSelector.BestPath() changes
+// ServiceMonitor is explicitely used in Router and is always under main Router lock
+// So no need for locking here
 type ServiceMonitor struct {
-	sync.Mutex
 	routes             map[netip.Prefix]*routeList
 	routeMonitor       peermon.PathSelector
 	groupID            int
@@ -30,9 +32,6 @@ func New(ps peermon.PathSelector, gid int) *ServiceMonitor {
 }
 
 func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip netip.Prefix, disabled bool) error {
-	sm.Lock()
-	defer sm.Unlock()
-
 	// Keep a list of active SDN routes
 	if sm.routes[ip] == nil {
 		sm.routes[ip] = newRouteList(netpath.GroupID, disabled)
@@ -49,9 +48,6 @@ func (sm *ServiceMonitor) Add(netpath *common.SdnNetworkPath, ip netip.Prefix, d
 }
 
 func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip netip.Prefix) error {
-	sm.Lock()
-	defer sm.Unlock()
-
 	// Keep a list of active SDN routes
 	if sm.routes[ip] == nil {
 		return fmt.Errorf("no such address %s", ip)
@@ -63,11 +59,14 @@ func (sm *ServiceMonitor) Del(netpath *common.SdnNetworkPath, ip netip.Prefix) e
 }
 
 func (sm *ServiceMonitor) HasAddress(ip netip.Prefix) bool {
-	sm.Lock()
-	defer sm.Unlock()
-
 	rl, ok := sm.routes[ip]
+	// ignore not applied addresses
 	if ok && !rl.Disabled() {
+		add, del := rl.Pending()
+		// check and ignore services that will be deleted
+		if add == 0 && del == rl.Count() {
+			return false
+		}
 		return true
 	}
 
@@ -75,9 +74,6 @@ func (sm *ServiceMonitor) HasAddress(ip netip.Prefix) bool {
 }
 
 func (sm *ServiceMonitor) Close() error {
-	sm.Lock()
-	defer sm.Unlock()
-
 	for ip, rl := range sm.routes {
 		if rl.Disabled() {
 			// no need to delete routes that were not added
@@ -97,9 +93,6 @@ func (sm *ServiceMonitor) Close() error {
 }
 
 func (sm *ServiceMonitor) Flush() {
-	sm.Lock()
-	defer sm.Unlock()
-
 	var deleteIPs []netip.Prefix
 
 	for ip, rl := range sm.routes {
@@ -119,5 +112,11 @@ func (sm *ServiceMonitor) Flush() {
 	for _, ip := range deleteIPs {
 		logger.Debug().Println(pkgName, "Flushing (previously IP conflict)", ip)
 		delete(sm.routes, ip)
+	}
+}
+
+func (sm *ServiceMonitor) Dump() {
+	for ip, rl := range sm.routes {
+		logger.Debug().Println(pkgName, ip, rl)
 	}
 }

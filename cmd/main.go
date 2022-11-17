@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -80,18 +79,6 @@ func checkTime() {
 	}
 }
 
-func requireProcFilesystemWritable() {
-	f, err := os.OpenFile("/proc/sys/net/ipv4/ip_forward", os.O_WRONLY|os.O_TRUNC, 0611)
-	if errors.Is(err, unix.EROFS) {
-		logger.Error().Println(fullAppName, "/proc/sys filesystem is readonly. If on docker, restart with '--privileged' flag.")
-		os.Exit(-int(unix.EROFS))
-	} else if err != nil {
-		logger.Error().Println(fullAppName, "cannot access /proc/sys filesystem", err)
-		os.Exit(-int(unix.EACCES))
-	}
-	f.Close()
-}
-
 func main() {
 	exitCode := 0
 	defer func() { os.Exit(exitCode) }()
@@ -107,10 +94,7 @@ func main() {
 		return
 	}
 
-	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
-
 	requireRoot()
-	requireProcFilesystemWritable()
 
 	// Perform locking using Flock.
 	// If running from docker - it is recommended to use `-v /var/lock/syntropy:/var/lock/syntropy`
@@ -140,6 +124,8 @@ func main() {
 	config.Init()
 	defer config.Close()
 
+	logger.SetupGlobalLoger(nil, config.GetDebugLevel(), os.Stdout)
+
 	syntropyNetAgent, err := agent.New(config.GetControllerType())
 	if err != nil {
 		logger.Error().Println(fullAppName, "Could not create agent", err)
@@ -154,7 +140,7 @@ func main() {
 		logger.SetupGlobalLoger(syntropyNetAgent.Writer(), config.GetDebugLevel(), os.Stdout)
 	}
 
-	logger.Info().Println(fullAppName, execName, config.GetFullVersion(), "started.")
+	logger.Exec().Println(fullAppName, execName, config.GetFullVersion(), "started.")
 	logger.Info().Println(fullAppName, "Using controller type: ", config.GetControllerName(config.GetControllerType()))
 	checkKernelVersion()
 	checkTime()
@@ -167,5 +153,5 @@ func main() {
 	terminate := make(chan os.Signal, 1)
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 	<-terminate
-	logger.Info().Println(fullAppName, " terminating")
+	logger.Exec().Println(fullAppName, " terminating")
 }

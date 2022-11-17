@@ -100,7 +100,10 @@ func (obj *configInfo) Exec(raw []byte) error {
 	}
 	resp.MsgType = cmdResp
 
-	// CONFIG_INFO message sends me full configuration
+	// SET_CONFIG can be quite big message and could take a longer time to process
+	// Thus note that processing has started
+	logger.Info().Println(pkgName, "Configuring...")
+	// SET_CONFIG message sends me full configuration
 	// Drop old cache and will build a new cache from zero
 	obj.mole.Flush()
 
@@ -118,6 +121,7 @@ func (obj *configInfo) Exec(raw []byte) error {
 		}
 	}
 
+	addPeerCount := 0
 	for _, cmd := range req.Data.Peers {
 		pi, err := cmd.AsPeerInfo()
 		if err != nil {
@@ -130,7 +134,9 @@ func (obj *configInfo) Exec(raw []byte) error {
 			continue
 		}
 		err = obj.mole.AddPeer(pi, netpath)
-		if err != nil {
+		if err == nil {
+			addPeerCount++
+		} else {
 			logger.Error().Println(pkgName, "Peers ", cmd.Action, err)
 		}
 	}
@@ -155,12 +161,13 @@ func (obj *configInfo) Exec(raw []byte) error {
 		obj.autoPing.Exec(req.Data.Settings.Autoping)
 	}
 
+	logger.Info().Println(pkgName, "Configured", addPeerCount, "peers")
 	resp.Now()
 	arr, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
-	logger.Debug().Println(pkgName, "Sending: ", string(arr))
+	logger.Message().Println(pkgName, "Sending: ", string(arr))
 	obj.writer.Write(arr)
 
 	// SET_CONFIG message sends me full configuration

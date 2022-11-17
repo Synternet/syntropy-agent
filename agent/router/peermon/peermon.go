@@ -2,7 +2,6 @@ package peermon
 
 import (
 	"net/netip"
-	"sync"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -10,9 +9,12 @@ import (
 
 const (
 	pkgName = "PeerMonitor. "
-	// Best route index is not set yet
-	invalidBestIndex = -1
 )
+
+// Best route index is not set yet
+func invalidBest() netip.Prefix {
+	return netip.Prefix{}
+}
 
 type SelectedRoute struct {
 	IP     netip.Addr // best route IP address
@@ -24,18 +26,24 @@ type PathSelector interface {
 	BestPath() *SelectedRoute
 }
 
+// PeerMonitr pings configured peers and selects best path
+// Implements BestPath() and can be used as PathSelector interface
+// PeerMonitor is explicitely used in Router and is always under main Router lock
+// So no need for locking here
 type PeerMonitor struct {
-	sync.RWMutex
 	config   *PeerMonitorConfig
-	peerList []*peerInfo
-	lastBest int
+	groupID  int
+	peerList map[netip.Prefix]*peerInfo
+	lastBest netip.Prefix
 
-	pathSelector func(pm *PeerMonitor) (index int, reason *RouteChangeReason)
+	pathSelector func(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChangeReason)
 }
 
-func New(cfg *PeerMonitorConfig) *PeerMonitor {
+func New(cfg *PeerMonitorConfig, gid int) *PeerMonitor {
 	pm := &PeerMonitor{
-		lastBest: invalidBestIndex,
+		groupID:  gid,
+		peerList: make(map[netip.Prefix]*peerInfo),
+		lastBest: invalidBest(),
 		config:   cfg,
 	}
 	if cfg.RouteStrategy == config.RouteStrategyDirectRoute {
@@ -47,87 +55,61 @@ func New(cfg *PeerMonitorConfig) *PeerMonitor {
 	return pm
 }
 
-func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Addr, connID int) {
-	pm.Lock()
-	defer pm.Unlock()
-
-	for _, peer := range pm.peerList {
-		if peer.ip == endpoint {
-			return
-		}
+func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, connID int, disabled bool) {
+	e, ok := pm.peerList[endpoint]
+	if !ok {
+		e = newPeerInfo(pm.config.AverageSize)
+		pm.peerList[endpoint] = e
 	}
-
-	e := newPeerInfo(pm.config.AverageSize)
-	pm.peerList = append(pm.peerList, e)
 
 	e.ifname = ifname
 	e.publicKey = pubKey
 	e.connectionID = connID
-	e.ip = endpoint
-}
-
-func (pm *PeerMonitor) DelNode(endpoint netip.Addr) {
-	pm.Lock()
-	defer pm.Unlock()
-
-	for idx, peer := range pm.peerList {
-		if peer.ip == endpoint {
-			// order is not important.
-			// Remove from slice in more effective way
-			pm.peerList[idx] = pm.peerList[len(pm.peerList)-1]
-			pm.peerList = pm.peerList[:len(pm.peerList)-1]
-			// Check and invalidate last best path index
-			if idx == pm.lastBest {
-				pm.lastBest = invalidBestIndex
-			}
-			return
-		}
+	e.flags |= pifAddPending
+	e.flags &= ^pifDelPending
+	if disabled {
+		e.flags |= pifDisabled
 	}
 }
 
-func (pm *PeerMonitor) HasNode(endpoint netip.Addr) bool {
-	pm.Lock()
-	defer pm.Unlock()
-
-	for _, peer := range pm.peerList {
-		if peer.ip == endpoint {
-			return true
-		}
+func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
+	// Check and invalidate last best path index
+	if pm.lastBest == endpoint {
+		pm.lastBest = invalidBest()
 	}
-	return false
+
+	peer, ok := pm.peerList[endpoint]
+	if ok {
+		peer.flags |= pifDelPending
+	}
+}
+
+func (pm *PeerMonitor) HasNode(endpoint netip.Prefix) bool {
+	peer, ok := pm.peerList[endpoint]
+
+	// Ignore not applied (disabled) and nodes already marked for deletion
+	return ok && (peer.flags&pifDelPending|pifDisabled) == 0
 }
 
 func (pm *PeerMonitor) Peers() []string {
-	pm.RLock()
-	defer pm.RUnlock()
-
 	rv := []string{}
 
-	for _, peer := range pm.peerList {
-		rv = append(rv, peer.ip.String())
+	for ip := range pm.peerList {
+		rv = append(rv, ip.String())
 	}
 	return rv
 }
 
 func (pm *PeerMonitor) Dump() {
-	for i := 0; i < len(pm.peerList); i++ {
-		e := pm.peerList[i]
+	for ip, e := range pm.peerList {
 		mark := " "
-		if i == pm.lastBest {
+		if pm.lastBest == ip {
 			mark = "*"
 		}
-		logger.Debug().Printf("%s%s %s\t%s\t%fms\t%f%%\n",
-			pkgName, mark, e.ip.String(), e.ifname, e.Latency(), 100*e.Loss())
+		logger.Debug().Println(pkgName, mark, ip, e)
 	}
 }
 
-func (pm *PeerMonitor) Close() error {
-	// nothing to do in peer monitor yet
-	// All peer routes will be deleted once interface is deleted
-	return nil
-}
-
-func (pm *PeerMonitor) Flush() {
-	// nothing to do in peer monitor yet
-	// All peer routes will be deleted once interface is deleted
+func (pm *PeerMonitor) Count() int {
+	return len(pm.peerList)
 }

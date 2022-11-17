@@ -47,6 +47,6 @@ func (re *routeEntry) String() string {
 		flags[2] = '-'
 	}
 
-	return fmt.Sprintf("[%s] %s %s (%d)",
+	return fmt.Sprintf("[%s] %s / %s (%d)",
 		flags, re.gateway, re.ifname, re.connectionID)
 }

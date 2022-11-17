@@ -10,6 +10,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
 const (
@@ -21,7 +22,7 @@ type wgPeerWatcher struct {
 	writer             io.Writer
 	mole               *mole.Mole
 	pinger             *multiping.MultiPing
-	pingData           *multiping.PingData
+	pingData           *pingdata.PingData
 	counter            uint
 	controlerSendCount uint
 }
@@ -31,7 +32,7 @@ func New(writer io.Writer, m *mole.Mole, p *multiping.MultiPing) common.Service 
 		mole:               m,
 		writer:             writer,
 		pinger:             p,
-		pingData:           multiping.NewPingData(),
+		pingData:           pingdata.NewPingData(),
 		controlerSendCount: uint(time.Minute / config.PeerCheckTime()),
 	}
 }

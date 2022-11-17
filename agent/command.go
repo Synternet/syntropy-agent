@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
@@ -23,14 +24,15 @@ func (a *Agent) processCommand(raw []byte) {
 	cmd, ok := a.commands[req.MsgType]
 	if !ok {
 		logger.Warning().Printf("%s Command '%s' not found\n", pkgName, req.MsgType)
-		logger.Debug().Println(pkgName, "Received:", string(raw))
+		logger.Message().Println(pkgName, "Received:", string(raw))
 		return
 	}
 
-	logger.Debug().Println(pkgName, "Received: ", string(raw))
+	logger.Message().Println(pkgName, "Received: ", string(raw))
+	started := time.Now()
 	err := cmd.Exec(raw)
 	if err != nil {
 		logger.Error().Printf("%s Command '%s' failed: %s\n", pkgName, req.MsgType, err.Error())
 	}
-	logger.Info().Printf("%s Command '%s' completed.", pkgName, req.MsgType)
+	logger.Info().Printf("%s Command '%s' completed in %s.", pkgName, req.MsgType, time.Now().Sub(started))
 }

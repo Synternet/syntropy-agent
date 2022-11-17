@@ -1,10 +1,8 @@
-/**
-swireguard package is wireguard on steroids
-super-wireguard, smart-wireguar, Syntropy-wireguard
-This package is a helper for agent to configure
-(kernel or userspace) wireguard tunnels
-It also collects peer status, monitores latency, and other releated work
-**/
+// swireguard package is wireguard on steroids
+// super-wireguard, smart-wireguar, Syntropy-wireguard
+// This package is a helper for agent to configure
+// (kernel or userspace) wireguard tunnels
+// It also collects peer status, monitores latency, and other releated work
 package swireguard
 
 import (
@@ -14,6 +12,7 @@ import (
 
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
+	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
@@ -62,6 +61,7 @@ func (wg *Wireguard) Devices() []*InterfaceInfo {
 func (wg *Wireguard) Close() error {
 	// If configured - cleanup created interfaces on exit.
 	if config.CleanupOnExit() {
+		logger.Info().Println(pkgName, "Deleting interfaces.")
 		for _, dev := range wg.devices {
 			wg.RemoveInterface(dev)
 		}

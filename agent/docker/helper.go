@@ -29,7 +29,7 @@ func (obj *dockerWatcher) ContainerInfo() []common.ServiceInfoEntry {
 	containerInfo := []common.ServiceInfoEntry{}
 
 	if obj.cli == nil {
-		logger.Error().Println(pkgName, errClientInit)
+		logger.Warning().Println(pkgName, errClientInit)
 		return containerInfo
 	}
 
@@ -77,7 +77,7 @@ func (obj *dockerWatcher) ContainerInfo() []common.ServiceInfoEntry {
 
 		for name, net := range c.NetworkSettings.Networks {
 			if net.IPAddress == "" {
-				logger.Warning().Println(pkgName, "Ignoring", name, ": container has no valid network address")
+				logger.Debug().Println(pkgName, "Ignoring", name, ": container has no valid network address")
 				continue
 			}
 			ci.Networks = append(ci.Networks, name)

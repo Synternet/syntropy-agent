@@ -6,10 +6,14 @@ package mole
 
 import (
 	"fmt"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/interfacecache"
 	"io"
 	"sync"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/hostroute"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/ctrlmgr"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole/ipfilter"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/peercache"
 	"github.com/SyntropyNet/syntropy-agent/agent/router"
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 )
@@ -20,20 +24,29 @@ const (
 
 type Mole struct {
 	sync.Mutex
-	writer io.Writer
-	wg     *swireguard.Wireguard
-	router *router.Router
-	filter *ipfilter.PacketFilter
-	cache  storage
+	writer               io.Writer
+	wg                   *swireguard.Wireguard
+	router               *router.Router
+	filter               *ipfilter.PacketFilter
+	hostRoute            *hostroute.HostRouter
+	peers                *peercache.PeerCache
+	interfaces           *interfacecache.InterfaceCache
+	controllerHostRoutes ctrlmgr.ControllerHostRouteManager
 }
 
 func New(w io.Writer) (*Mole, error) {
 	var err error
 	m := &Mole{
-		writer: w,
-		router: router.New(w),
+		writer:     w,
+		router:     router.New(w),
+		hostRoute:  &hostroute.HostRouter{},
+		peers:      peercache.New(),
+		interfaces: interfacecache.New(),
 	}
-	m.cache.init()
+	err = m.hostRoute.Init()
+	if err != nil {
+		return nil, fmt.Errorf("host route: %s", err)
+	}
 
 	m.wg, err = swireguard.New()
 	if err != nil {
@@ -45,7 +58,10 @@ func New(w io.Writer) (*Mole, error) {
 		return nil, fmt.Errorf("ipfilter: %s", err)
 	}
 
-	m.initControllerRoutes()
+	err = m.controllerHostRoutes.Init()
+	if err != nil {
+		return nil, fmt.Errorf("controller routes (VPN client): %s", err)
+	}
 
 	return m, nil
 }

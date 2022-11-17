@@ -12,7 +12,7 @@ jobs:
   create-container:
     strategy:
       matrix:
-        go-version: 
+        go-version:
           - 1.18.x
         wireguard-version:
           - 0.0.20211016
@@ -83,6 +83,15 @@ jobs:
           push: true
           tags: |
             syntropynet/agent:alpha
+      - name: SANDBOX agent reload
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          curl -s -X POST \
+               --fail \
+               -F token=${{ secrets.RELOAD_TRIGGER_TOKEN }} \
+               -F "ref=main" \
+               -F "variables[DEPLOY]=sandbox-platform-agent" \
+               ${{ secrets.RELOAD_TRIGGER_URL }} > /dev/null
       -
         name: DEVEL Build and push
         if: contains(github.ref, 'beta')
@@ -95,6 +104,15 @@ jobs:
           tags: |
             syntropynet/agent:beta
             syntropynet/agent:${{ steps.previoustag.outputs.tag }}
+      - name: DEVEL agent reload
+        if: contains(github.ref, 'beta')
+        run: |
+          curl -s -X POST \
+               --fail \
+               -F token=${{ secrets.RELOAD_TRIGGER_TOKEN }} \
+               -F "ref=main" \
+               -F "variables[DEPLOY]=devel-platform-agent" \
+               ${{ secrets.RELOAD_TRIGGER_URL }} > /dev/null
       -
         name: PROD Build and push
         if: ${{ steps.stablerelease.outputs.match != '' }}
@@ -108,4 +126,3 @@ jobs:
             syntropynet/agent:stable
             syntropynet/agent:latest
             syntropynet/agent:${{ steps.previoustag.outputs.tag }}
-            

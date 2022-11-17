@@ -9,7 +9,7 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
 const (
@@ -63,13 +63,13 @@ func (msg *Message) Send(writer io.Writer) error {
 		return err
 	}
 
-	logger.Debug().Println(pkgName, "Sending: ", string(raw))
+	logger.Message().Println(pkgName, "Sending: ", string(raw))
 	_, err = writer.Write(raw)
 	return err
 }
 
 // Parse ping result and fill statistics for connected peers
-func (msg *Message) PingProcess(pr *multiping.PingData) {
+func (msg *Message) PingProcess(pr *pingdata.PingData) {
 	for _, ifaceEntry := range msg.Data {
 		for _, peerEntry := range ifaceEntry.Peers {
 			addr, err := netip.ParseAddr(peerEntry.IP)

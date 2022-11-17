@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	pkgName = "Kubernetes. "
-	cmd     = "KUBERNETES_SERVICE_INFO"
+	pkgName         = "Kubernetes. "
+	cmd             = "KUBERNETES_SERVICE_INFO"
+	reconnectErrors = 5 // error count in a row to force reconnect to k8s cluster
 )
 
 type kubernet struct {
@@ -26,6 +27,7 @@ type kubernet struct {
 	baseURL    string
 	namespaces []string
 	msg        common.ServiceInfoMessage
+	errorCount uint16
 	ctx        context.Context
 }
 
@@ -50,8 +52,23 @@ func (obj *kubernet) execute() {
 		// If error occurred agent should not send empty services list,
 		// because it will be treated as valid message.
 		logger.Warning().Println(pkgName, "listing services", err)
+
+		// Monitor errors and reconnect if many errors in a row
+		obj.errorCount++
+		if obj.errorCount >= reconnectErrors {
+			logger.Warning().Println(pkgName, "Could not read services", obj.errorCount, "in a row. Reconnecting.")
+			err := obj.initClient()
+			if err != nil {
+				logger.Error().Println(pkgName, "Connection error", err)
+			} else {
+				obj.errorCount = 0
+			}
+		}
+
 		return
 	}
+
+	obj.errorCount = 0
 
 	if !cmp.Equal(services, obj.msg.Data) {
 		obj.msg.Data = services
@@ -61,7 +78,7 @@ func (obj *kubernet) execute() {
 			logger.Error().Println(pkgName, "json marshal", err)
 			return
 		}
-		logger.Debug().Println(pkgName, "Sending: ", string(raw))
+		logger.Message().Println(pkgName, "Sending: ", string(raw))
 		obj.writer.Write(raw)
 	}
 }
@@ -79,7 +96,7 @@ func (obj *kubernet) Run(ctx context.Context) error {
 	}
 
 	go func() {
-		ticker := time.NewTicker(config.PeerCheckTime())
+		ticker := time.NewTicker(config.PeerCheckTime() * time.Duration(config.PeerCheckWindow()))
 		defer ticker.Stop()
 		for {
 			select {

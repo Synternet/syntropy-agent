@@ -7,10 +7,10 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/swireguard"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
-	"github.com/SyntropyNet/syntropy-agent/pkg/multiping"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
-func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
+func (obj *wgPeerWatcher) PingProcess(pr *pingdata.PingData) {
 	// PeerMonitor instance (member of Router) also needs to process these ping result
 	obj.mole.Router().PingProcess(pr)
 
@@ -19,7 +19,7 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 
 	// finally cleanup removed peers
 	var removeIPs []netip.Addr
-	obj.pingData.Iterate(func(ip netip.Addr, val multiping.PingStats) {
+	obj.pingData.Iterate(func(ip netip.Addr, val *pingdata.PingStats) {
 		_, found := pr.Get(ip)
 		if !found {
 			// peer not found - add to remove list
@@ -31,7 +31,7 @@ func (obj *wgPeerWatcher) PingProcess(pr *multiping.PingData) {
 }
 
 func (obj *wgPeerWatcher) monitorPeers(wgdevs []*swireguard.InterfaceInfo) error {
-	pingData := multiping.NewPingData()
+	pingData := pingdata.NewPingData()
 
 	// prepare peers ping list
 	for _, wgdev := range wgdevs {
@@ -98,8 +98,8 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 			entry := &netstats.PeerDataEntry{
 				ConnectionID: p.ConnectionID,
 				GroupID:      p.GroupID,
-				RxBytes:      p.Stats.RxBytesDiff, // Controler is expecting bytes received during report period
-				TxBytes:      p.Stats.TxBytesDiff, // Controler is expecting bytes sent during report period
+				RxBytes:      p.Stats.RxBytesDiff, // Controller is expecting bytes received during report period
+				TxBytes:      p.Stats.TxBytesDiff, // Controller is expecting bytes sent during report period
 				RxSpeed:      p.Stats.RxSpeedBps,
 				TxSpeed:      p.Stats.TxSpeedBps,
 			}
@@ -111,15 +111,26 @@ func (obj *wgPeerWatcher) message2controller(wgdevs []*swireguard.InterfaceInfo)
 			}
 
 			stats, ok := obj.pingData.Get(netip.Addr(ipAddr.Addr()))
-			if ok && stats.Valid() {
-				entry.Loss = stats.Loss()
-				entry.Latency = stats.Latency()
-			} else {
-				entry.Loss = netstats.PingLoss
-				logger.Warning().Println(pkgName, "No or invalid ping stats for", ipAddr)
+			// All configured peers are pinged in monitorPeers() function
+			// But when searching for a peer in ping result may be missing on one case:
+			// Config_Info is still in progress (it can take few minutes with big config on low end machine)
+			// Then a situation may arrise when ping monitoring already started,
+			// and config_info setup was not yet completed
+			// In this case during ping data processing wireguard may have more peers configured,
+			// and some of these peers are not pinged yet (they we not configured when ping was done)
+			// This is no dangerous at all. Ignore these results now and this peer ping will be done next time.
+			if ok {
+				if stats.Valid() {
+					entry.Loss = stats.Loss()
+					entry.Latency = stats.Latency()
+				} else {
+					entry.Loss = netstats.PingLoss
+					logger.Warning().Println(pkgName, "Invalid ping stats for", ipAddr)
+				}
+				// Once again read comment above
+				// Add only fully configured and already pinged peers
+				ifaceData.Peers = append(ifaceData.Peers, entry)
 			}
-
-			ifaceData.Peers = append(ifaceData.Peers, entry)
 		}
 
 		resp.Data = append(resp.Data, ifaceData)
