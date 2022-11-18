@@ -13,7 +13,7 @@ import (
 
 const (
 	pkgName = "HostNetServices. "
-	cmd     = "HW_SERVICE_INFO"
+	cmd     = "SERVICE_INFO"
 )
 
 type hostNetServices struct {

@@ -28,7 +28,7 @@ type PeerDataEntry struct {
 	TxBytes      int64   `json:"tx_bytes"`
 	RxSpeed      float32 `json:"rx_bps"`
 	TxSpeed      float32 `json:"tx_bps"`
-	IP           string  `json:"internal_ip"`
+	IP           string  `json:"internal_ip,omitempty"`
 }
 
 type IfaceBwEntry struct {

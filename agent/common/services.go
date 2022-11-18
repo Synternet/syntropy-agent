@@ -8,7 +8,7 @@ type ServiceInfoMessage struct {
 type ServiceInfoEntry struct {
 	Name     string   `json:"name"`
 	Type     string   `json:"type"`
-	IPs      []string `json:"ips"`
+	IPs      []string `json:"ip"`
 	Networks []string `json:"network"`
 	Ports    Ports    `json:"ports"`
 }

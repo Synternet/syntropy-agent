@@ -109,5 +109,15 @@ func (obj *dockerWatcher) Run(ctx context.Context) error {
 
 	go obj.run()
 
+	// Need to collect Data when agent start fresh and send it controller
+	data := obj.ContainerInfo()
+	obj.serviceInfoMsg.Data = data
+	obj.serviceInfoMsg.Now()
+	raw, err := json.Marshal(obj.serviceInfoMsg)
+	if err == nil {
+		logger.Message().Println(pkgName, "Sending: ", string(raw))
+		_, err = obj.writer.Write(raw)
+	}
+
 	return nil
 }

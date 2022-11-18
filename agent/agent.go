@@ -22,7 +22,6 @@ import (
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
-	"github.com/SyntropyNet/syntropy-agent/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent/controller"
 	"github.com/SyntropyNet/syntropy-agent/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent/controller/saas"
@@ -133,7 +132,6 @@ func New(contype int) (*Agent, error) {
 
 	agent.addCommand(setconfig.New(agent.controller, agent.mole, agent.autoPing, dockerHelper))
 	agent.addCommand(updateconfig.New(agent.controller, agent.mole, agent.autoPing))
-	agent.addCommand(wgconf.New(agent.controller, agent.mole))
 
 	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
 	// For SaaS Controller add public IP change monitor with reconnect callback
