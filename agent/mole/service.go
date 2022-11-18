@@ -10,10 +10,8 @@ func (m *Mole) AddService(si *swireguard.ServiceInfo) error {
 	m.Lock()
 	defer m.Unlock()
 	for _, connectionID := range si.ConnectionIDs {
-		peer, err := m.peers.GetPeerByConnectionID(connectionID)
-		m.peers.AddPeerAllowedIps(peer, si.IP)
+		m.peers.AddPeerAllowedIps(connectionID, si.IP)
 		pi, err := m.peers.GetPeerInfoByConnectionID(connectionID)
-		pi.AllowedIPs = peer.AllowedIPs
 		if err != nil {
 			return err
 		}
@@ -23,10 +21,10 @@ func (m *Mole) AddService(si *swireguard.ServiceInfo) error {
 		}
 
 		netpath := &common.SdnNetworkPath{
-			Ifname:       peer.IfName,
-			PublicKey:    peer.PublicKey,
-			ConnectionID: peer.ConnectionID,
-			GroupID:      peer.GroupID,
+			Ifname:       pi.IfName,
+			PublicKey:    pi.PublicKey,
+			ConnectionID: pi.ConnectionID,
+			GroupID:      pi.GroupID,
 		}
 
 		interfaceCache, _ := m.interfaces.GetInterfaceByIndex(pi.IfIndex)
@@ -37,7 +35,7 @@ func (m *Mole) AddService(si *swireguard.ServiceInfo) error {
 			return err
 		}
 
-		logger.Debug().Println(pkgName, "Peer service route add to", peer.Address,
+		logger.Debug().Println(pkgName, "Peer service route add to", si.IP,
 			"via", netpath.Gateway, netpath.Ifname)
 		m.router.RouteAddService(netpath, si.IP)
 		if err != nil {
@@ -55,16 +53,18 @@ func (m *Mole) RemoveService(si *swireguard.ServiceInfo) error {
 	defer m.Unlock()
 
 	for _, connectionID := range si.ConnectionIDs {
-		peer, err := m.peers.GetPeerByConnectionID(connectionID)
-		m.peers.AddPeerAllowedIps(peer, si.IP)
+		m.peers.AddPeerAllowedIps(connectionID, si.IP)
 		pi, err := m.peers.GetPeerInfoByConnectionID(connectionID)
 		netpath := &common.SdnNetworkPath{
-			Ifname:       peer.IfName,
-			PublicKey:    peer.PublicKey,
-			ConnectionID: peer.ConnectionID,
-			GroupID:      peer.GroupID,
-			Gateway:      peer.Gateway,
+			Ifname:       pi.IfName,
+			PublicKey:    pi.PublicKey,
+			ConnectionID: pi.ConnectionID,
+			GroupID:      pi.GroupID,
+			Gateway:      pi.Gateway,
 		}
+
+		interfaceCache, _ := m.interfaces.GetInterfaceByIndex(pi.IfIndex)
+		netpath.Gateway = interfaceCache.Address
 
 		err = m.wg.AddPeer(pi)
 		if err != nil {

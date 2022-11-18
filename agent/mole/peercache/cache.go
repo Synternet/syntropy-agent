@@ -67,14 +67,15 @@ func (pc *PeerCache) CheckAndDel(pi *swireguard.PeerInfo) error {
 }
 
 // Check if allowedIp does not already exist in cache and if not update it
-func (pc *PeerCache) AddPeerAllowedIps(peerCache *peerCacheEntry, allowedIp netip.Prefix) {
-	for _, aip := range peerCache.AllowedIPs {
+func (pc *PeerCache) AddPeerAllowedIps(connectionID int, allowedIp netip.Prefix) {
+	entry, _ := pc.peers[connectionID]
+	for _, aip := range entry.AllowedIPs {
 		if aip == allowedIp {
 			return
 		}
-		peerCache.AllowedIPs = append(peerCache.AllowedIPs, allowedIp)
-
+		entry.AllowedIPs = append(entry.AllowedIPs, allowedIp)
 	}
+	pc.peers[connectionID] = entry
 }
 
 // Find and delete allowedIp from cache
@@ -86,16 +87,6 @@ func (pc *PeerCache) RemovePeerAllowedIps(peerCache *peerCacheEntry, allowedIp n
 	}
 }
 
-// return peer entry by id
-func (pc *PeerCache) GetPeerByConnectionID(connectionID int) (*peerCacheEntry, error) {
-	entry, ok := pc.peers[connectionID]
-	if !ok {
-		return nil, fmt.Errorf("peer not found for connectionId: %s", strconv.Itoa(connectionID))
-	}
-
-	return &entry, nil
-}
-
 func (pc *PeerCache) GetPeerInfoByConnectionID(connectionID int) (*swireguard.PeerInfo, error) {
 	entry, ok := pc.peers[connectionID]
 	if !ok {
@@ -103,13 +94,14 @@ func (pc *PeerCache) GetPeerInfoByConnectionID(connectionID int) (*swireguard.Pe
 	}
 
 	return &swireguard.PeerInfo{
-		GroupID:    entry.GroupID,
-		PublicKey:  entry.PublicKey,
-		IP:         entry.Address,
-		Gateway:    entry.Gateway,
-		IfName:     entry.IfName,
-		IfIndex:    entry.IfIndex,
-		AllowedIPs: entry.AllowedIPs,
+		GroupID:      entry.GroupID,
+		ConnectionID: entry.ConnectionID,
+		PublicKey:    entry.PublicKey,
+		IP:           entry.Address,
+		Gateway:      entry.Gateway,
+		IfName:       entry.IfName,
+		IfIndex:      entry.IfIndex,
+		AllowedIPs:   entry.AllowedIPs,
 	}, nil
 }
 
