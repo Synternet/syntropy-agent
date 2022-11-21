@@ -28,9 +28,6 @@ func (m *Mole) AddPeer(pi *swireguard.PeerInfo, netpath *common.SdnNetworkPath) 
 		logger.Error().Println(pkgName, "host route add", err)
 	}
 
-	interfaceCache, _ := m.interfaces.GetInterfaceByIndex(pi.IfIndex)
-	netpath.Gateway = interfaceCache.Address
-
 	return m.router.RouteAdd(netpath, pi.AllowedIPs...)
 }
 
