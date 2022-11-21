@@ -81,6 +81,5 @@ func (obj *getInitInfo) Exec(raw []byte) error {
 
 	logger.Debug().Println(pkgName, "Sending: ", string(arr))
 	obj.w.Write(arr)
-
 	return err
 }

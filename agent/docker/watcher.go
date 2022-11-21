@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"io"
-
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
 	"github.com/google/go-cmp/cmp"
+	"io"
 )
 
 const (
@@ -49,6 +48,16 @@ func (obj *dockerWatcher) run() {
 	}()
 
 	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
+
+	// Need to collect Data when agent start fresh and send it controller
+	data := obj.ContainerInfo()
+	obj.serviceInfoMsg.Data = data
+	obj.serviceInfoMsg.Now()
+	raw, err := json.Marshal(obj.serviceInfoMsg)
+	if err == nil {
+		logger.Message().Println(pkgName, "Sending: ", string(raw))
+		_, err = obj.writer.Write(raw)
+	}
 
 	for {
 		select {
@@ -108,16 +117,6 @@ func (obj *dockerWatcher) Run(ctx context.Context) error {
 	}
 
 	go obj.run()
-
-	// Need to collect Data when agent start fresh and send it controller
-	data := obj.ContainerInfo()
-	obj.serviceInfoMsg.Data = data
-	obj.serviceInfoMsg.Now()
-	raw, err := json.Marshal(obj.serviceInfoMsg)
-	if err == nil {
-		logger.Message().Println(pkgName, "Sending: ", string(raw))
-		_, err = obj.writer.Write(raw)
-	}
 
 	return nil
 }
