@@ -147,7 +147,7 @@ func (cc *CloudController) connect() (err error) {
 	headers.Set("x-devicename", config.GetAgentName())
 	headers.Set("x-devicestatus", "OK")
 	headers.Set("x-agenttype", "Linux")
-	headers.Set("x-agentversion", "0.8.0-alpha+42.g3f3d11a.dirty")
+	headers.Set("x-agentversion", cc.version)
 
 	for {
 		var resp *http.Response
