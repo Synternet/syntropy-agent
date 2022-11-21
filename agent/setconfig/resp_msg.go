@@ -29,13 +29,3 @@ func (msg *ConfigInfoMsg) AddInterface(data *swireguard.InterfaceInfo) {
 	e.Port = data.Port
 	msg.Data.Interfaces = append(msg.Data.Interfaces, e)
 }
-
-//func (msg *updateAgentConfigMsg) AddPeer(data *swireguard.PeerInfo) {
-//	e := configInfoEntry{Function: "add_peer"}
-//	e.Data.IfName = data.IfName
-//	e.Data.IP = data.IP.String()
-//	e.Data.PublicKey = data.PublicKey
-//	e.Data.Port = data.Port
-//
-//	msg.Data = append(msg.Data, e)
-//}
