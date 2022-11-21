@@ -17,7 +17,7 @@ import (
 
 const (
 	pkgName         = "Kubernetes. "
-	cmd             = "KUBERNETES_SERVICE_INFO"
+	cmd             = "SERVICE_INFO"
 	reconnectErrors = 5 // error count in a row to force reconnect to k8s cluster
 )
 
@@ -26,8 +26,8 @@ type kubernet struct {
 	httpClient *http.Client
 	baseURL    string
 	namespaces []string
+	msg        common.ServiceInfoMessage
 	errorCount uint16
-	msg        kubernetesInfoMessage
 	ctx        context.Context
 }
 

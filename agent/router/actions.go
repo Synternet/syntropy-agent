@@ -37,6 +37,15 @@ func (r *Router) RouteAdd(netpath *common.SdnNetworkPath, dest ...netip.Prefix) 
 	return nil
 }
 
+func (r *Router) RouteAddService(netpath *common.SdnNetworkPath, dest netip.Prefix) error {
+	r.Lock()
+	defer r.Unlock()
+
+	r.serviceAdd(netpath, dest)
+
+	return nil
+}
+
 func (r *Router) RouteDel(netpath *common.SdnNetworkPath, ips ...netip.Prefix) error {
 	r.Lock()
 	defer r.Unlock()

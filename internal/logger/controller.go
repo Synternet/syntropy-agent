@@ -3,6 +3,7 @@ package logger
 import (
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 )
@@ -26,13 +27,13 @@ type controllerLogger struct {
 
 func (l *controllerLogger) Write(b []byte) (n int, err error) {
 	msg := loggerMessage{
-		ID:      env.MessageDefaultID,
-		MsgType: cmd,
+		ID:        env.MessageDefaultID,
+		MsgType:   cmd,
+		Timestamp: time.Now().Format(env.TimeFormat),
 	}
 
 	msg.Data.Message = string(b)
 	msg.Data.Level = l.level
-
 	raw, err := json.Marshal(msg)
 	if err != nil {
 		return 0, err

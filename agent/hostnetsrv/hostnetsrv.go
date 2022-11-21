@@ -13,12 +13,12 @@ import (
 
 const (
 	pkgName = "HostNetServices. "
-	cmd     = "HW_SERVICE_INFO"
+	cmd     = "SERVICE_INFO"
 )
 
 type hostNetServices struct {
 	writer io.Writer
-	msg    hostNetworkServicesMessage
+	msg    common.ServiceInfoMessage
 }
 
 func New(w io.Writer) common.Service {

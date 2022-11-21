@@ -4,43 +4,40 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-
+	"github.com/SyntropyNet/syntropy-agent/agent/common"
 	"github.com/SyntropyNet/syntropy-agent/internal/env"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
 	"github.com/google/go-cmp/cmp"
+	"io"
 )
 
 const (
-	pkgName      = "Docker. "
-	cmdNetwork   = "NETWORK_INFO"
-	cmdContainer = "CONTAINER_INFO"
+	pkgName        = "Docker. "
+	cmdServiceInfo = "SERVICE_INFO"
+	serviceType    = "DOCKER"
 )
 
 type dockerWatcher struct {
-	writer           io.Writer
-	cli              *client.Client
-	ctx              context.Context
-	containerInfoMsg containerInfoMessage
-	networkInfoMsg   networkInfoMessage
+	writer         io.Writer
+	cli            *client.Client
+	ctx            context.Context
+	serviceInfoMsg common.ServiceInfoMessage
 }
 
 func New(w io.Writer) DockerService {
 	obj := &dockerWatcher{writer: w}
 
-	obj.containerInfoMsg.ID = env.MessageDefaultID
-	obj.containerInfoMsg.MsgType = cmdContainer
-	obj.networkInfoMsg.ID = env.MessageDefaultID
-	obj.networkInfoMsg.MsgType = cmdNetwork
+	obj.serviceInfoMsg.ID = env.MessageDefaultID
+	obj.serviceInfoMsg.MsgType = cmdServiceInfo
 
 	return obj
 }
 
 func (obj *dockerWatcher) Name() string {
-	return cmdNetwork + " / " + cmdContainer
+	return cmdServiceInfo
 }
 
 func (obj *dockerWatcher) run() {
@@ -51,6 +48,16 @@ func (obj *dockerWatcher) run() {
 	}()
 
 	msgs, errs := obj.cli.Events(obj.ctx, types.EventsOptions{})
+
+	// Need to collect Data when agent start fresh and send it controller
+	data := obj.ContainerInfo()
+	obj.serviceInfoMsg.Data = data
+	obj.serviceInfoMsg.Now()
+	raw, err := json.Marshal(obj.serviceInfoMsg)
+	if err == nil {
+		logger.Message().Println(pkgName, "Sending: ", string(raw))
+		_, err = obj.writer.Write(raw)
+	}
 
 	for {
 		select {
@@ -65,35 +72,17 @@ func (obj *dockerWatcher) run() {
 				return
 			}
 			switch msg.Type {
-			case events.NetworkEventType:
-				if msg.Action == "create" || msg.Action == "destroy" {
-					data := obj.NetworkInfo()
-
-					if !cmp.Equal(data, obj.networkInfoMsg.Data) {
-						obj.networkInfoMsg.Data = data
-						obj.networkInfoMsg.Now()
-
-						raw, err := json.Marshal(obj.networkInfoMsg)
-						if err == nil {
-							logger.Message().Println(pkgName, "Sending: ", string(raw))
-							_, err = obj.writer.Write(raw)
-						}
-						if err != nil {
-							logger.Error().Println(pkgName, "event", msg.Type, msg.Action, err)
-						}
-					}
-				}
 
 			case events.ContainerEventType:
 				if msg.Action == "create" || msg.Action == "destroy" ||
 					msg.Action == "start" || msg.Action == "stop" {
 					data := obj.ContainerInfo()
 
-					if !cmp.Equal(data, obj.containerInfoMsg.Data) {
-						obj.containerInfoMsg.Data = data
-						obj.containerInfoMsg.Now()
+					if !cmp.Equal(data, obj.serviceInfoMsg.Data) {
+						obj.serviceInfoMsg.Data = data
+						obj.serviceInfoMsg.Now()
 
-						raw, err := json.Marshal(obj.containerInfoMsg)
+						raw, err := json.Marshal(obj.serviceInfoMsg)
 						if err == nil {
 							logger.Message().Println(pkgName, "Sending: ", string(raw))
 							_, err = obj.writer.Write(raw)

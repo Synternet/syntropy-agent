@@ -13,41 +13,6 @@ import (
 
 var errClientInit = errors.New("docker client is not initialised")
 
-func (obj *dockerWatcher) NetworkInfo() []DockerNetworkInfoEntry {
-	networkInfo := []DockerNetworkInfoEntry{}
-
-	if obj.cli == nil {
-		logger.Warning().Println(pkgName, errClientInit)
-		return networkInfo
-	}
-
-	networks, err := obj.cli.NetworkList(obj.ctx, types.NetworkListOptions{})
-	if err != nil {
-		logger.Warning().Println(pkgName, "Network List: ", err)
-		return networkInfo
-	}
-
-	for _, n := range networks {
-		ni := DockerNetworkInfoEntry{
-			Name:    n.Name,
-			ID:      n.ID,
-			Subnets: []string{},
-		}
-
-		for _, netcfg := range n.IPAM.Config {
-			if netcfg.Subnet != "" {
-				ni.Subnets = append(ni.Subnets, netcfg.Subnet)
-			}
-		}
-
-		if len(ni.Subnets) > 0 {
-			networkInfo = append(networkInfo, ni)
-		}
-	}
-
-	return networkInfo
-}
-
 func addPort(arr *[]uint16, port uint16) {
 	if port == 0 {
 		return
@@ -60,8 +25,8 @@ func addPort(arr *[]uint16, port uint16) {
 	*arr = append(*arr, port)
 }
 
-func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
-	containerInfo := []DockerContainerInfoEntry{}
+func (obj *dockerWatcher) ContainerInfo() []common.ServiceInfoEntry {
+	containerInfo := []common.ServiceInfoEntry{}
 
 	if obj.cli == nil {
 		logger.Warning().Println(pkgName, errClientInit)
@@ -99,11 +64,9 @@ func (obj *dockerWatcher) ContainerInfo() []DockerContainerInfoEntry {
 			name = jsoncfg.Config.Hostname
 		}
 
-		ci := DockerContainerInfoEntry{
-			ID:       c.ID,
+		ci := common.ServiceInfoEntry{
 			Name:     name,
-			State:    c.State,
-			Uptime:   c.Status,
+			Type:     serviceType,
 			Networks: []string{},
 			IPs:      []string{},
 			Ports: common.Ports{

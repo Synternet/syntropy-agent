@@ -6,6 +6,7 @@ package mole
 
 import (
 	"fmt"
+	"github.com/SyntropyNet/syntropy-agent/agent/mole/interfacecache"
 	"io"
 	"sync"
 
@@ -29,16 +30,18 @@ type Mole struct {
 	filter               *ipfilter.PacketFilter
 	hostRoute            *hostroute.HostRouter
 	peers                *peercache.PeerCache
+	interfaces           *interfacecache.InterfaceCache
 	controllerHostRoutes ctrlmgr.ControllerHostRouteManager
 }
 
 func New(w io.Writer) (*Mole, error) {
 	var err error
 	m := &Mole{
-		writer:    w,
-		router:    router.New(w),
-		hostRoute: &hostroute.HostRouter{},
-		peers:     peercache.New(),
+		writer:     w,
+		router:     router.New(w),
+		hostRoute:  &hostroute.HostRouter{},
+		peers:      peercache.New(),
+		interfaces: interfacecache.New(),
 	}
 	err = m.hostRoute.Init()
 	if err != nil {

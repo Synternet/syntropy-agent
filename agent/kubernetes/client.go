@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	portTCP = "TCP"
-	portUDP = "UDP"
+	portTCP     = "TCP"
+	portUDP     = "UDP"
+	serviceType = "KUBERNETES"
 )
 
 func (obj *kubernet) initClient() error {
@@ -41,8 +42,8 @@ func (obj *kubernet) initClient() error {
 
 // Be sure to call initClient() before
 // Caller is responsible to be sure that obj.klient is not nil
-func (obj *kubernet) monitorServices() ([]kubernetesServiceEntry, error) {
-	res := []kubernetesServiceEntry{}
+func (obj *kubernet) monitorServices() ([]common.ServiceInfoEntry, error) {
+	res := []common.ServiceInfoEntry{}
 
 	for _, namespace := range obj.namespaces {
 		klient, err := kubernetes.NewClient(obj.baseURL, namespace, obj.httpClient)
@@ -74,14 +75,17 @@ func (obj *kubernet) monitorServices() ([]kubernetesServiceEntry, error) {
 				continue
 			}
 
-			e := kubernetesServiceEntry{
-				Name:   srv.Name,
-				Subnet: srv.Spec.ClusterIP,
+			e := common.ServiceInfoEntry{
+				Name: srv.Name,
+				Type: serviceType,
+				IPs:  []string{},
 				Ports: common.Ports{
 					TCP: []uint16{},
 					UDP: []uint16{},
 				},
 			}
+
+			e.IPs = append(e.IPs, srv.Spec.ClusterIP)
 
 			for _, port := range srv.Spec.Ports {
 				switch port.Protocol {

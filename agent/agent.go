@@ -4,24 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/SyntropyNet/syntropy-agent/agent/updateconfig"
 	"io"
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/autoping"
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/configinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/docker"
 	"github.com/SyntropyNet/syntropy-agent/agent/exporter"
-	"github.com/SyntropyNet/syntropy-agent/agent/getinfo"
+	"github.com/SyntropyNet/syntropy-agent/agent/getinitinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/hostnetsrv"
 	"github.com/SyntropyNet/syntropy-agent/agent/ifacemon"
 	"github.com/SyntropyNet/syntropy-agent/agent/kubernetes"
 	"github.com/SyntropyNet/syntropy-agent/agent/mole"
 	"github.com/SyntropyNet/syntropy-agent/agent/peerwatch"
+	"github.com/SyntropyNet/syntropy-agent/agent/setconfig"
 	"github.com/SyntropyNet/syntropy-agent/agent/settings"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo"
 	"github.com/SyntropyNet/syntropy-agent/agent/supportinfo/shellcmd"
-	"github.com/SyntropyNet/syntropy-agent/agent/wgconf"
 	"github.com/SyntropyNet/syntropy-agent/controller"
 	"github.com/SyntropyNet/syntropy-agent/controller/blockchain"
 	"github.com/SyntropyNet/syntropy-agent/controller/saas"
@@ -46,8 +46,9 @@ type Agent struct {
 	cancel context.CancelFunc
 
 	// various helpers, used crossed-services
-	pinger *multiping.MultiPing
-	mole   *mole.Mole
+	pinger   *multiping.MultiPing
+	autoPing *autoping.AutoPing
+	mole     *mole.Mole
 
 	// services and commands slice/map
 	commands map[string]common.Command
@@ -126,12 +127,12 @@ func New(contype int) (*Agent, error) {
 		dockerHelper = &docker.DockerNull{}
 	}
 
-	agent.addCommand(configinfo.New(agent.controller, agent.mole, dockerHelper))
-	agent.addCommand(wgconf.New(agent.controller, agent.mole))
+	agent.autoPing = autoping.New(agent.controller, agent.pinger)
+	agent.addService(agent.autoPing)
 
-	autoping := autoping.New(agent.controller, agent.pinger)
-	agent.addCommand(autoping)
-	agent.addService(autoping)
+	agent.addCommand(setconfig.New(agent.controller, agent.mole, agent.autoPing, dockerHelper))
+	agent.addCommand(updateconfig.New(agent.controller, agent.mole, agent.autoPing))
+
 	agent.addService(peerwatch.New(agent.controller, agent.mole, agent.pinger))
 	// For SaaS Controller add public IP change monitor with reconnect callback
 	switch c := controller.(type) {
@@ -148,12 +149,12 @@ func New(contype int) (*Agent, error) {
 		}
 	}
 
-	agent.addCommand(getinfo.New(agent.controller, dockerHelper))
+	agent.addCommand(getinitinfo.New(agent.controller, dockerHelper))
 	agent.addCommand(settings.New())
 	agent.addCommand(supportinfo.New(agent.controller,
 		shellcmd.New("wg_info", "wg", "show"),
 		shellcmd.New("routes", "route", "-n"),
-		autoping))
+		agent.autoPing))
 
 	return agent, agent.controller.Open()
 }

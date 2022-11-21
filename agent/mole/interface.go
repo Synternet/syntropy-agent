@@ -76,6 +76,8 @@ func (m *Mole) CreateInterface(ii *swireguard.InterfaceInfo) error {
 		}
 	}
 
+	m.interfaces.Add(ii)
+
 	// I return nil (no error), because all non-critical errors are already in log
 	return nil
 }
