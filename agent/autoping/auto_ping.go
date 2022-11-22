@@ -84,7 +84,6 @@ func (obj *AutoPing) Exec(req common.ConfigSettingsAutopingEntry) error {
 func (obj *AutoPing) pingAction() {
 	obj.Lock()
 	defer obj.Unlock()
-
 	if obj.pingData.Count() <= 0 {
 		return
 	}

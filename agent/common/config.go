@@ -149,7 +149,7 @@ type ConfigSettingsAutopingEntry struct {
 
 type configSettingsEntry struct {
 	Rerouting []configSettingsReroutingEntry `json:"rerouting"`
-	Autoping  ConfigSettingsAutopingEntry    `json:"auto_ping"`
+	Autoping  ConfigSettingsAutopingEntry    `json:"autoping"`
 }
 
 type ConfigMsg struct {

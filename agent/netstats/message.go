@@ -22,7 +22,7 @@ type PeerDataEntry struct {
 	ConnectionID int     `json:"connection_id"`
 	GroupID      int     `json:"connection_group_id"`
 	Handshake    string  `json:"last_handshake,omitempty"`
-	Latency      float32 `json:"latency_ms,omitempty"`
+	Latency      float32 `json:"latency_ms"`
 	Loss         float32 `json:"packet_loss"`
 	RxBytes      int64   `json:"rx_bytes"`
 	TxBytes      int64   `json:"tx_bytes"`

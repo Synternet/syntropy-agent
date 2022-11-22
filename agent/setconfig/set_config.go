@@ -156,7 +156,6 @@ func (obj *configInfo) Exec(raw []byte) error {
 	for _, cmd := range req.Data.Settings.Rerouting {
 		config.SetRerouteThresholds(cmd.ReroutingThreshold, cmd.LatencyCoefficient)
 	}
-
 	if len(req.Data.Settings.Autoping.IPs) > 0 {
 		obj.autoPing.Exec(req.Data.Settings.Autoping)
 	}
