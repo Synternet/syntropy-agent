@@ -1,10 +1,10 @@
-package peermon
+package peerlist
 
 import "testing"
 
 func TestPeerInfo(t *testing.T) {
 	valuesCount := 20
-	pi := newPeerInfo(uint(valuesCount))
+	pi := NewPeerInfo(uint(valuesCount))
 
 	// Test if empty results are valid
 	if pi.Valid() {

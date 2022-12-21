@@ -1,12 +1,12 @@
-package peermon
+package peerlist
 
 import "github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 
-func (pm *PeerMonitor) PingProcess(pr *pingdata.PingData) {
-	for addr, peer := range pm.peerList {
+func (pl *PeerList) PingProcess(pr *pingdata.PingData) {
+	for addr, peer := range pl.peers {
 		// Ignore peers that are conflicting (pifDisabled)
 		// or configuration is not yet applied (pifAddPending/pifDelPending)
-		if peer.flags != pifNone {
+		if peer.flags != PifNone {
 			continue
 		}
 

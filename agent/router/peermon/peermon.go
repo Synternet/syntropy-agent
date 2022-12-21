@@ -3,113 +3,76 @@ package peermon
 import (
 	"net/netip"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/peerlist"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/routeselector"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/routeselector/dr"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/routeselector/speed"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
+	"github.com/SyntropyNet/syntropy-agent/pkg/multiping/pingdata"
 )
 
 const (
 	pkgName = "PeerMonitor. "
 )
 
-// Best route index is not set yet
-func invalidBest() netip.Prefix {
-	return netip.Prefix{}
-}
-
-type SelectedRoute struct {
-	IP     netip.Addr // best route IP address
-	ID     int        // ConnectionID of the best route
-	Reason *RouteChangeReason
-}
-
-type PathSelector interface {
-	BestPath() *SelectedRoute
-}
-
 // PeerMonitr pings configured peers and selects best path
 // Implements BestPath() and can be used as PathSelector interface
 // PeerMonitor is explicitely used in Router and is always under main Router lock
 // So no need for locking here
 type PeerMonitor struct {
-	config   *PeerMonitorConfig
+	peerList *peerlist.PeerList
+	config   *routeselector.RouteSelectorConfig
 	groupID  int
-	peerList map[netip.Prefix]*peerInfo
-	lastBest netip.Prefix
 
-	pathSelector func(pm *PeerMonitor) (addr netip.Prefix, reason *RouteChangeReason)
+	pathSelector routeselector.PathSelector
 }
 
-func New(cfg *PeerMonitorConfig, gid int) *PeerMonitor {
+func New(cfg *routeselector.RouteSelectorConfig, gid int) *PeerMonitor {
 	pm := &PeerMonitor{
 		groupID:  gid,
-		peerList: make(map[netip.Prefix]*peerInfo),
-		lastBest: invalidBest(),
+		peerList: peerlist.NewPeerList(cfg.AverageSize),
 		config:   cfg,
 	}
 	if cfg.RouteStrategy == config.RouteStrategyDirectRoute {
-		pm.pathSelector = bestPathPreferPublic
+		pm.pathSelector = dr.New(pm.peerList, pm.config)
 	} else {
-		pm.pathSelector = bestPathLowestLatency
+		pm.pathSelector = speed.New(pm.peerList, pm.config)
 	}
 
 	return pm
 }
 
 func (pm *PeerMonitor) AddNode(ifname, pubKey string, endpoint netip.Prefix, connID int, disabled bool) {
-	e, ok := pm.peerList[endpoint]
-	if !ok {
-		e = newPeerInfo(pm.config.AverageSize)
-		pm.peerList[endpoint] = e
-	}
-
-	e.ifname = ifname
-	e.publicKey = pubKey
-	e.connectionID = connID
-	e.flags |= pifAddPending
-	e.flags &= ^pifDelPending
-	if disabled {
-		e.flags |= pifDisabled
-	}
+	pm.peerList.AddPeer(ifname, pubKey, endpoint, connID, disabled)
 }
 
 func (pm *PeerMonitor) DelNode(endpoint netip.Prefix) {
-	// Check and invalidate last best path index
-	if pm.lastBest == endpoint {
-		pm.lastBest = invalidBest()
-	}
-
-	peer, ok := pm.peerList[endpoint]
-	if ok {
-		peer.flags |= pifDelPending
-	}
+	pm.peerList.DelPeer(endpoint)
 }
 
 func (pm *PeerMonitor) HasNode(endpoint netip.Prefix) bool {
-	peer, ok := pm.peerList[endpoint]
-
-	// Ignore not applied (disabled) and nodes already marked for deletion
-	return ok && (peer.flags&pifDelPending|pifDisabled) == 0
+	return pm.peerList.HasPeer(endpoint)
 }
 
 func (pm *PeerMonitor) Peers() []string {
-	rv := []string{}
-
-	for ip := range pm.peerList {
-		rv = append(rv, ip.String())
-	}
-	return rv
+	return pm.peerList.Peers()
 }
 
 func (pm *PeerMonitor) Dump() {
-	for ip, e := range pm.peerList {
-		mark := " "
-		if pm.lastBest == ip {
-			mark = "*"
-		}
-		logger.Debug().Println(pkgName, mark, ip, e)
-	}
+	pm.peerList.Iterate(func(ip netip.Prefix, entry *peerlist.PeerInfo) {
+		logger.Debug().Println(pkgName, ip, entry)
+	})
 }
 
 func (pm *PeerMonitor) Count() int {
-	return len(pm.peerList)
+	return pm.peerList.Count()
+}
+
+func (pm *PeerMonitor) PingProcess(pr *pingdata.PingData) {
+	pm.peerList.PingProcess(pr)
+}
+
+func (pm *PeerMonitor) BestPath() *routeselector.SelectedRoute {
+	return pm.pathSelector.BestPath()
 }

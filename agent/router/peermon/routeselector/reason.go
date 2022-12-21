@@ -1,13 +1,13 @@
-package peermon
+package routeselector
 
 import "fmt"
 
 const (
-	reasonNoChange = iota
-	reasonNewRoute
-	reasonLoss
-	reasonLatency
-	reasonRouteDelete
+	ReasonNoChange = iota
+	ReasonNewRoute
+	ReasonLoss
+	ReasonLatency
+	ReasonRouteDelete
 )
 
 type RouteChangeReason struct {
@@ -26,15 +26,15 @@ func NewReason(r int, o, n float32) *RouteChangeReason {
 
 func (rr *RouteChangeReason) Reason() string {
 	switch rr.reason {
-	case reasonNoChange:
+	case ReasonNoChange:
 		return "nochange"
-	case reasonNewRoute:
+	case ReasonNewRoute:
 		return "new"
-	case reasonLoss:
+	case ReasonLoss:
 		return "loss"
-	case reasonLatency:
+	case ReasonLatency:
 		return "latency"
-	case reasonRouteDelete:
+	case ReasonRouteDelete:
 		return "delete"
 	default:
 		return "unknown"

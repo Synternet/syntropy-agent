@@ -1,8 +1,10 @@
 package peermon
 
 import (
+	"net/netip"
 	"strconv"
 
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/peerlist"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -21,18 +23,18 @@ var (
 )
 
 func (pm *PeerMonitor) Collect(ch chan<- prometheus.Metric, groupID int) {
-	for addr, peer := range pm.peerList {
+	pm.peerList.Iterate(func(addr netip.Prefix, peer *peerlist.PeerInfo) {
 		ch <- prometheus.MustNewConstMetric(
 			descLatency,
 			prometheus.GaugeValue,
 			float64(peer.Latency()),
-			peer.ifname, peer.publicKey, addr.Addr().String(), strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
+			peer.Ifname, peer.PublicKey, addr.Addr().String(), strconv.Itoa(peer.ConnectionID), strconv.Itoa(groupID),
 		)
 		ch <- prometheus.MustNewConstMetric(
 			descLoss,
 			prometheus.GaugeValue,
 			float64(peer.Loss()),
-			peer.ifname, peer.publicKey, addr.Addr().String(), strconv.Itoa(peer.connectionID), strconv.Itoa(groupID),
+			peer.Ifname, peer.PublicKey, addr.Addr().String(), strconv.Itoa(peer.ConnectionID), strconv.Itoa(groupID),
 		)
-	}
+	})
 }

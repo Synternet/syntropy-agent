@@ -7,7 +7,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/routeselector"
 	"github.com/SyntropyNet/syntropy-agent/internal/config"
 )
 
@@ -20,7 +20,7 @@ type Router struct {
 	sync.Mutex
 	writer io.Writer
 	routes map[int]*routerGroupEntry // route list ordered by group_id
-	pmCfg  peermon.PeerMonitorConfig
+	pmCfg  routeselector.RouteSelectorConfig
 }
 
 func New(w io.Writer) *Router {
@@ -28,7 +28,7 @@ func New(w io.Writer) *Router {
 	return &Router{
 		writer: w,
 		routes: make(map[int]*routerGroupEntry),
-		pmCfg: peermon.PeerMonitorConfig{
+		pmCfg: routeselector.RouteSelectorConfig{
 			AverageSize:              config.PeerCheckWindow(),
 			RouteStrategy:            config.GetRouteStrategy(),
 			RerouteRatio:             ratio,

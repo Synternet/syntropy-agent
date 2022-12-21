@@ -1,6 +1,6 @@
-package peermon
+package routeselector
 
-type PeerMonitorConfig struct {
+type RouteSelectorConfig struct {
 	AverageSize              uint
 	RouteStrategy            int
 	RerouteRatio             float32

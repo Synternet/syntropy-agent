@@ -5,7 +5,7 @@ import (
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/common"
-	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/routeselector"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 )
 
@@ -17,12 +17,12 @@ const pkgName = "ServiceMonitor. "
 // So no need for locking here
 type ServiceMonitor struct {
 	routes             map[netip.Prefix]*routeList
-	routeMonitor       peermon.PathSelector
+	routeMonitor       routeselector.PathSelector
 	groupID            int
 	activeConnectionID int
 }
 
-func New(ps peermon.PathSelector, gid int) *ServiceMonitor {
+func New(ps routeselector.PathSelector, gid int) *ServiceMonitor {
 	return &ServiceMonitor{
 		routes:             make(map[netip.Prefix]*routeList),
 		routeMonitor:       ps,

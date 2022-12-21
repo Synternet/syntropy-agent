@@ -4,7 +4,7 @@ import (
 	"net/netip"
 
 	"github.com/SyntropyNet/syntropy-agent/agent/peeradata"
-	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon"
+	"github.com/SyntropyNet/syntropy-agent/agent/router/peermon/routeselector"
 	"github.com/SyntropyNet/syntropy-agent/internal/logger"
 	"github.com/SyntropyNet/syntropy-agent/pkg/netcfg"
 )
@@ -13,7 +13,7 @@ func (sm *ServiceMonitor) Count() int {
 	return len(sm.routes)
 }
 
-func (sm *ServiceMonitor) Reroute(selroute *peermon.SelectedRoute) (rv *peeradata.Entry) {
+func (sm *ServiceMonitor) Reroute(selroute *routeselector.SelectedRoute) (rv *peeradata.Entry) {
 	connID := 0
 	if selroute != nil {
 		connID = selroute.ID
