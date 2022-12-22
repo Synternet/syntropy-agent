@@ -42,7 +42,6 @@ func (rr *RouteChangeReason) Reason() string {
 }
 
 func (rr *RouteChangeReason) Value() float32 {
-	// TODO: should I return new value, diff or both ?
 	return rr.newval
 }
 

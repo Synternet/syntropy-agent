@@ -31,10 +31,10 @@ func (ps *PeerStats) update(wgp *wgtypes.Peer, init bool) {
 			return
 		}
 
+		// Overwrap handling is not needed (at least in current state)
+		// 100% loaded 10G link it will take ~467years, 100G - ~46years, 1T ~4.6years
 		ps.TxBytesDiff = wgp.TransmitBytes - ps.TxBytesTotal
 		ps.RxBytesDiff = wgp.ReceiveBytes - ps.RxBytesTotal
-		// TODO: overwrap handling ^^^
-		// 100% loaded 10G link it will take ~467years, 100G - ~46years, 1T ~4.6years
 
 		timeDiff := float32(time.Since(ps.timestamp) / time.Second)
 		if timeDiff > 0 {

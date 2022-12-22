@@ -69,8 +69,7 @@ func (rl *routeList) resetPending() {
 // Searches for Public link.
 // If not found - returns first in list
 func (rl *routeList) GetDefault() *routeEntry {
-	// TODO implement Public search.
-	// Shorcut now - choose active link
+	// First choose active link
 	re := rl.GetActive()
 	if re != nil {
 		return re

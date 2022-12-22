@@ -26,7 +26,6 @@ type Wireguard struct {
 	wgc *wgctrl.Client
 	// NOTE: caching wireguard setup may sound like an overhead at first.
 	// But in future we may need to add checking/syncing/recreating delete interfaces
-	// TODO: thing about using sync.Map here and get rid of mutex
 	devices []*InterfaceInfo
 }
 
