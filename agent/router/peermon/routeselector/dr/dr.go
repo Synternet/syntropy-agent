@@ -67,6 +67,13 @@ func (drs *directRouteSelector) calculate() *routeselector.RouteChangeReason {
 		return routeselector.NewReason(routeselector.ReasonNoChange, 0, 0)
 	}
 
+	// No previous best route yet - choose the best
+	_, ok = drs.peerlist.GetPeer(drs.bestRoute)
+	if !drs.bestRoute.IsValid() || !ok {
+		drs.bestRoute = newIp
+		return routeselector.NewReason(routeselector.ReasonNewRoute, 0, 0)
+	}
+
 	var publicIp netip.Prefix
 	drs.peerlist.Iterate(func(ip netip.Prefix, peer *peerlist.PeerInfo) {
 		if peer.IsPublic() {
