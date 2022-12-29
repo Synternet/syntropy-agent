@@ -1,7 +1,7 @@
 /**
  * Route selection algorithm, oriented at reducing costs
  * and should return to direct route (public route)
- * when it becomes acceptible.
+ * when it becomes acceptable.
  **/
 package dr
 

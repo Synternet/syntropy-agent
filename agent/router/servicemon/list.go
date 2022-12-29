@@ -12,7 +12,7 @@ const (
 	rlfDisabled = uint16(0x01)
 )
 
-// Group or routes. Destination will be map key
+// Group of routes. Destination will be map key
 type routeList struct {
 	list    []*routeEntry
 	flags   uint16

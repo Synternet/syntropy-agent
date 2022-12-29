@@ -14,7 +14,7 @@ const (
 	rfActive     = routeFlag(0x80)
 )
 
-// The route entry. Destination will be map key
+// The single route entry.
 type routeEntry struct {
 	ifname       string
 	publicKey    string
