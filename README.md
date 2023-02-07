@@ -9,7 +9,7 @@
 ## FAQ
 
 ### What is Syntropy Platform Agent
-Syntropy Agent is an easy-to-use dependency to automatically encrypt and connect endpoints within a network. Full documentation [here](https://docs.syntropystack.com/docs/what-is-syntropy-agent).
+Syntropy Agent is an easy-to-use dependency to automatically encrypt and connect endpoints within a network. Full documentation [here](https://docs.syntropynet.com/docs/what-is-stack).
 
 ### Why Syntropy Agent
 Syntropy Agent allows you to easy setup encrypted network using a nice [WebUI](https://platform.syntropystack.com/) without getting your hands dirty with Wireguard and network/routes configuration. Also it constantly monitors configured network and chooses best SDN path automatically, taking into account packet loss and latency.
@@ -18,7 +18,7 @@ Syntropy Agent allows you to easy setup encrypted network using a nice [WebUI](h
 It uses [DARP](https://darp.syntropystack.com).
 
 ### Where can I can find full documentation
-Full, constantly maintained documentation can be found [here](https://docs.syntropystack.com/docs/start-syntropy-agent).
+Full, constantly maintained documentation can be found [here](https://docs.syntropynet.com/docs/what-is-stack).
 
 ### How do I know which Agent version I am running
 * Running plain binary on bare-metal:
@@ -53,9 +53,9 @@ Note - project versioning relies on git tags and if you remove git information o
 No problem. The recommended way is to use `syntropynet/agent` docker image as a base. Create Dockerfile:
 ```
 FROM  syntropynet/agent:stable
-RUN apk update && apk add --no-cache --update brctl vim <other required packages>
+RUN apk update && apk add --no-cache --update bridge-utils vim <other required packages>
 ```
 and run `docker build -t <your desired image name>`
 
 Alternative approach would be to checkout source code (also read [I want to compile this software myself](#I-want-to-compile-this-software-myself)) and run 
-```packages="brctl bird vim <other packages>" make docker```
+```packages="bridge-utils bird vim <other packages>" make docker```
