@@ -15,9 +15,9 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	golang.org/x/build v0.0.0-20220526184405-9b1aa31ae3b4
-	golang.org/x/net v0.0.0-20220526153639-5463443f8c37
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
+	golang.org/x/sys v0.5.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220504211119-3d4a969bb56b
 	gopkg.in/yaml.v3 v3.0.1
 	pault.ag/go/modprobe v0.1.2
