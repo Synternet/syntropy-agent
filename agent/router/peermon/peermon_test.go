@@ -216,23 +216,23 @@ func TestPeerMonitorDirectRouteStrategy(t *testing.T) {
 		t.Errorf("Test with too small threshold %s", best.IP)
 	}
 
-	// Threshold hit - use public
-	cfg.RerouteDiff = 6
-	cfg.RerouteRatio = 1.05
+	// Threshold hit
+	cfg.RerouteDiff = 11
+	cfg.RerouteRatio = 1.1
 	best = pm.BestPath()
 	if best.IP != addr1.Addr() {
 		t.Errorf("Test with correct threshold %s", best.IP)
 	}
 
-	// decrement latency a little and calculate best
-	addStats(addr1, 1, 200, 0) // latency ~104
+	// increase latency a little and calculate best
+	addStats(addr1, 1, 300, 0) // latency ~108
 	best = pm.BestPath()
 	if best.IP != addr4.Addr() {
 		t.Errorf("Test with increased latency %s", best.IP)
 	}
 
 	// Reduce latency close to threshold
-	addStats(addr1, 2, 20, 0) // latency ~97
+	addStats(addr1, 5, 50, 0) // latency = 93.75
 	best = pm.BestPath()
 	if best.IP != addr1.Addr() {
 		t.Errorf("Test with too big threshold %s", best.IP)

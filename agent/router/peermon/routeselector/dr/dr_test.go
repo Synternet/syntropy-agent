@@ -70,8 +70,12 @@ func TestDirectRouteSelector(t *testing.T) {
 			best:    [pathsCount]int{3, 3, 3, 3},
 		},
 		{
-			latency: [pathsCount]float32{100, 90, 85, 82},
+			latency: [pathsCount]float32{90, 85, 82, 99},
 			best:    [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			latency: [pathsCount]float32{100, 90, 85, 82},
+			best:    [pathsCount]int{0, 1, 2, 3},
 		},
 		{
 			latency: [pathsCount]float32{100, 105, 95, 100},

@@ -64,9 +64,9 @@ func (srs *speedRouteSelector) calculate() *routeselector.RouteChangeReason {
 		return routeselector.NewReason(routeselector.ReasonNoChange, 0, 0)
 	}
 
-	// No previous best route yet - choose the best
 	prevStats, ok := srs.peerlist.GetPeer(srs.bestRoute)
 	if !srs.bestRoute.IsValid() || !ok {
+		// No previous best route yet - choose the best
 		srs.bestRoute = newIp
 		return routeselector.NewReason(routeselector.ReasonNewRoute, 0, 0)
 	}

@@ -67,13 +67,6 @@ func (drs *directRouteSelector) calculate() *routeselector.RouteChangeReason {
 		return routeselector.NewReason(routeselector.ReasonNoChange, 0, 0)
 	}
 
-	// No previous best route yet - choose the best
-	_, ok = drs.peerlist.GetPeer(drs.bestRoute)
-	if !drs.bestRoute.IsValid() || !ok {
-		drs.bestRoute = newIp
-		return routeselector.NewReason(routeselector.ReasonNewRoute, 0, 0)
-	}
-
 	var publicIp netip.Prefix
 	drs.peerlist.Iterate(func(ip netip.Prefix, peer *peerlist.PeerInfo) {
 		if peer.IsPublic() {
@@ -107,14 +100,50 @@ func (drs *directRouteSelector) calculate() *routeselector.RouteChangeReason {
 		}
 	}
 
-	// apply thresholds
-	if publicStats.Latency()/newStats.Latency() >= drs.config.RerouteRatio &&
-		publicStats.Latency()-newStats.Latency() >= drs.config.RerouteDiff {
+	var reason *routeselector.RouteChangeReason
+	prevStats, prevStatsOK := drs.peerlist.GetPeer(drs.bestRoute)
+
+	switch {
+	// if best route is public, and we prefer public - change to it immediately
+	case newIp == publicIp:
+		drs.bestRoute = publicIp
+		if prevStatsOK {
+			reason = routeselector.NewReason(routeselector.ReasonLatency,
+				prevStats.Latency(), newStats.Latency())
+		} else {
+			reason = routeselector.NewReason(routeselector.ReasonNewRoute, 0, 0)
+		}
+
+	// Compare against public route
+	case publicStats.Latency()/newStats.Latency() >= drs.config.RerouteRatio &&
+		publicStats.Latency()-newStats.Latency() >= drs.config.RerouteDiff:
 		drs.bestRoute = newIp
-		return routeselector.NewReason(routeselector.ReasonLatency,
+		reason = routeselector.NewReason(routeselector.ReasonLatency,
 			publicStats.Latency(), newStats.Latency())
+
+	// try prevent instant route flopping, if latencies are close to "the red line"
+	// NB: in this case use half of configured thresholds.
+	// Maybe we need another configuration variable for this?
+	case prevStatsOK &&
+		publicStats.Latency()/prevStats.Latency() >= drs.config.RerouteRatio/2 &&
+		publicStats.Latency()-prevStats.Latency() >= drs.config.RerouteDiff/2:
+		reason = routeselector.NewReason(routeselector.ReasonNoChange, 0, 0)
+
+	// No big improvements can be gained (with applied thresholds)
+	// Stick with direct/public route
+	default:
+		drs.bestRoute = publicIp
+		switch {
+		case drs.bestRoute == publicIp:
+			reason = routeselector.NewReason(routeselector.ReasonNoChange, 0, 0)
+		case prevStatsOK:
+			reason = routeselector.NewReason(routeselector.ReasonLatency,
+				prevStats.Latency(), publicStats.Latency())
+		default:
+			reason = routeselector.NewReason(routeselector.ReasonNewRoute, 0, publicStats.Latency())
+
+		}
 	}
 
-	drs.bestRoute = publicIp
-	return routeselector.NewReason(routeselector.ReasonLatency, 0, 0)
+	return reason
 }
