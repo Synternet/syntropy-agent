@@ -230,3 +230,64 @@ func TestDirectRouteThresholdsChange(t *testing.T) {
 	}
 
 }
+
+func TestDirectRouteUnderdog(t *testing.T) {
+	cfg := routeselector.RouteSelectorConfig{
+		AverageSize:              10,
+		RouteStrategy:            config.RouteStrategyDirectRoute,
+		RerouteRatio:             1.1,
+		RerouteDiff:              10,
+		RouteDeleteLossThreshold: 0,
+	}
+
+	rs := New(peerlist.NewPeerList(cfg.AverageSize), &cfg)
+	drs := rs.(*directRouteSelector)
+
+	// *** Public route as underdog test ***
+	// prepare setup as public route is not the best,
+	// but is already considered as underdog
+	drs.fillStats(0, 90, 0)
+	drs.fillStats(1, 89, 0)
+	drs.fillStats(2, 85, 0)
+	drs.fillStats(3, 99, 0)
+	drs.bestRoute = generateIP(2)
+
+	var best *routeselector.SelectedRoute
+	// check while public route as underdog
+	for i := 0; i <= int(cfg.AverageSize); i++ {
+		best = rs.BestPath()
+		if best.IP != generateIP(2).Addr() {
+			t.Errorf("Invalid best (public underdog not yet ready) %s", best.IP)
+		}
+	}
+
+	// public underdog should be ready by now
+	best = rs.BestPath()
+	if best.IP != generateIP(0).Addr() {
+		t.Errorf("Invalid best (public route as underdog was expected) %s", best.IP)
+	}
+
+	// *** Alt SDN route test
+	// prepare setup as one SDN route was chosen before,
+	// but alternative SDN is a long term underdog
+	drs.fillStats(0, 290, 0)
+	drs.fillStats(1, 89, 0)
+	drs.fillStats(2, 85, 0)
+	drs.fillStats(3, 99, 0)
+	drs.bestRoute = generateIP(1)
+
+	// check while alt sdn route as underdog
+	for i := 0; i <= int(cfg.AverageSize); i++ {
+		best = rs.BestPath()
+		if best.IP != generateIP(1).Addr() {
+			t.Errorf("Invalid best (public underdog not yet ready) %s", best.IP)
+		}
+	}
+
+	// sdn underdog should be ready by now
+	best = rs.BestPath()
+	if best.IP != generateIP(2).Addr() {
+		t.Errorf("Invalid best (public route as underdog was expected) %s", best.IP)
+	}
+
+}

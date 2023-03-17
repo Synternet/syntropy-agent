@@ -17,12 +17,29 @@ const pkgName = "DirectRouteSelector"
 
 type candidate struct {
 	route netip.Prefix
+	limit uint // candidate is recommended when count has reached the limit
 	count uint
 }
 
 func (c *candidate) reset(ip netip.Prefix) {
 	c.route = ip
 	c.count = 0
+}
+
+func (c *candidate) update(ip netip.Prefix) {
+	if c.route == ip {
+		c.count++
+	} else {
+		c.route = ip
+		c.count = 0
+	}
+}
+
+func (c *candidate) recommended(ip netip.Prefix) bool {
+	if c.route == ip && c.count >= c.limit {
+		return true
+	}
+	return false
 }
 
 type directRouteSelector struct {
@@ -37,6 +54,9 @@ func New(peerlist *peerlist.PeerList, cfg *routeselector.RouteSelectorConfig) ro
 	return &directRouteSelector{
 		peerlist: peerlist,
 		config:   cfg,
+		underdog: candidate{
+			limit: cfg.AverageSize,
+		},
 	}
 }
 
@@ -85,6 +105,7 @@ func (drs *directRouteSelector) calculate() {
 	if !newIp.IsValid() || !ok {
 		logger.Warning().Println(pkgName, "Peer", newIp.String(), "not found")
 		drs.reason.Set(routeselector.ReasonNoChange, 0, 0)
+		drs.underdog.reset(drs.bestRoute)
 		return
 	}
 
@@ -101,6 +122,7 @@ func (drs *directRouteSelector) calculate() {
 		logger.Warning().Println(pkgName, "Public route not found")
 		drs.bestRoute = newIp
 		drs.reason.Set(routeselector.ReasonNewRoute, 0, newStats.Latency())
+		drs.underdog.reset(drs.bestRoute)
 		return
 	}
 
@@ -123,6 +145,7 @@ func (drs *directRouteSelector) calculate() {
 			drs.bestRoute = publicIp
 			drs.reason.Set(routeselector.ReasonNewRoute, 0, publicStats.Latency())
 		}
+		drs.underdog.reset(drs.bestRoute)
 		return
 	}
 
@@ -167,6 +190,7 @@ func (drs *directRouteSelector) calculate() {
 				drs.reason.Set(routeselector.ReasonNewRoute, 0, newBestStats.Loss())
 			}
 		}
+		drs.underdog.reset(drs.bestRoute)
 		return
 	}
 
@@ -176,41 +200,55 @@ func (drs *directRouteSelector) calculate() {
 		if !prevStatsOK {
 			// no prev stats - cannot compare, so change to the best
 			newBestRoute = newIp
+			drs.underdog.reset(newIp)
 		} else if drs.bestRoute == newIp {
 			// if new best is current = no change is needed
 			newBestRoute = drs.bestRoute
-		} else if prevStats.Latency()/newStats.Latency() >= drs.config.RerouteRatio/2 &&
-			prevStats.Latency()-newStats.Latency() >= drs.config.RerouteDiff/2 {
+			drs.underdog.reset(drs.bestRoute)
+		} else if drs.underdog.recommended(newIp) ||
+			prevStats.Latency()/newStats.Latency() >= drs.config.RerouteRatio/2 &&
+				prevStats.Latency()-newStats.Latency() >= drs.config.RerouteDiff/2 {
 			// try prevent instant route flopping, if latencies are close to "the red line"
 			// NB: in this case use half of configured thresholds.
 			// Maybe we need another configuration variable for this?
 			// NOTE: New moment best is always not worse (better or equal) than current,
 			// so no need to compare vise versa
 			newBestRoute = newIp
+			drs.underdog.reset(newIp)
 		} else {
 			// new best route is not that best. Stay on current route
 			// But keep an eye - alternative may be better in long term
 			newBestRoute = drs.bestRoute
-			// TODO: newIp  underdog++
+			drs.underdog.update(newIp)
 		}
 	} else {
 		if drs.bestRoute == publicIp {
 			// if new best is not better than current public = no change is needed
 			newBestRoute = drs.bestRoute
+			drs.underdog.reset(drs.bestRoute)
 		} else if !prevStatsOK {
 			// no prev stats - cannot compare, so change to the best
 			newBestRoute = publicIp
+			drs.underdog.reset(publicIp)
 		} else if prevStats.Latency() > publicStats.Latency() {
 			newBestRoute = publicIp
+			drs.underdog.reset(publicIp)
+		} else if drs.underdog.recommended(publicIp) {
+			// Longer term underdog monitoring recommends using public route
+			newBestRoute = publicIp
+			drs.underdog.reset(publicIp)
 		} else if publicStats.Latency()/prevStats.Latency() >= drs.config.RerouteRatio/2 &&
 			publicStats.Latency()-prevStats.Latency() >= drs.config.RerouteDiff/2 {
 			// try prevent instant route flopping, if latencies are close to "the red line"
 			// NB: in this case use half of configured thresholds.
 			// Maybe we need another configuration variable for this?
 			newBestRoute = drs.bestRoute
-			// TODO: public underdog++
+			// stayed on current route, but public route can be better in longer term
+			// keep an eye on it
+			drs.underdog.update(publicIp)
 		} else {
 			newBestRoute = publicIp
+			drs.underdog.reset(publicIp)
 		}
 	}
 
