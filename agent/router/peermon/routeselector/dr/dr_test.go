@@ -42,13 +42,90 @@ func (drs *directRouteSelector) fillStats(index int, latency, loss float32) {
 	}
 }
 
+func (drs *directRouteSelector) addStats(index int, latency, loss float32) {
+	peer, ok := drs.peerlist.GetPeer(generateIP(index))
+	if ok {
+		peer.Add(latency, loss)
+	}
+}
+
+// Tests DirectRoute selector with moment best values
+// (without taking into account previous values)
+func TestDirectRouteSelectorMomentary(t *testing.T) {
+	cfg := routeselector.RouteSelectorConfig{
+		AverageSize:              10,
+		RouteStrategy:            config.RouteStrategyDirectRoute,
+		RerouteRatio:             1.1,
+		RerouteDiff:              10,
+		RouteDeleteLossThreshold: 0,
+	}
+
+	testData := []testEntry{
+		{
+			// Big differences, public best
+			latency: [pathsCount]float32{20, 500, 300, 35},
+			best:    [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			// big differences, public not best
+			latency: [pathsCount]float32{500, 1000, 1000, 200},
+			best:    [pathsCount]int{3, 3, 3, 3},
+		},
+		{
+			// small diffs, public best
+			latency: [pathsCount]float32{100, 105, 110, 120},
+			best:    [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			// small diffs, public not best
+			latency: [pathsCount]float32{100, 110, 85, 75},
+			best:    [pathsCount]int{3, 3, 3, 3},
+		},
+		{
+			// small diffs, public not best
+			latency: [pathsCount]float32{90, 85, 82, 99},
+			best:    [pathsCount]int{0, 0, 0, 0},
+		},
+		{
+			// Test with correct thresholds
+			latency: [pathsCount]float32{100, 90, 82, 85},
+			best:    [pathsCount]int{2, 2, 2, 2},
+		},
+		{
+			// Test with thresholds not reached
+			latency: [pathsCount]float32{100, 95, 105, 100},
+			best:    [pathsCount]int{0, 0, 0, 0},
+		},
+	}
+
+	for testIndex, test := range testData {
+		rs := New(peerlist.NewPeerList(cfg.AverageSize), &cfg)
+		drs := rs.(*directRouteSelector)
+
+		for i, latency := range test.latency {
+			drs.fillStats(i, latency, 0)
+		}
+
+		for j := 0; j < pathsCount; j++ {
+			// invalidate previous best
+			drs.bestRoute = netip.Prefix{}
+
+			best := rs.BestPath()
+			if best.IP != generateIP(test.best[j]).Addr() {
+				t.Errorf("Momentary direct route selector test %d/%d failed (%s vs %s). %s",
+					testIndex, j, best.IP, generateIP(test.best[j]), drs.reason.String())
+			}
+		}
+	}
+}
+
 // Tests DirectRoute selector taking into account previous values
 func TestDirectRouteSelector(t *testing.T) {
 	cfg := routeselector.RouteSelectorConfig{
 		AverageSize:              10,
 		RouteStrategy:            config.RouteStrategyDirectRoute,
 		RerouteRatio:             1.1,
-		RerouteDiff:              20,
+		RerouteDiff:              10,
 		RouteDeleteLossThreshold: 0,
 	}
 
@@ -66,20 +143,24 @@ func TestDirectRouteSelector(t *testing.T) {
 			best:    [pathsCount]int{0, 0, 0, 0},
 		},
 		{
-			latency: [pathsCount]float32{100, 110, 85, 78},
+			latency: [pathsCount]float32{100, 110, 85, 75},
 			best:    [pathsCount]int{3, 3, 3, 3},
 		},
 		{
-			latency: [pathsCount]float32{90, 85, 82, 99},
+			latency: [pathsCount]float32{90, 89, 85, 99},
+			best:    [pathsCount]int{0, 0, 2, 0},
+		},
+		{
+			latency: [pathsCount]float32{90, 89, 87, 92},
 			best:    [pathsCount]int{0, 0, 0, 0},
 		},
 		{
-			latency: [pathsCount]float32{100, 90, 85, 82},
-			best:    [pathsCount]int{0, 1, 2, 3},
+			latency: [pathsCount]float32{100, 95, 93, 100},
+			best:    [pathsCount]int{0, 1, 2, 0},
 		},
 		{
 			latency: [pathsCount]float32{100, 105, 95, 100},
-			best:    [pathsCount]int{0, 0, 0, 0},
+			best:    [pathsCount]int{0, 0, 2, 0},
 		},
 	}
 
@@ -96,9 +177,56 @@ func TestDirectRouteSelector(t *testing.T) {
 
 			best := rs.BestPath()
 			if best.IP != generateIP(test.best[j]).Addr() {
-				t.Errorf("Direct route selector test %d/%d failed (%s vs %s)",
-					testIndex, j, best.IP, generateIP(test.best[j]))
+				t.Errorf("Direct route selector test %d/%d failed (%s vs %s). %s",
+					testIndex, j, best.IP, generateIP(test.best[j]), drs.reason.String())
 			}
 		}
 	}
+}
+
+func TestDirectRouteThresholdsChange(t *testing.T) {
+	cfg := routeselector.RouteSelectorConfig{
+		AverageSize:              10,
+		RouteStrategy:            config.RouteStrategyDirectRoute,
+		RerouteRatio:             1.1,
+		RerouteDiff:              10,
+		RouteDeleteLossThreshold: 0,
+	}
+
+	rs := New(peerlist.NewPeerList(cfg.AverageSize), &cfg)
+	drs := rs.(*directRouteSelector)
+
+	drs.fillStats(0, 100, 0)
+	drs.fillStats(1, 105, 0)
+	drs.fillStats(2, 91, 0)
+	drs.fillStats(3, 95, 0)
+
+	best := rs.BestPath()
+	if best.IP != generateIP(0).Addr() {
+		t.Errorf("Invalid initial best %s", best.IP)
+	}
+
+	best = rs.BestPath()
+	if best.IP != generateIP(0).Addr() {
+		t.Errorf("Invalid initial best retry %s", best.IP)
+	}
+
+	drs.addStats(2, 85, 0) // Latency = 90.4
+	best = rs.BestPath()
+	if best.IP != generateIP(0).Addr() {
+		t.Errorf("Invalid not reached thresholds best %s", best.IP)
+	}
+
+	drs.addStats(2, 80, 0) // Latency = 89.3
+	best = rs.BestPath()
+	if best.IP != generateIP(2).Addr() {
+		t.Errorf("Invalid reached thresholds best %s", best.IP)
+	}
+
+	drs.addStats(3, 10, 0) // Latency = 86.5 vs 89.3 (previous)
+	best = rs.BestPath()
+	if best.IP != generateIP(2).Addr() {
+		t.Errorf("Invalid incremented, but not reached thresholds best %s", best.IP)
+	}
+
 }

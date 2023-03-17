@@ -24,6 +24,12 @@ func NewReason(r int, o, n float32) *RouteChangeReason {
 	}
 }
 
+func (rr *RouteChangeReason) Set(r int, o, n float32) {
+	rr.reason = r
+	rr.oldval = o
+	rr.newval = n
+}
+
 func (rr *RouteChangeReason) Reason() string {
 	switch rr.reason {
 	case ReasonNoChange:

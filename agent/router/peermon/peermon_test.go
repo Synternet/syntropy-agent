@@ -205,7 +205,7 @@ func TestPeerMonitorDirectRouteStrategy(t *testing.T) {
 	fillStats(addr4, 95, 0)
 	best = pm.BestPath()
 	if best.IP != addr4.Addr() {
-		t.Errorf("Test without threshold %s", best.IP)
+		t.Errorf("Test without threshold %s. Reason: %s", best.IP, best.Reason.String())
 	}
 
 	// Too small threshold - no change
@@ -213,7 +213,7 @@ func TestPeerMonitorDirectRouteStrategy(t *testing.T) {
 	cfg.RerouteRatio = 1.03
 	best = pm.BestPath()
 	if best.IP != addr4.Addr() {
-		t.Errorf("Test with too small threshold %s", best.IP)
+		t.Errorf("Test with too small threshold %s. Reason: %s", best.IP, best.Reason.String())
 	}
 
 	// Threshold hit
@@ -221,21 +221,21 @@ func TestPeerMonitorDirectRouteStrategy(t *testing.T) {
 	cfg.RerouteRatio = 1.1
 	best = pm.BestPath()
 	if best.IP != addr1.Addr() {
-		t.Errorf("Test with correct threshold %s", best.IP)
+		t.Errorf("Test with correct threshold %s. Reason: %s", best.IP, best.Reason.String())
 	}
 
 	// increase latency a little and calculate best
 	addStats(addr1, 1, 300, 0) // latency ~108
 	best = pm.BestPath()
 	if best.IP != addr4.Addr() {
-		t.Errorf("Test with increased latency %s", best.IP)
+		t.Errorf("Test with increased latency %s. Reason: %s", best.IP, best.Reason.String())
 	}
 
 	// Reduce latency close to threshold
 	addStats(addr1, 5, 50, 0) // latency = 93.75
 	best = pm.BestPath()
 	if best.IP != addr1.Addr() {
-		t.Errorf("Test with too big threshold %s", best.IP)
+		t.Errorf("Test with too big threshold %s. Reason: %s", best.IP, best.Reason.String())
 	}
 
 	// test incomplete statistics
@@ -247,7 +247,7 @@ func TestPeerMonitorDirectRouteStrategy(t *testing.T) {
 
 	best = pm.BestPath()
 	if best.IP != addr1.Addr() {
-		t.Errorf("Test with incomplete statistics %s", best.IP)
+		t.Errorf("Test with incomplete statistics %s. Reason: %s", best.IP, best.Reason.String())
 		t.Error(peer.Valid(), peer.StatsIncomplete(), peer.Latency())
 	}
 }
