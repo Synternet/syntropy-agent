@@ -7,7 +7,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v3 v3.0.2
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/decred/base58 v1.0.4
-	github.com/docker/docker v20.10.16+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/google/go-cmp v0.5.8
 	github.com/gorilla/websocket v1.5.0
 	github.com/ipfs/go-ipfs-api v0.3.0
